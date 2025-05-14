@@ -69,7 +69,7 @@ app.use(session({
         client: client,
         dbName: DBNAME,
         collectionName: 'sessions',
-        // stringify: false, // REMOVE THIS LINE or explicitly set it to true
+        stringify: true, // REMOVE THIS LINE or explicitly set it to true
         ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
