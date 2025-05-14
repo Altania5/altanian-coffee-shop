@@ -76,6 +76,7 @@ app.use(session({
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (requires HTTPS)
         httpOnly: true, // Helps prevent XSS attacks
         maxAge: 1000 * 60 * 60 * 24 // Cookie expiry in milliseconds (e.g., 24 hours)
+        
     }
 }));
 
@@ -187,24 +188,41 @@ app.post('/login', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
-    if (req.session.user) {
+    console.log(`------ isAuthenticated CHECK ------`);
+    console.log(`Path: ${req.method} ${req.path}`);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session Exists:', !!req.session); // Does the session object exist?
+    console.log('Session User Data:', JSON.stringify(req.session.user, null, 2)); // What's in user?
+
+    if (req.session && req.session.user) {
+        console.log(`User ${req.session.user.username} (Role: ${req.session.user.role}) IS Authenticated.`);
         return next();
-    }
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
     } else {
-        return res.redirect('/');
+        console.log('User NOT Authenticated. Redirecting to /.');
+        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
+            return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
+        } else {
+            return res.redirect('/');
+        }
     }
 }
 
 function isAdmin(req, res, next) {
-    if (req.session.user && req.session.user.role === 'admin') {
+    console.log(`------ isAdmin CHECK ------`);
+    console.log(`Path: ${req.method} ${req.path}`);
+    // isAuthenticated should have ensured req.session.user exists if it passed
+    if (req.session && req.session.user && req.session.user.role === 'admin') {
+        console.log(`User ${req.session.user.username} IS an Admin.`);
         return next();
-    }
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.status(403).json({ success: false, message: 'Forbidden. Admin access required.' });
     } else {
-        return res.redirect('/');
+        console.log('User IS NOT an Admin or session/user data missing.');
+        console.log('Current Session User Data for isAdmin check:', JSON.stringify(req.session.user, null, 2));
+        console.log('Redirecting to /.');
+        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
+            return res.status(403).json({ success: false, message: 'Forbidden. Admin access required.' });
+        } else {
+            return res.redirect('/');
+        }
     }
 }
 
