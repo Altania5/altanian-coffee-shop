@@ -164,24 +164,43 @@ app.post('/login', async (req, res) => {
              req.session.user = {
                  id: user._id.toHexString(),
                  username: user.username,
-                 role: user.role || 'customer' // Ensure role is assigned
+                 role: user.role || 'customer'
              };
-             console.log('Login successful, session user data set for:', req.session.user);
+             // Previous log:
+             // console.log('Login successful, session user data set for:', req.session.user);
+             // New, more detailed logging:
+             console.log('[Login] req.session.user populated with:', req.session.user);
+             try {
+                 console.log('[Login] Full req.session object BEFORE save:', JSON.stringify(req.session, null, 2));
+             } catch (e) {
+                 console.log('[Login] Could not stringify req.session before save:', e.message);
+             }
 
-             // Explicitly save the session before sending the response
              req.session.save(err => {
                  if (err) {
-                     console.error('Session save error:', err);
-                     // It's important to still send a response, even on error
+                     console.error('[Login] Session save error:', err);
+                     try {
+                        console.log('[Login] Full req.session object ON SAVE ERROR:', JSON.stringify(req.session, null, 2));
+                     } catch (e) {
+                        console.log('[Login] Could not stringify req.session on save error:', e.message);
+                     }
                      return res.status(500).json({ success: false, message: 'Session save error occurred.' });
                  }
-                 // Session has been saved, now send the response
-                 console.log('Session saved to store. Sending login success response.');
+                 // Previous log:
+                 // console.log('Session saved to store. Sending login success response.');
+                 // New, more detailed logging:
+                 console.log('[Login] Session save callback: Success! Session should be in store.');
+                 try {
+                    console.log('[Login] Full req.session object IN SAVE CALLBACK (after presumed save):', JSON.stringify(req.session, null, 2));
+                 } catch (e) {
+                    console.log('[Login] Could not stringify req.session in save callback:', e.message);
+                 }
+
                  res.status(200).json({
                      success: true,
                      message: 'Login successful!',
-                     user: { // Send user data back to client as before
-                         id: req.session.user.id,
+                     user: {
+                         id: req.session.user.id, // Ensure req.session.user is still accessible here
                          username: req.session.user.username,
                          role: req.session.user.role
                      }
@@ -191,27 +210,47 @@ app.post('/login', async (req, res) => {
             res.status(401).json({ success: false, message: 'Invalid username or password.' });
         }
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('[Login] Outer catch error:', error);
         res.status(500).json({ success: false, message: 'An error occurred during login.' });
     }
 });
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
-    console.log(`------ isAuthenticated CHECK ------`);
-    console.log(`Path: ${req.method} ${req.path}`);
+    console.log('------ isAuthenticated CHECK ------');
+    console.log('Path:', req.method, req.originalUrl);
     console.log('Session ID:', req.sessionID);
-    console.log('Session Exists:', !!req.session); // Does the session object exist?
-    console.log('Session User Data:', JSON.stringify(req.session.user, null, 2)); // What's in user?
 
-    if (req.session && req.session.user) {
-        console.log(`User ${req.session.user.username} (Role: ${req.session.user.role}) IS Authenticated.`);
+    if (!req.session) {
+        console.log('[AuthCheck] No session object found (req.session is falsy).');
+        // This case doesn't seem to be happening based on your current logs,
+        // but it's good for completeness.
+        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
+            return res.status(401).json({ success: false, message: 'Unauthorized. No session.' });
+        } else {
+            return res.redirect('/');
+        }
+    }
+
+    // Log the entire session object retrieved from the store
+    console.log('[AuthCheck] Session Exists (req.session is truthy).');
+    try {
+        console.log('[AuthCheck] Full loaded req.session object from store:', JSON.stringify(req.session, null, 2));
+    } catch (e) {
+        console.log('[AuthCheck] Could not stringify loaded req.session:', e.message);
+        console.log('[AuthCheck] Loaded req.session object (raw):', req.session); // Fallback log
+    }
+
+    if (req.session.user) {
+        console.log('[AuthCheck] User is Authenticated. Session User Data:', req.session.user);
         return next();
     } else {
-        console.log('User NOT Authenticated. Redirecting to /.');
+        console.log('[AuthCheck] User NOT Authenticated (req.session.user is falsy/missing).');
+        // Redirect or send error as before
         if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
             return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
         } else {
+            console.log('[AuthCheck] Redirecting to /.');
             return res.redirect('/');
         }
     }
