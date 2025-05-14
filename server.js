@@ -188,18 +188,24 @@ app.post('/login', async (req, res) => {
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
     if (req.session.user) {
-        return next(); // User is authenticated, proceed
+        return next();
     }
-    // For API requests, send a JSON error. For browser requests, you might redirect.
-    res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
-    // Example redirect for browser: res.redirect('/');
+    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
+    } else {
+        return res.redirect('/');
+    }
 }
 
 function isAdmin(req, res, next) {
     if (req.session.user && req.session.user.role === 'admin') {
-        return next(); // User is an admin, proceed
+        return next();
     }
-    res.status(403).json({ success: false, message: 'Forbidden. Admin access required.' });
+    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(403).json({ success: false, message: 'Forbidden. Admin access required.' });
+    } else {
+        return res.redirect('/');
+    }
 }
 
 // Protected Dashboard Route (Example)
