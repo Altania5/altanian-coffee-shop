@@ -161,38 +161,37 @@ app.post('/login', async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (isMatch) {
-            // Set user information in the session
-            req.session.user = {
-                id: user._id.toHexString(),
-                username: user.username,
-                role: user.role || 'customer'
-            };
+             req.session.user = {
+                 id: user._id.toHexString(),
+                 username: user.username,
+                 role: user.role || 'customer' // Ensure role is assigned
+             };
+             console.log('Login successful, session user data set for:', req.session.user);
 
-            // Explicitly save the session before sending the response
-            req.session.save(err => {
-                if (err) {
-                    console.error('Session save error:', err);
-                    return res.status(500).json({ success: false, message: 'Failed to save session.' });
-                }
-
-                // Session saved successfully
-                console.log('Login successful, session CREATED AND SAVED for:', req.session.user);
-                res.status(200).json({
-                    success: true,
-                    message: 'Login successful!',
-                    user: { // Send user data back to client for immediate UI update or redirect logic
-                        id: user._id.toHexString(),
-                        username: user.username,
-                        role: user.role || 'customer'
-                    }
-                });
-            });
-
-        } else {
+             // Explicitly save the session before sending the response
+             req.session.save(err => {
+                 if (err) {
+                     console.error('Session save error:', err);
+                     // It's important to still send a response, even on error
+                     return res.status(500).json({ success: false, message: 'Session save error occurred.' });
+                 }
+                 // Session has been saved, now send the response
+                 console.log('Session saved to store. Sending login success response.');
+                 res.status(200).json({
+                     success: true,
+                     message: 'Login successful!',
+                     user: { // Send user data back to client as before
+                         id: req.session.user.id,
+                         username: req.session.user.username,
+                         role: req.session.user.role
+                     }
+                 });
+             });
+         } else {
             res.status(401).json({ success: false, message: 'Invalid username or password.' });
         }
     } catch (error) {
-        console.error('Login DB error:', error);
+        console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'An error occurred during login.' });
     }
 });
