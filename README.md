@@ -227,3 +227,25 @@ Distributed under the MIT License. See `LICENSE.txt` for more information. (***C
 ---
 
 **Remember to replace placeholder text like `<your-repository-url>`, `<repository-name>`, `<your_local_database_connection_string>`, `server.js` (if different), Node.js version, etc., with your actual project details.**
+
+# 1. (Save files in editor)
+# 2. Check status (optional)
+git status
+
+# 3. Stage changes
+git add . # Or specific files
+
+# 4. Commit changes
+git commit -m "Your commit message"
+
+# 5. Push to GitHub/GitLab (optional but recommended)
+# git push origin main
+
+# 6. Push to Heroku to deploy
+git push heroku main # Or master:main, or just master
+
+# 7. Check logs
+heroku logs --tail --app your-heroku-app-name
+
+# 8. Open and test live app
+heroku open --app your-heroku-app-name
