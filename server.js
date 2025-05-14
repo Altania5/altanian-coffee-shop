@@ -63,20 +63,20 @@ app.use(express.urlencoded({ extended: true })); // To parse URL-encoded request
 // Session Configuration (using connect-mongo with native client)
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    resave: false, // Don't save session if unmodified
-    saveUninitialized: false, // Don't create session until something stored
+    resave: false,
+    saveUninitialized: false,
     store: MongoStore.create({
-        client: client, // Pass the connected MongoClient instance
-        dbName: DBNAME, // Specify the database name for sessions
-        collectionName: 'sessions', // Optional: name for the sessions collection
-        stringify: false, // Store JS objects directly (default is true, which stringifies)
-        ttl: 14 * 24 * 60 * 60 // Session TTL in seconds (e.g., 14 days)
+        client: client,
+        dbName: DBNAME,
+        collectionName: 'sessions',
+        // stringify: false, // REMOVE THIS LINE or explicitly set it to true
+        ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (requires HTTPS)
-        httpOnly: true, // Helps prevent XSS attacks
-        maxAge: 1000 * 60 * 60 * 24 // Cookie expiry in milliseconds (e.g., 24 hours)
-        
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24
+        // sameSite: 'lax' // You can consider adding this for better security, though 'Lax' is often default
     }
 }));
 
