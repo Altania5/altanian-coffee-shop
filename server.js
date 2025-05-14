@@ -162,26 +162,38 @@ app.post('/login', async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (isMatch) {
-             req.session.user = {
-                 id: user._id.toHexString(),
-                 username: user.username,
-                 role: user.role || 'customer' // Add role, default to 'customer' if not set
-             };
-             console.log('Login successful, session created for:', req.session.user); // Now includes role
-             res.status(200).json({
-                 success: true,
-                 message: 'Login successful!',
-                 user: {
-                     id: user._id.toHexString(),
-                     username: user.username,
-                     role: user.role || 'customer'
-                 }
-             });
-         } else {
+            // Set user information in the session
+            req.session.user = {
+                id: user._id.toHexString(),
+                username: user.username,
+                role: user.role || 'customer'
+            };
+
+            // Explicitly save the session before sending the response
+            req.session.save(err => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.status(500).json({ success: false, message: 'Failed to save session.' });
+                }
+
+                // Session saved successfully
+                console.log('Login successful, session CREATED AND SAVED for:', req.session.user);
+                res.status(200).json({
+                    success: true,
+                    message: 'Login successful!',
+                    user: { // Send user data back to client for immediate UI update or redirect logic
+                        id: user._id.toHexString(),
+                        username: user.username,
+                        role: user.role || 'customer'
+                    }
+                });
+            });
+
+        } else {
             res.status(401).json({ success: false, message: 'Invalid username or password.' });
         }
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login DB error:', error);
         res.status(500).json({ success: false, message: 'An error occurred during login.' });
     }
 });
