@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const MongoStore = require('connect-mongo'); // For storing sessions in MongoDB
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb'); // Native MongoDB driver
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -461,6 +462,168 @@ app.delete('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
     } catch (error) {
         console.error("Error deleting menu item:", error);
         res.status(500).json({ success: false, message: 'Failed to delete menu item.' });
+    }
+});
+
+app.get('/tycoon.html', isAuthenticated, (req, res) => { // Protect the game page
+    res.sendFile(path.join(__dirname, 'public', 'tycoon.html'));
+});
+
+const farmSchema = new mongoose.Schema({
+    regionName: { type: String, required: true },
+    beanType: { type: String, required: true },
+    costToInvest: { type: Number, required: true, default: 1000 },
+    yieldPerCycle: { type: Number, required: true, default: 10 }, // kg
+    cycleDuration: { type: Number, default: 24 * 60 * 60 * 1000 * 7 }, // 7 days in ms
+    currentCycleProgress: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    lastHarvestTime: {type: Date, default: Date.now }
+});
+
+const cafeSchema = new mongoose.Schema({
+    cityName: { type: String, required: true },
+    size: { type: String, default: 'Small Kiosk' },
+    operationalCostPerCycle: { type: Number, default: 100 },
+    revenuePerCycle: {type: Number, default: 150}, // Simplified for now
+    isActive: { type: Boolean, default: true }
+});
+
+const playerGameProfileSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    gameName: { type: String, default: 'Global Brew Tycoon' },
+    money: { type: Number, default: 5000 }, // Starting cash
+    ownedFarms: [farmSchema],
+    ownedCafes: [cafeSchema],
+    inventory: { type: Map, of: Number, default: {} }, // e.g., { "Green Ethiopian Yirgacheffe": 0 }
+    lastTickProcessed: { type: Date, default: Date.now }
+});
+
+const PlayerGameProfile = mongoose.model('PlayerGameProfile', playerGameProfileSchema);
+// Note: If Farm and Cafe were separate collections, you'd do:
+// const Farm = mongoose.model('Farm', farmSchema);
+// const Cafe = mongoose.model('Cafe', cafeSchema);
+// And in PlayerGameProfile, ownedFarms would be [ { type: mongoose.Schema.Types.ObjectId, ref: 'Farm' } ]
+
+// --- Game API Endpoints ---
+
+// Middleware to get or create game profile
+async function getOrCreateGameProfile(req, res, next) {
+    if (!req.session.user) {
+        return res.status(401).json({ success: false, message: "User not authenticated." });
+    }
+    try {
+        let profile = await PlayerGameProfile.findOne({ userId: req.session.user.id });
+        if (!profile) {
+            profile = new PlayerGameProfile({
+                userId: req.session.user.id,
+                // Initialize with a starting farm or cart if desired
+                // ownedFarms: [{ regionName: 'My First Plot', beanType: 'Generic Bean', costToInvest: 0, yieldPerCycle: 5, cycleDuration: 60000 }]
+            });
+            await profile.save();
+            console.log(`New game profile created for user ${req.session.user.id}`);
+        }
+        req.gameProfile = profile;
+        next();
+    } catch (error) {
+        console.error("Error in getOrCreateGameProfile:", error);
+        res.status(500).json({ success: false, message: "Error accessing game profile." });
+    }
+}
+
+// Endpoint to get current game state (creates if not exists)
+app.get('/api/game/tycoon/state', isAuthenticated, getOrCreateGameProfile, (req, res) => {
+    // Potentially run game tick logic here before sending state
+    res.status(200).json({ success: true, data: req.gameProfile });
+});
+
+// Static data for farm options for now
+const farmOptions = [
+    { id: "ethiopia_yirgacheffe", regionName: "Ethiopia", beanType: "Yirgacheffe", costToInvest: 1500, yieldPerCycle: 15, cycleDurationDays: 7 },
+    { id: "colombia_supremo", regionName: "Colombia", beanType: "Supremo", costToInvest: 1200, yieldPerCycle: 20, cycleDurationDays: 5 },
+    { id: "vietnam_robusta", regionName: "Vietnam", beanType: "Robusta", costToInvest: 800, yieldPerCycle: 25, cycleDurationDays: 4 },
+];
+
+app.get('/api/game/tycoon/world/farm-options', isAuthenticated, (req, res) => {
+    res.status(200).json({ success: true, data: farmOptions });
+});
+
+app.post('/api/game/tycoon/action/invest-farm', isAuthenticated, getOrCreateGameProfile, async (req, res) => {
+    const { farmOptionId } = req.body;
+    const profile = req.gameProfile;
+
+    const selectedOption = farmOptions.find(f => f.id === farmOptionId);
+    if (!selectedOption) {
+        return res.status(400).json({ success: false, message: "Invalid farm option selected." });
+    }
+
+    if (profile.money < selectedOption.costToInvest) {
+        return res.status(400).json({ success: false, message: "Not enough money to invest." });
+    }
+
+    profile.money -= selectedOption.costToInvest;
+    profile.ownedFarms.push({
+        regionName: selectedOption.regionName,
+        beanType: selectedOption.beanType,
+        costToInvest: selectedOption.costToInvest,
+        yieldPerCycle: selectedOption.yieldPerCycle,
+        cycleDuration: selectedOption.cycleDurationDays * 24 * 60 * 60 * 1000, // Convert days to ms
+        lastHarvestTime: Date.now() // Start cycle from now
+    });
+
+    try {
+        await profile.save();
+        res.status(200).json({ success: true, message: `Successfully invested in ${selectedOption.beanType} farm in ${selectedOption.regionName}!`, data: profile });
+    } catch (error) {
+        console.error("Error investing in farm:", error);
+        // Consider reverting money if save fails, or use transactions if your DB supports it well with Mongoose
+        res.status(500).json({ success: false, message: "Error saving farm investment." });
+    }
+});
+
+// --- Game Tick Logic (Conceptual - to be expanded) ---
+// This would be called periodically or on certain player actions
+async function processGameTick(profile) {
+    const now = Date.now();
+    let changed = false;
+
+    // Process farms
+    profile.ownedFarms.forEach(farm => {
+        if (farm.isActive) {
+            const timeSinceLastHarvest = now - new Date(farm.lastHarvestTime).getTime();
+            if (timeSinceLastHarvest >= farm.cycleDuration) {
+                const cyclesCompleted = Math.floor(timeSinceLastHarvest / farm.cycleDuration);
+                const beansHarvested = cyclesCompleted * farm.yieldPerCycle;
+                
+                const inventoryKey = `Green ${farm.beanType}`;
+                profile.inventory.set(inventoryKey, (profile.inventory.get(inventoryKey) || 0) + beansHarvested);
+                
+                farm.lastHarvestTime = new Date(new Date(farm.lastHarvestTime).getTime() + cyclesCompleted * farm.cycleDuration); // Advance harvest time
+                console.log(`Harvested ${beansHarvested}kg of ${farm.beanType} for user ${profile.userId}`);
+                changed = true;
+            }
+        }
+    });
+
+    // Process cafes (simplified)
+    // profile.ownedCafes.forEach(cafe => {
+    // if (cafe.isActive) { /* Add cafe logic, deduct operational costs, add revenue */ }
+    // });
+
+    profile.lastTickProcessed = now;
+    if (changed) {
+        await profile.save();
+    }
+    return profile;
+}
+
+// Example of how to potentially call tick before sending state:
+app.get('/api/game/tycoon/state/ticked', isAuthenticated, getOrCreateGameProfile, async (req, res) => {
+    try {
+        const updatedProfile = await processGameTick(req.gameProfile);
+        res.status(200).json({ success: true, data: updatedProfile });
+    } catch (error) {
+        console.error("Error processing game tick:", error);
+        res.status(500).json({ success: false, message: "Error processing game state." });
     }
 });
 

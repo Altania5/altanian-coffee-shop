@@ -33,7 +33,7 @@ const loginMessage = document.getElementById('loginMessage');
                         loginMessage.textContent = data.message || 'Login successful! Redirecting to menu...';
                         loginMessage.classList.add('success');
                         console.log('User login successful:', data.user);
-                        window.location.href = '/menu'; // Redirect regular user to public menu
+                        window.location.href = '/tycoon.html'; // Redirect regular user to public menu
                     } else {
                         // Should not happen if response.ok and login is successful, but good to have a fallback
                         loginMessage.textContent = 'Login successful, but user data not found. Redirecting to menu.';
