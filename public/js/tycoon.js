@@ -12,30 +12,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameContent = document.getElementById('gameContent');
 
     async function checkAuthAndLoadGame() {
-        try {
-            // We can use an existing authenticated route or create a simple one
-            const authResponse = await fetch('/dashboard'); // Or any route that checks session
-            if (authResponse.ok) {
-                const authData = await authResponse.json();
-                if (authData.success && authData.user) {
-                    console.log("User authenticated:", authData.user);
-                    gameContent.style.display = 'block';
-                    authMessageContainer.style.display = 'none';
-                    fetchGameState();
-                    fetchFarmOptions();
-                } else {
-                    throw new Error('User not properly authenticated');
-                }
+    console.log('tycoon.js: checkAuthAndLoadGame called');
+    try {
+        const authResponse = await fetch('/dashboard');
+        console.log('tycoon.js: /dashboard response status:', authResponse.status);
+
+        if (authResponse.ok) {
+            const authData = await authResponse.json();
+            console.log('tycoon.js: /dashboard response data:', authData);
+
+            if (authData.success && authData.user && authData.user.id) { // More specific check for user.id
+                console.log("tycoon.js: User authenticated:", authData.user);
+                gameContent.style.display = 'block';
+                authMessageContainer.style.display = 'none';
+                fetchGameState(); // This will then call getOrCreateGameProfile on the server
+                fetchFarmOptions();
             } else {
-                 throw new Error('Authentication check failed');
+                console.error('tycoon.js: User not properly authenticated via /dashboard response. authData.success:', authData.success, 'authData.user:', authData.user);
+                throw new Error('User data missing or invalid in /dashboard response.');
             }
-        } catch (error) {
-            console.error('Authentication/init error:', error);
-            gameContent.style.display = 'none';
-            authMessageContainer.textContent = 'You need to be logged in to play Global Brew Tycoon. Please log in or register.';
-            authMessageContainer.style.display = 'block';
+        } else {
+             const errorText = await authResponse.text();
+             console.error(`tycoon.js: Authentication check via /dashboard failed. Status: ${authResponse.status}, Text: ${errorText}`);
+             throw new Error(`Authentication check failed (status: ${authResponse.status})`);
         }
+    } catch (error) {
+        console.error('tycoon.js: Authentication/init error:', error);
+        gameContent.style.display = 'none';
+        authMessageContainer.textContent = 'You need to be logged in to play Global Brew Tycoon. Please log in or register.';
+        authMessageContainer.style.display = 'block';
     }
+}
 
 
     async function fetchGameState(useTickedEndpoint = false) {

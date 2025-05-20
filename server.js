@@ -30,6 +30,21 @@ const client = new MongoClient(mongoUri, {
 let db; // To store the database instance, e.g., for db.collection('users')
 const DBNAME = "coffeeshop_app_db"; // Define your database name here
 
+async function connectMongoose() {
+    try {
+        await mongoose.connect(mongoUri, { // Use the same mongoUri
+            dbName: DBNAME, // Specify the database name for Mongoose as well
+            useNewUrlParser: true, // Add common Mongoose options
+            useUnifiedTopology: true
+        });
+        console.log(`Mongoose connected successfully to MongoDB for game models! Database: ${DBNAME}`);
+    } catch (err) {
+        console.error("Failed to connect Mongoose to MongoDB for game models:", err);
+        // Decide if this is a fatal error for your app.
+        // If the game is essential, you might process.exit(1);
+    }
+}
+
 async function connectDB() {
     try {
         await client.connect();
@@ -37,6 +52,7 @@ async function connectDB() {
         await db.command({ ping: 1 });
         console.log(`Successfully connected to MongoDB! Database: ${DBNAME}`);
 
+        await connectMongoose();
         const usersCollection = db.collection('users');
         await usersCollection.createIndex({ username: 1 }, { unique: true });
         console.log("Ensured unique index on users.username");
@@ -278,6 +294,7 @@ function isAdmin(req, res, next) {
 
 // Protected Dashboard Route (Example)
 app.get('/dashboard', isAuthenticated, (req, res) => {
+    console.log('/dashboard route, req.session.user:', req.session.user);
     res.status(200).json({
         success: true,
         message: `Welcome to your dashboard, ${req.session.user.username}!`,
