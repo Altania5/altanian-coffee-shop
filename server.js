@@ -86,12 +86,12 @@ app.use(session({
         client: client,
         dbName: DBNAME,
         collectionName: 'sessions',
-        stringify: false, // <--- THIS IS THE LINE TO ADD/CHANGE. It might have been missing or set to false.
+        stringify: false,
         ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
         // Set secure only in production, or if explicitly configured for HTTPS in dev
-        secure: process.env.NODE_ENV === 'production' || process.env.SESSION_COOKIE_SECURE === 'true',
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24
         // sameSite: 'lax' // You can consider adding this for better security, though 'Lax' is often default
