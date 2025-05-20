@@ -90,7 +90,8 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        // Set secure only in production, or if explicitly configured for HTTPS in dev
+        secure: process.env.NODE_ENV === 'production' || process.env.SESSION_COOKIE_SECURE === 'true',
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24
         // sameSite: 'lax' // You can consider adding this for better security, though 'Lax' is often default
