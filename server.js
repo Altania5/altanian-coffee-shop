@@ -86,7 +86,7 @@ app.use(session({
         client: client,
         dbName: DBNAME,
         collectionName: 'sessions',
-        stringify: true, // <--- THIS IS THE LINE TO ADD/CHANGE. It might have been missing or set to false.
+        stringify: false, // <--- THIS IS THE LINE TO ADD/CHANGE. It might have been missing or set to false.
         ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
