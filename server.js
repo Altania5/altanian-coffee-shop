@@ -148,6 +148,7 @@ app.post('/register', async (req, res) => {
         const result = await usersCollection.insertOne({
             username: username,
             passwordHash: passwordHash,
+            role: 'customer',
             createdAt: new Date()
         });
 
