@@ -90,7 +90,7 @@ app.use(session({
     }),
     cookie: {
         // Set secure only in production, or if explicitly configured for HTTPS in dev
-        secure: process.env.NODE_ENV === 'production',
+        secure: false,
         httpOnly: true,
         maxAge: 14 * 24 * 60 * 60 * 1000
         // sameSite: 'lax' // You can consider adding this for better security, though 'Lax' is often default
