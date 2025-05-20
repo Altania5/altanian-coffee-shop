@@ -92,7 +92,7 @@ app.use(session({
         // Set secure only in production, or if explicitly configured for HTTPS in dev
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24
+        maxAge: 14 * 24 * 60 * 60 * 1000
         // sameSite: 'lax' // You can consider adding this for better security, though 'Lax' is often default
     }
 }));
