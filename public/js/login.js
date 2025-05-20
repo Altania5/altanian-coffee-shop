@@ -8,6 +8,9 @@ const loginMessage = document.getElementById('loginMessage');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
+            console.log('Attempting to log in with Username from form:', username); 
+            console.log('Attempting to log in with Password from form:', password); 
+
             loginMessage.textContent = ''; // Clear previous messages
             loginMessage.className = 'message'; // Reset class
 
