@@ -200,9 +200,94 @@
         .modal-add-to-cart-btn { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; margin-top: 10px; }
         .modal-add-to-cart-btn:hover { background-color: #0056b3; }
         .customization-section { display: none; /* Hidden by default, shown by JS */ }
+
+        /* Cart Icon Styles */
+        .cart-icon-container {
+            position: fixed; /* Or absolute if header is static */
+            top: 20px;
+            right: 30px;
+            cursor: pointer;
+            z-index: 1001; /* Above modal backdrop if any, but below open modal */
+        }
+        .cart-icon-container img { /* Basic styling for an icon image */
+            width: 32px;
+            height: 32px;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75em;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+
+        /* Cart Modal Styles (similar to customization modal) */
+        .cart-modal { /* Using a different class to avoid conflicts if styles differ */
+            display: none; 
+            position: fixed; 
+            z-index: 1050; /* Higher than cart icon and customization modal */
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+        .cart-modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; 
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px; /* Cart can be wider */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .cart-modal-close-btn { /* Can reuse .modal-close-btn styles if identical */
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .cart-modal-close-btn:hover,
+        .cart-modal-close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #cartItemsList { list-style-type: none; padding: 0; }
+        #cartItemsList li { 
+            padding: 10px 0; 
+            border-bottom: 1px solid #eee; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+        }
+        #cartItemsList li:last-child { border-bottom: none; }
+        #cartItemsList .item-details { flex-grow: 1; }
+        #cartItemsList .item-name { font-weight: bold; }
+        #cartItemsList .item-customizations { font-size: 0.85em; color: #555; margin-left: 10px; }
+        #cartItemsList .item-quantity input { width: 40px; text-align: center; margin: 0 5px; }
+        #cartItemsList .item-actions button { font-size: 0.8em; padding: 3px 6px; margin-left: 5px;}
+        #cartTotalContainer { text-align: right; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+        #placeOrderBtn { 
+            display: block; width: 100%; padding: 12px; font-size: 1.1em; 
+            background-color: #5cb85c; color:white; border:none; border-radius:4px; margin-top:20px;
+        }
+        #placeOrderBtn:hover { background-color: #4cae4c; }
+        .empty-cart-message { text-align: center; color: #777; padding: 20px;}
     </style>
 </head>
 <body>
+    <div class="cart-icon-container" id="cartIconContainer">
+        <img src="https://img.icons8.com/ios-glyphs/30/000000/shopping-cart.png" alt="Cart"> <span class="cart-badge" id="cartBadge">0</span>
+    </div>
+
     <div class="container">
         <header style="text-align: center; margin-bottom: 20px;">
             <h1>Our Menu</h1>
@@ -258,7 +343,7 @@
             <div id="customizeMilkSection" class="form-group customization-section">
                 <label for="customizeMilk" id="milkLabel">Milk Choice:</label>
                 <select id="customizeMilk">
-                    </select>
+                </select>
             </div>
             <div id="customizeColdFoamSection" class="form-group customization-section">
                 <label for="customizeColdFoam">
@@ -272,6 +357,22 @@
             </div>
             
             <button id="modalAddToCartBtn" class="modal-add-to-cart-btn">Add to Order</button>
+        </div>
+    </div>
+
+    <div id="cartModal" class="cart-modal">
+        <div class="cart-modal-content">
+            <span class="cart-modal-close-btn" id="cartModalCloseBtn">&times;</span>
+            <h2>Your Shopping Cart</h2>
+            <div id="cartItemsContainer">
+                <ul id="cartItemsList">
+                    </ul>
+                <p id="emptyCartMsg" class="empty-cart-message" style="display:none;">Your cart is empty.</p>
+            </div>
+            <div id="cartTotalContainer">
+                Grand Total: $<span id="cartGrandTotal">0.00</span>
+            </div>
+            <button id="placeOrderBtn" class="modal-add-to-cart-btn">Place Order</button>
         </div>
     </div>
 

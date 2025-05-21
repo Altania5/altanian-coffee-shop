@@ -37,12 +37,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const customizeMilkSelect = document.getElementById('customizeMilk');
     const milkLabelEl = document.getElementById('milkLabel');
 
+    const cartIconContainer = document.getElementById('cartIconContainer');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartModal = document.getElementById('cartModal');
+    const cartModalCloseBtn = document.getElementById('cartModalCloseBtn');
+    const cartItemsList = document.getElementById('cartItemsList');
+    const emptyCartMsg = document.getElementById('emptyCartMsg');
+    const cartGrandTotalEl = document.getElementById('cartGrandTotal');
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+
+
     let currentMenuItem = null; 
-    let allCustomizationAddons = []; // Stores all fetched syrups, toppings, etc. from inventory
+    let allCustomizationAddons = []; // Stores all fetched syrups, toppings, etc. from inventory\
+
+    let shoppingCart = []; // To store cart items
 
     // Default prices for certain add-ons, can be overridden by inventory item price
     const DEFAULT_ESPRESSO_SHOT_PRICE = 1.25;
     const DEFAULT_COLD_FOAM_PRICE = 1.25;
+
+    function loadCartFromStorage() {
+        const storedCart = localStorage.getItem('shoppingCart');
+        if (storedCart) {
+            shoppingCart = JSON.parse(storedCart);
+            updateCartDisplay();
+        }
+    }
+
+    function saveCartToStorage() {
+        localStorage.setItem('shoppingCart', JSON.stringify(shoppingCart));
+    }
 
     async function fetchAndDisplayMenu() {
         console.log("fetchAndDisplayMenu called");
@@ -68,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 allowQuantitySelection: { min: 1, max: 4, pricePerUnit: item.price },
                                 allowSizes: false, allowEspressoShots: false, 
                                 syrups: { mode: 'none' }, toppings: { mode: 'none' }, 
-                                milkOptions: { mode: 'none' }, // No milk for plain espresso
+                                milkOptions: { mode: 'none' }, 
                                 allowColdFoam: false,
                             };
                         } else if (item.category && item.category.toLowerCase().includes('cold') || item.name.toLowerCase().includes('shaken')) {
@@ -77,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 allowEspressoShots: { max: 3, pricePerExtraShot: DEFAULT_ESPRESSO_SHOT_PRICE },
                                 syrups: { label: "Add Syrup:", mode: 'by_type', values: ['Syrup', 'Sauce'] }, 
                                 toppings: { label: "Add Topping:", mode: 'by_type', values: ['Topping'] }, 
-                                milkOptions: { label: "Milk Choice:", mode: 'by_type', values: ['Milk'], default: 'Whole Milk' }, // Assuming 'Whole Milk' is an itemName
+                                milkOptions: { label: "Milk Choice:", mode: 'by_type', values: ['Milk'], default: 'Whole Milk' },
                                 allowColdFoam: true, pricePerColdFoam: DEFAULT_COLD_FOAM_PRICE, 
                                 isHotDrink: false
                             };
@@ -87,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 allowEspressoShots: { max: 3, pricePerExtraShot: DEFAULT_ESPRESSO_SHOT_PRICE },
                                 syrups: { label: "Add Syrup:", mode: 'by_type', values: ['Syrup'] }, 
                                 toppings: { label: "Add Topping:", mode: 'by_name', values: ['Whipped Cream'] },
-                                milkOptions: { label: "Milk Choice:", mode: 'by_type', values: ['Milk'], default: 'Whole Milk'}, // Assuming 'Whole Milk' is an itemName
+                                milkOptions: { label: "Milk Choice:", mode: 'by_type', values: ['Milk'], default: 'Whole Milk'},
                                 allowColdFoam: false, 
                                 isHotDrink: true,
                                 allowColdFoamIfHot: false
@@ -118,25 +142,20 @@ document.addEventListener('DOMContentLoaded', () => {
             menuContainer.innerHTML = '<p>No menu items available at the moment.</p>';
             return;
         }
-
         items.forEach(item => {
             const card = document.createElement('div');
             card.classList.add('menu-item-card');
-            
             let imageHtml = '';
             if (item.imageUrl) {
                 imageHtml = `<img src="${item.imageUrl}" alt="${item.name}">`;
             }
-            
             const availabilityHtml = item.isAvailable
                 ? `<span class="price">$${parseFloat(item.price).toFixed(2)}</span>`
                 : `<span class="not-available">Currently unavailable</span>`;
-
             let customizeButtonHtml = '';
-            if (item.isAvailable) { // All available items can be "added" even if not further customizable
+            if (item.isAvailable) {
                  customizeButtonHtml = `<button class="customize-btn" data-item-id="${item._id}">Details & Add</button>`;
             }
-
             card.innerHTML = `
                 ${imageHtml}
                 <h3>${item.name}</h3>
@@ -146,13 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${customizeButtonHtml}
             `;
             menuContainer.appendChild(card);
-
             if (item.isAvailable) {
                 const customizeBtn = card.querySelector('.customize-btn');
                 if (customizeBtn) {
                     customizeBtn.addEventListener('click', () => {
-                        // Find the original item data, including its customizationConfig
                         const fullItemData = items.find(i => i._id === customizeBtn.dataset.itemId);
+                        console.log("Button clicked for:", fullItemData.name, "ID:", fullItemData._id, "Passing this config to modal:", JSON.stringify(fullItemData ? fullItemData.customizationConfig : "N/A", null, 2));
                         openCustomizationModal(fullItemData);
                     });
                 }
@@ -161,39 +179,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchAllCustomizationAddons() {
-        if (allCustomizationAddons.length > 0) return; // Fetch only once
+        if (allCustomizationAddons.length > 0 && allCustomizationAddons[0].mock !== "data") return; 
         try {
             const response = await fetch('/api/inventory/customizations');
-            if (!response.ok) throw new Error('Failed to fetch customization add-ons');
+            if (!response.ok) {
+                 const errorData = await response.text(); // Try to get error text
+                 console.error(`Failed to fetch customization add-ons. Status: ${response.status}, Body: ${errorData}`);
+                 throw new Error('Failed to fetch customization add-ons');
+            }
             const result = await response.json();
             if (result.success) {
                 allCustomizationAddons = result.data;
-                console.log("Fetched addons for customization (allCustomizationAddons):", JSON.stringify(allCustomizationAddons, null, 2));
+                 console.log("Fetched addons for customization (allCustomizationAddons):", JSON.stringify(allCustomizationAddons, null, 2));
             } else {
                 console.error('Could not load customization add-ons:', result.message);
+                allCustomizationAddons = []; // Ensure it's an empty array on failure
             }
         } catch (error) {
             console.error('Error fetching customization add-ons:', error);
+            allCustomizationAddons = []; // Ensure it's an empty array on critical failure
         }
     }
 
     function populateSelectWithOptions(selectElement, sectionLabelElement, configRule) {
-        console.log("Populating select for rule:", JSON.stringify(configRule));
-        selectElement.innerHTML = `<option value="" data-price="0">None</option>`; // Default "None" option
-        
-        if (!configRule || configRule.mode === 'none' || !configRule.values || configRule.values.length === 0) {
-            console.log("Config rule empty or mode is none.");
-            return false; // No options to populate based on config
+        if(!selectElement) {
+            console.error("populateSelectWithOptions: selectElement is null for rule", configRule);
+            return false;
         }
-
+        console.log(`Populating options for select element (ID: ${selectElement.id}), Label: ${sectionLabelElement ? sectionLabelElement.id : 'N/A'}, Config Rule:`, JSON.stringify(configRule, null, 2));
+        selectElement.innerHTML = `<option value="" data-price="0">None</option>`;        
+        if (!configRule || configRule.mode === 'none' || !configRule.values || configRule.values.length === 0) {
+            console.log("No options to populate: Config rule empty, mode is 'none', or no values.");
+            return false; 
+        }
         if (sectionLabelElement && configRule.label) {
             sectionLabelElement.textContent = configRule.label;
         }
-
         let relevantAddons = [];
         if (configRule.mode === 'by_type') {
             relevantAddons = allCustomizationAddons.filter(addon => 
-                configRule.values.includes(addon.itemType) && addon.pricePerUnitCharge >= 0
+                configRule.values.includes(addon.itemType) && addon.pricePerUnitCharge >= 0 // Allow $0 options
             );
         } else if (configRule.mode === 'by_id') {
             relevantAddons = allCustomizationAddons.filter(addon => 
@@ -204,20 +229,120 @@ document.addEventListener('DOMContentLoaded', () => {
                 configRule.values.includes(addon.itemName) && addon.pricePerUnitCharge >= 0
             );
         }
-
+        console.log(`Relevant addons for ${selectElement.id} after filtering:`, JSON.stringify(relevantAddons, null, 2));
         if (relevantAddons.length > 0) {
-            relevantAddons.sort((a, b) => a.itemName.localeCompare(b.itemName)); // Sort alphabetically
+            relevantAddons.sort((a, b) => a.itemName.localeCompare(b.itemName));
             relevantAddons.forEach(addon => {
                 const option = document.createElement('option');
                 option.value = addon._id; 
                 option.textContent = `${addon.itemName} (+$${parseFloat(addon.pricePerUnitCharge).toFixed(2)})`;
                 option.dataset.price = addon.pricePerUnitCharge;
-                option.dataset.itemName = addon.itemName; // Store itemName for order summary
+                option.dataset.itemName = addon.itemName;
                 selectElement.appendChild(option);
             });
-            return true; // Options were populated
+            return true;
         }
-        return false; // No options populated
+        return false;
+    }
+
+    async function openCustomizationModal(item) {
+        if (!item || !item.customizationConfig) {
+            console.warn("Item or item.customizationConfig is missing. Treating as simple add.", item);
+             if(item) { 
+                addItemToCart({ // Directly add to cart if not configurable
+                    itemId: item._id, name: item.name, basePriceSnapshot: parseFloat(item.price),
+                    quantity: 1, customizations: {}, finalPrice: parseFloat(item.price)
+                });
+                alert(`${item.name} added to order!`);
+             }
+            return;
+        }
+        currentMenuItem = item;
+        await fetchAllCustomizationAddons(); 
+        console.log("Opening modal for item:", item.name, "with config:", JSON.stringify(item.customizationConfig, null, 2));
+        console.log("Available customization addons:", JSON.stringify(allCustomizationAddons, null, 2));
+
+
+        modalItemNameEl.textContent = item.name;
+        modalBasePriceEl.textContent = parseFloat(item.price).toFixed(2);
+        
+        [customizeQuantitySection, customizeSizeSection, customizeEspressoShotsSection, customizeSyrupSection, customizeToppingSection, customizeMilkSection, customizeColdFoamSection]
+            .forEach(section => { if(section) section.style.display = 'none'; }); 
+        
+        customizeQuantityInput.value = 1;
+        customizeSizeSelect.value = 'small';
+        customizeEspressoShotsInput.value = 0;
+        if(customizeSyrupSelect) customizeSyrupSelect.value = "";
+        if(customizeToppingSelect) customizeToppingSelect.value = "";
+        if(customizeMilkSelect) customizeMilkSelect.value = ""; 
+        if(customizeColdFoamCheckbox) customizeColdFoamCheckbox.checked = false;
+
+        const config = item.customizationConfig;
+
+        if (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object') {
+            customizeQuantityInput.min = config.allowQuantitySelection.min || 1;
+            customizeQuantityInput.max = config.allowQuantitySelection.max || 10;
+            customizeQuantityInput.value = config.allowQuantitySelection.min || 1;
+            modalBasePriceEl.textContent = parseFloat(config.allowQuantitySelection.pricePerUnit || item.price).toFixed(2);
+            if(customizeQuantitySection) customizeQuantitySection.style.display = 'block';
+        } else {
+            customizeQuantityInput.value = 1;
+        }
+
+        if (config.allowSizes) {
+            if(customizeSizeSection) customizeSizeSection.style.display = 'block';
+        }
+
+        if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object') {
+            customizeEspressoShotsInput.max = config.allowEspressoShots.max !== undefined ? config.allowEspressoShots.max : 5;
+            if(espressoShotPriceLabelEl) espressoShotPriceLabelEl.textContent = parseFloat(config.allowEspressoShots.pricePerExtraShot || DEFAULT_ESPRESSO_SHOT_PRICE).toFixed(2);
+            if(customizeEspressoShotsSection) customizeEspressoShotsSection.style.display = 'block';
+        }
+
+        if (config.syrups && config.syrups.mode !== 'none' && customizeSyrupSelect && customizeSyrupLabel) {
+            if (populateSelectWithOptions(customizeSyrupSelect, customizeSyrupLabel, config.syrups)) {
+                if(customizeSyrupSection) customizeSyrupSection.style.display = 'block';
+            }
+        }
+        
+        if (config.toppings && config.toppings.mode !== 'none' && customizeToppingSelect && customizeToppingLabel) {
+             if (populateSelectWithOptions(customizeToppingSelect, customizeToppingLabel, config.toppings)) {
+                if(customizeToppingSection) customizeToppingSection.style.display = 'block';
+            }
+        }
+
+        if (config.milkOptions && config.milkOptions.mode !== 'none' && customizeMilkSelect && milkLabelEl) {
+            if (populateSelectWithOptions(customizeMilkSelect, milkLabelEl, config.milkOptions)) {
+                if(customizeMilkSection) customizeMilkSection.style.display = 'block';
+                if (config.milkOptions.default) {
+                    let defaultFound = false;
+                    for (let option of customizeMilkSelect.options) {
+                        if (option.value === config.milkOptions.default || option.dataset.itemName === config.milkOptions.default) {
+                            customizeMilkSelect.value = option.value;
+                            defaultFound = true;
+                            break;
+                        }
+                    }
+                    if (!defaultFound) console.warn(`Default milk "${config.milkOptions.default}" not found in populated options.`);
+                } else {
+                    customizeMilkSelect.value = ""; // Select "None" if no default and options exist
+                }
+            }
+        }
+        
+        if (config.allowColdFoam && customizeColdFoamCheckbox) {
+            let showColdFoam = true;
+            if (config.isHotDrink === true && config.allowColdFoamIfHot !== true) {
+                showColdFoam = false;
+            }
+            if (showColdFoam) {
+                if(coldFoamPriceLabelEl) coldFoamPriceLabelEl.textContent = parseFloat(config.pricePerColdFoam || DEFAULT_COLD_FOAM_PRICE).toFixed(2);
+                if(customizeColdFoamSection) customizeColdFoamSection.style.display = 'block';
+            }
+        }
+        
+        updateTotalPrice();
+        if(customizationModal) customizationModal.style.display = 'block';
     }
 
     async function fetchCustomizationOptions() {
@@ -253,100 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
             syrupSelectionGroup.style.display = 'none';
         }
     }
-
-    async function openCustomizationModal(item) {
-        console.log("Current item customizationConfig:", JSON.stringify(item.customizationConfig, null, 2));
-        if (!item || !item.customizationConfig) {
-        console.warn("Item or item.customizationConfig is missing. Treating as simple add.", item);
-        if(item) { 
-            console.log("Simple Item Added (concept):", {itemId: item._id, name: item.name, price: item.price, quantity: 1});
-            alert(`${item.name} (conceptually) added to order! Price: $${parseFloat(item.price).toFixed(2)}`);
-        }
-        return; // << If this line is reached, the modal won't show.
-    }
-        currentMenuItem = item;
-        await fetchAllCustomizationAddons(); 
-
-        modalItemNameEl.textContent = item.name;
-        modalBasePriceEl.textContent = parseFloat(item.price).toFixed(2);
-        
-        [customizeQuantitySection, customizeSizeSection, customizeEspressoShotsSection, customizeSyrupSection, customizeToppingSection, customizeColdFoamSection]
-            .forEach(section => section.style.display = 'none');
-        
-        // Reset fields before applying config
-        customizeQuantityInput.value = 1;
-        customizeSizeSelect.value = 'small';
-        customizeEspressoShotsInput.value = 0;
-        customizeSyrupSelect.value = "";
-        customizeToppingSelect.value = "";
-        customizeColdFoamCheckbox.checked = false;
-
-        const config = item.customizationConfig;
-
-        if (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object') {
-            customizeQuantityInput.min = config.allowQuantitySelection.min || 1;
-            customizeQuantityInput.max = config.allowQuantitySelection.max || 10;
-            customizeQuantityInput.value = config.allowQuantitySelection.min || 1;
-            modalBasePriceEl.textContent = parseFloat(config.allowQuantitySelection.pricePerUnit || item.price).toFixed(2);
-            customizeQuantitySection.style.display = 'block';
-        } else {
-            customizeQuantityInput.value = 1;
-        }
-
-        if (config.allowSizes) {
-            customizeSizeSection.style.display = 'block';
-        }
-
-        if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object') {
-            customizeEspressoShotsInput.max = config.allowEspressoShots.max !== undefined ? config.allowEspressoShots.max : 5;
-            espressoShotPriceLabelEl.textContent = parseFloat(config.allowEspressoShots.pricePerExtraShot || DEFAULT_ESPRESSO_SHOT_PRICE).toFixed(2);
-            customizeEspressoShotsSection.style.display = 'block';
-        }
-
-        if (config.syrups && config.syrups.mode !== 'none') {
-            if (populateSelectWithOptions(customizeSyrupSelect, customizeSyrupLabel, config.syrups)) {
-                customizeSyrupSection.style.display = 'block';
-            }
-        }
-        
-        if (config.toppings && config.toppings.mode !== 'none') {
-             if (populateSelectWithOptions(customizeToppingSelect, customizeToppingLabel, config.toppings)) {
-                customizeToppingSection.style.display = 'block';
-            }
-        }
-
-        if (config.milkOptions && config.milkOptions.mode !== 'none') {
-            if (populateSelectWithOptions(customizeMilkSelect, milkLabelEl, config.milkOptions)) {
-                if(customizeMilkSection) customizeMilkSection.style.display = 'block';
-                // Set default milk if specified
-                if (config.milkOptions.default) {
-                    let defaultFound = false;
-                    for (let option of customizeMilkSelect.options) {
-                        // Default can be by ID or by Name. Check both.
-                        if (option.value === config.milkOptions.default || option.dataset.itemName === config.milkOptions.default) {
-                            customizeMilkSelect.value = option.value;
-                            defaultFound = true;
-                            break;
-                        }
-                    }
-                    if (!defaultFound) console.warn(`Default milk "${config.milkOptions.default}" not found in populated options.`);
-                }
-            }
-        }
-        
-        if (config.allowColdFoam) { // Rule for hot drink is now handled by config.isHotDrink
-            if (config.isHotDrink === true && config.allowColdFoamIfHot !== true) { // Explicitly allow cold foam on hot if desired
-                 // Don't show if it's a hot drink and not explicitly allowed for hot
-            } else {
-                coldFoamPriceLabelEl.textContent = parseFloat(config.pricePerColdFoam || DEFAULT_COLD_FOAM_PRICE).toFixed(2);
-                customizeColdFoamSection.style.display = 'block';
-            }
-        }
-        
-        updateTotalPrice();
-        customizationModal.style.display = 'block';
-    }
-
 
     function closeCustomizationModal() {
         customizationModal.style.display = 'none';
@@ -406,6 +437,166 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTotalPriceEl.textContent = total.toFixed(2);
     }
 
+    function addItemToCart(orderItem) {
+        // Check if item with exact same base ID and customizations already exists
+        // For simplicity now, we generate a unique cartItemId for each add.
+        // A more complex check would involve deep-comparing customizations.
+        const cartItemId = Date.now().toString() + "_" + orderItem.itemId; // Simple unique ID
+
+        const cartEntry = {
+            ...orderItem,
+            cartItemId: cartItemId // Unique ID for this specific entry in the cart
+        };
+        shoppingCart.push(cartEntry);
+        console.log("Cart updated:", shoppingCart);
+        saveCartToStorage();
+        updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+        renderCartItems();
+        calculateAndDisplayCartTotal();
+        updateCartIconBadge();
+    }
+
+    function updateCartIconBadge() {
+        const totalItems = shoppingCart.reduce((sum, item) => sum + item.quantity, 0);
+        if (cartBadge) {
+            if (totalItems > 0) {
+                cartBadge.textContent = totalItems;
+                cartBadge.style.display = 'block';
+            } else {
+                cartBadge.style.display = 'none';
+            }
+        }
+    }
+
+    function renderCartItems() {
+        if (!cartItemsList) return;
+        cartItemsList.innerHTML = ''; // Clear existing items
+
+        if (shoppingCart.length === 0) {
+            if(emptyCartMsg) emptyCartMsg.style.display = 'block';
+            if(placeOrderBtn) placeOrderBtn.disabled = true;
+            return;
+        }
+        if(emptyCartMsg) emptyCartMsg.style.display = 'none';
+        if(placeOrderBtn) placeOrderBtn.disabled = false;
+
+        shoppingCart.forEach(item => {
+            const li = document.createElement('li');
+            li.dataset.cartItemId = item.cartItemId;
+
+            let customizationsHtml = '';
+            if (item.customizations) {
+                customizationsHtml += '<ul>';
+                if(item.customizations.size && item.customizations.size.name !== 'Small') customizationsHtml += `<li>Size: ${item.customizations.size.name}</li>`;
+                if(item.customizations.extraEspressoShots && item.customizations.extraEspressoShots.quantity > 0) customizationsHtml += `<li>Extra Shots: ${item.customizations.extraEspressoShots.quantity}</li>`;
+                if(item.customizations.syrup) customizationsHtml += `<li>Syrup: ${item.customizations.syrup.name}</li>`;
+                if(item.customizations.topping) customizationsHtml += `<li>Topping: ${item.customizations.topping.name}</li>`;
+                if(item.customizations.milk) customizationsHtml += `<li>Milk: ${item.customizations.milk.name}</li>`;
+                if(item.customizations.coldFoam && item.customizations.coldFoam.added) customizationsHtml += `<li>Cold Foam</li>`;
+                customizationsHtml += '</ul>';
+            }
+            
+            const itemTotal = item.finalPrice; // This is already item.quantity * priceOfOneConfiguredItem
+
+            li.innerHTML = `
+                <div class="item-details">
+                    <span class="item-name">${item.name} (x${item.quantity})</span>
+                    <div class="item-customizations">${customizationsHtml || 'No customizations'}</div>
+                </div>
+                <div class="item-quantity">
+                    <button class="cart-qty-change" data-change="-1">-</button>
+                    <input type="number" value="${item.quantity}" min="1" class="cart-item-qty-input" readonly>
+                    <button class="cart-qty-change" data-change="1">+</button>
+                </div>
+                <div class="item-price">
+                    $${itemTotal.toFixed(2)}
+                </div>
+                <div class="item-actions">
+                    <button class="cart-remove-item">Remove</button>
+                </div>
+            `;
+            cartItemsList.appendChild(li);
+        });
+    }
+    
+    function handleCartActions(event) {
+        const target = event.target;
+        const cartItemLi = target.closest('li');
+        if (!cartItemLi) return;
+        const cartItemId = cartItemLi.dataset.cartItemId;
+
+        if (target.classList.contains('cart-qty-change')) {
+            const change = parseInt(target.dataset.change);
+            updateCartItemQuantity(cartItemId, change);
+        } else if (target.classList.contains('cart-remove-item')) {
+            removeCartItem(cartItemId);
+        }
+    }
+    if(cartItemsList) cartItemsList.addEventListener('click', handleCartActions);
+
+
+    function updateCartItemQuantity(cartItemId, change) {
+        const itemIndex = shoppingCart.findIndex(item => item.cartItemId === cartItemId);
+        if (itemIndex > -1) {
+            const item = shoppingCart[itemIndex];
+            const pricePerSingleConfiguredItem = item.finalPrice / item.quantity; // Calculate price of one configured unit
+            
+            item.quantity += change;
+            if (item.quantity <= 0) {
+                shoppingCart.splice(itemIndex, 1); // Remove if quantity is 0 or less
+            } else {
+                 // Recalculate finalPrice for the new quantity of this line item
+                item.finalPrice = pricePerSingleConfiguredItem * item.quantity;
+            }
+            saveCartToStorage();
+            updateCartDisplay();
+        }
+    }
+
+    function removeCartItem(cartItemId) {
+        shoppingCart = shoppingCart.filter(item => item.cartItemId !== cartItemId);
+        saveCartToStorage();
+        updateCartDisplay();
+    }
+
+    function calculateAndDisplayCartTotal() {
+        const grandTotal = shoppingCart.reduce((sum, item) => sum + item.finalPrice, 0);
+        if(cartGrandTotalEl) cartGrandTotalEl.textContent = grandTotal.toFixed(2);
+    }
+
+    function openCartModal() {
+        renderCartItems(); // Re-render each time it's opened
+        calculateAndDisplayCartTotal();
+        if(cartModal) cartModal.style.display = 'block';
+    }
+
+    function closeCartModal() {
+        if(cartModal) cartModal.style.display = 'none';
+    }
+
+    // Event Listeners for Cart Modal
+    if (cartIconContainer) cartIconContainer.addEventListener('click', openCartModal);
+    if (cartModalCloseBtn) cartModalCloseBtn.addEventListener('click', closeCartModal);
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', () => {
+            if (shoppingCart.length === 0) {
+                alert("Your cart is empty. Add some items first!");
+                return;
+            }
+            // For now, just log and clear
+            console.log("Placing order with items:", JSON.stringify(shoppingCart, null, 2));
+            alert("Order Placed (conceptually)! Thank you!");
+            
+            shoppingCart = []; // Clear the cart
+            saveCartToStorage();
+            updateCartDisplay();
+            closeCartModal();
+        });
+    }
+
     // Event Listeners for Modal
     if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeCustomizationModal);
     window.addEventListener('click', (event) => { 
@@ -424,25 +615,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalAddToCartBtn) {
         modalAddToCartBtn.addEventListener('click', () => {
             if (!currentMenuItem) return;
-
             const config = currentMenuItem.customizationConfig;
-            const orderItem = {
-                itemId: currentMenuItem._id,
-                name: currentMenuItem.name,
-                basePriceSnapshot: parseFloat(currentMenuItem.price),
-                quantity: (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object' && customizeQuantitySection.style.display !== 'none' ? parseInt(customizeQuantityInput.value) : 1),
-                customizations: {},
-                finalPrice: parseFloat(modalTotalPriceEl.textContent)
-            };
             
-            if (config.allowSizes && customizeSizeSection.style.display !== 'none' && !(config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object')) {
+            // This logic to build orderItem should be robust from previous steps
+            const orderItem = { /* ... (construct orderItem as before) ... */ };
+             orderItem.itemId = currentMenuItem._id;
+             orderItem.name = currentMenuItem.name;
+             orderItem.basePriceSnapshot = parseFloat(currentMenuItem.price);
+             orderItem.quantity = (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object' && customizeQuantitySection && customizeQuantitySection.style.display !== 'none' ? parseInt(customizeQuantityInput.value) : 1);
+             orderItem.customizations = {};
+             orderItem.finalPrice = parseFloat(modalTotalPriceEl.textContent); // This should be the price for the configured quantity
+
+            // Adjust finalPrice to be per single configured item if quantity > 1
+            const singleItemConfiguredPrice = orderItem.finalPrice / orderItem.quantity;
+
+            if (config.allowSizes && customizeSizeSection && customizeSizeSection.style.display !== 'none' && !(config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object')) {
                 const selectedSizeOption = customizeSizeSelect.options[customizeSizeSelect.selectedIndex];
                 orderItem.customizations.size = {
                     name: selectedSizeOption.textContent.split(' (')[0],
                     modifier: parseFloat(selectedSizeOption.dataset.priceModifier || 0)
                 };
             }
-            if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object' && customizeEspressoShotsSection.style.display !== 'none') {
+            if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object' && customizeEspressoShotsSection && customizeEspressoShotsSection.style.display !== 'none') {
                 const numShots = parseInt(customizeEspressoShotsInput.value) || 0;
                 if (numShots > 0) {
                     orderItem.customizations.extraEspressoShots = {
@@ -451,90 +645,70 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 }
             }
-
-            if (config.syrups && customizeSyrupSection.style.display !== 'none') {
+            if (config.syrups && customizeSyrupSection && customizeSyrupSection.style.display !== 'none' && customizeSyrupSelect) {
                 const selectedSyrupOption = customizeSyrupSelect.options[customizeSyrupSelect.selectedIndex];
                 if (selectedSyrupOption && selectedSyrupOption.value) {
                     orderItem.customizations.syrup = {
                         inventoryId: selectedSyrupOption.value,
-                        name: selectedSyrupOption.dataset.itemName, // Use stored itemName
+                        name: selectedSyrupOption.dataset.itemName, 
                         price: parseFloat(selectedSyrupOption.dataset.price || 0)
                     };
                 }
             }
-            if (config.toppings && customizeToppingSection.style.display !== 'none') {
+            if (config.toppings && customizeToppingSection && customizeToppingSection.style.display !== 'none' && customizeToppingSelect) {
                 const selectedToppingOption = customizeToppingSelect.options[customizeToppingSelect.selectedIndex];
                 if (selectedToppingOption && selectedToppingOption.value) {
                      orderItem.customizations.topping = {
                         inventoryId: selectedToppingOption.value,
-                        name: selectedToppingOption.dataset.itemName, // Use stored itemName
+                        name: selectedToppingOption.dataset.itemName, 
                         price: parseFloat(selectedToppingOption.dataset.price || 0)
                     };
                 }
             }
-            if (config.milkOptions && customizeMilkSection.style.display !== 'none') {
+            if (config.milkOptions && customizeMilkSection && customizeMilkSection.style.display !== 'none' && customizeMilkSelect) {
                 const selectedMilkOption = customizeMilkSelect.options[customizeMilkSelect.selectedIndex];
                 if (selectedMilkOption && selectedMilkOption.value) {
                     orderItem.customizations.milk = {
                         inventoryId: selectedMilkOption.value,
-                        name: selectedMilkOption.dataset.itemName, // Assumes dataset.itemName is set in populateSelectWithOptions
+                        name: selectedMilkOption.dataset.itemName, 
                         price: parseFloat(selectedMilkOption.dataset.price || 0)
                     };
-                } else if (config.milkOptions.default && !selectedMilkOption.value) {
                 }
             }
-            if (config.allowColdFoam && customizeColdFoamSection.style.display !== 'none' && customizeColdFoamCheckbox.checked) {
+            if (config.allowColdFoam && customizeColdFoamSection && customizeColdFoamSection.style.display !== 'none' && customizeColdFoamCheckbox && customizeColdFoamCheckbox.checked) {
                 orderItem.customizations.coldFoam = {
                     added: true,
                     price: parseFloat(config.pricePerColdFoam || DEFAULT_COLD_FOAM_PRICE)
                 };
             }
+            
+            // The finalPrice in orderItem is for the total quantity from the modal.
+            // For cart logic, we might want price of a single configured item, and then cart handles quantity.
+            // Let's adjust: orderItem.finalPrice will be price for ONE configured item.
+            // The quantity selected in the modal is how many of THIS configured item to add.
+            orderItem.pricePerConfiguredItem = singleItemConfiguredPrice;
+            // The 'quantity' field already holds how many of this specific configuration are being added.
+            // The 'finalPrice' will be calculated in the cart as quantity * pricePerConfiguredItem.
+            // For now, let's keep the current orderItem.finalPrice as the total for the line item added.
 
-            console.log("Item Added to Order (concept):", orderItem);
-            alert(`${orderItem.name} customized and (conceptually) added to order! Final Price: $${orderItem.finalPrice.toFixed(2)}`);
+            addItemToCart(orderItem); // NEW: Add to cart object
+            alert(`${orderItem.name} (x${orderItem.quantity}) added to your order!`);
             closeCustomizationModal();
         });
     }
 
-    customizeSizeSelect.addEventListener('change', updateTotalPrice);
-    customizeEspressoShotsInput.addEventListener('input', updateTotalPrice);
-    customizeSyrupSelect.addEventListener('change', updateTotalPrice);
-
-    if (modalAddToCartBtn) {
-        modalAddToCartBtn.addEventListener('click', () => {
-            if (!currentMenuItem) return;
-
-            const selectedSizeOption = customizeSizeSelect.options[customizeSizeSelect.selectedIndex];
-            const selectedSyrupOption = customizeSyrupSelect.options[customizeSyrupSelect.selectedIndex];
-
-            const orderItem = {
-                itemId: currentMenuItem._id,
-                name: currentMenuItem.name,
-                basePrice: parseFloat(currentMenuItem.price),
-                size: {
-                    name: selectedSizeOption.textContent.split(' (')[0], // e.g., "Small"
-                    modifier: parseFloat(selectedSizeOption.dataset.priceModifier || 0)
-                },
-                extraShots: parseInt(customizeEspressoShotsInput.value) || 0,
-                espressoShotPrice: ESPRESSO_SHOT_PRICE,
-                syrup: null,
-                totalPrice: parseFloat(modalTotalPriceEl.textContent)
-            };
-
-            if (selectedSyrupOption && selectedSyrupOption.value) {
-                orderItem.syrup = {
-                    id: selectedSyrupOption.value,
-                    name: selectedSyrupOption.textContent.split(' (')[0], // e.g., "Vanilla Syrup"
-                    price: parseFloat(selectedSyrupOption.dataset.price || 0)
-                };
-            }
-
-            console.log("Item Added to Order (concept):", orderItem);
-            alert(`${orderItem.name} customized and (conceptually) added to order! Total: $${orderItem.totalPrice.toFixed(2)}`);
-            // TODO: Implement actual add to cart functionality
-            closeCustomizationModal();
-        });
-    }
+    if(customizeQuantityInput) customizeQuantityInput.addEventListener('input', updateTotalPrice);
+    if(customizeSizeSelect) customizeSizeSelect.addEventListener('change', updateTotalPrice);
+    if(customizeEspressoShotsInput) customizeEspressoShotsInput.addEventListener('input', updateTotalPrice);
+    if(customizeSyrupSelect) customizeSyrupSelect.addEventListener('change', updateTotalPrice);
+    if(customizeToppingSelect) customizeToppingSelect.addEventListener('change', updateTotalPrice);
+    if(customizeMilkSelect) customizeMilkSelect.addEventListener('change', updateTotalPrice);
+    if(customizeColdFoamCheckbox) customizeColdFoamCheckbox.addEventListener('change', updateTotalPrice);
+    if(modalCloseBtn) modalCloseBtn.addEventListener('click', closeCustomizationModal);
+    window.addEventListener('click', (event) => { 
+        if (event.target === customizationModal) closeCustomizationModal();
+        if (event.target === cartModal) closeCartModal(); // Close cart modal if backdrop is clicked
+    });
 
 
     function showError(message) {

@@ -137,6 +137,43 @@ const playerGameProfileSchema = new mongoose.Schema({
 
 const PlayerGameProfile = mongoose.model('PlayerGameProfile', playerGameProfileSchema);
 
+app.get('/api/inventory/customizations', async (req, res) => {
+    console.log("====== SERVER: Reached /api/inventory/customizations ======");
+    try {
+        console.log("====== SERVER: Inside TRY block for /api/inventory/customizations ======");
+        
+        const customizationItems = await InventoryItem.find({
+            isAvailable: true,
+            quantityInStock: { $gt: 0 },
+            pricePerUnitCharge: { $gt: 0 }
+        }).sort({ itemType: 1, itemName: 1 }).lean(); // Added .lean() for safety
+
+        console.log(`====== SERVER: InventoryItem.find() completed. Found ${customizationItems ? customizationItems.length : 'null/undefined'} items.`);
+        // console.log("====== SERVER: First item (if any):", customizationItems && customizationItems.length > 0 ? JSON.stringify(customizationItems[0]) : "No items"); // Log first item
+
+        // Before sending, let's try to stringify it ourselves to see if that's the issue
+        let responseData;
+        try {
+            responseData = { success: true, data: customizationItems };
+            JSON.stringify(responseData); // Test stringification
+            console.log("====== SERVER: Data stringified successfully, about to send response.");
+        } catch (stringifyError) {
+            console.error("====== SERVER: Error stringifying customizationItems for response:", stringifyError);
+            // If stringification fails, this error should be caught by the outer catch
+            throw stringifyError; // Re-throw to be caught by the outer catch block
+        }
+
+        res.status(200).json(responseData);
+        console.log("====== SERVER: Response 200 sent successfully from /api/inventory/customizations");
+
+    } catch (error) {
+        console.error("====== SERVER CATCH BLOCK for /api/inventory/customizations: Error fetching customization options:", error);
+        // Log the error type as well
+        console.error("====== SERVER CATCH BLOCK: Error type:", error.name, "Error message:", error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch customization options due to server error.' });
+    }
+});
+
 
 // --- NEW: Inventory Item Schema ---
 const inventoryItemSchema = new mongoose.Schema({
@@ -815,23 +852,6 @@ app.delete('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
     } catch (error) {
         console.error("Error deleting inventory item:", error);
         res.status(500).json({ success: false, message: 'Failed to delete inventory item.' });
-    }
-});
-
-app.get('/api/inventory/customizations', async (req, res) => {
-    try {
-        // Fetch items suitable for customization, e.g., Syrups, or specific add-ons
-        // You might want to refine this query based on specific itemTypes or a flag
-        const customizationItems = await InventoryItem.find({
-            isAvailable: true,
-            quantityInStock: { $gt: 0 },
-            pricePerUnitCharge: { $gt: 0 }
-        }).sort({ itemType: 1, itemName: 1 });
-
-        res.status(200).json({ success: true, data: customizationItems });
-    } catch (error) {
-        console.error("Error fetching customization options:", error);
-        res.status(500).json({ success: false, message: 'Failed to fetch customization options.' });
     }
 });
 
