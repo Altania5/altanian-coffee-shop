@@ -88,6 +88,88 @@
         .sub-options { margin-left: 25px; border-left: 2px solid #eee; padding-left: 10px; font-size:0.9em;}
         .sub-options .form-group label { flex-basis: 150px;} /* Adjust sub-option label width */
         .info-text { font-size: 0.8em; color: #777; margin-left: 10px;}
+    body {
+            display: block; /* Override flex for admin page layout */
+            min-height: 0;
+            align-items: normal;
+            justify-content: normal;
+        }
+        .admin-container { padding: 20px; max-width: 1000px; margin: 20px auto; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        .admin-nav { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .admin-nav a, .admin-nav button { margin-right: 10px; padding: 8px 12px; text-decoration: none; background-color: #5cb85c; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .admin-nav a:hover, .admin-nav button:hover { background-color: #4cae4c; }
+        .admin-nav button#logoutButton { float: right; background-color: #d9534f; }
+        .admin-nav button#logoutButton:hover { background-color: #c9302c; }
+
+        .content-section { display: none; /* Hidden by default, shown by JS */ }
+        .content-section.active { display: block; }
+        
+        .list-table table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .list-table th, .list-table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+        .list-table th { background-color: #f2f2f2; }
+        .list-table button { margin-right: 5px; padding: 5px 8px; font-size: 0.85em; }
+        
+        .form-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;}
+        .form-section h2, .list-table h2 { margin-top: 0; color: #337ab7; }
+        
+        .message { margin-top:10px; padding:10px; border-radius:4px; text-align: center; }
+        .message.success { background-color:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .message.error { background-color:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .auth-message { text-align: center; font-size: 1.2em; color: red; padding: 20px; }
+        .action-buttons button { font-size: 0.8em; }
+        
+        /* Make form groups more compact */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { margin-bottom: 3px; font-weight: bold; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="url"], /* For imageUrl */
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 16px); /* Account for padding */
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
+        textarea { min-height: 60px; }
+        .config-fieldset {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+        .config-fieldset legend {
+            font-weight: bold;
+            color: #337ab7;
+            padding: 0 5px;
+        }
+        .config-fieldset .form-group {
+            display: flex; /* For aligning label and input */
+            align-items: center;
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        .config-fieldset .form-group label {
+            flex-basis: 200px; /* Fixed width for labels */
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+        .config-fieldset .form-group input[type="checkbox"] {
+            flex-basis: auto;
+            margin-right: 5px;
+        }
+         .config-fieldset .form-group input[type="number"],
+         .config-fieldset .form-group input[type="text"],
+         .config-fieldset .form-group select {
+            flex-grow: 1; /* Input takes remaining space */
+            font-size: 0.9em;
+            padding: 6px;
+        }
+        .sub-options { margin-left: 25px; border-left: 2px solid #eee; padding-left: 10px; font-size:0.9em;}
+        .sub-options .form-group label { flex-basis: 150px;} /* Adjust sub-option label width */
+        .info-text { font-size: 0.8em; color: #777; margin-left: 10px;}
     </style>
 </head>
 <body>
@@ -96,7 +178,7 @@
     <nav class="admin-nav">
         <a href="#" id="navMenuManagement">Manage Menu</a>
         <a href="#" id="navInventoryManagement">Manage Inventory</a>
-        <a href="/menu.html" target="_blank">View Public Site</a>
+        <a href="/" target="_blank">View Public Site</a>
         <button id="logoutButton">Logout</button>
     </nav> 
 
@@ -117,6 +199,7 @@
 
                     <fieldset class="config-fieldset">
                         <legend>Customization Configuration</legend>
+                        
                         <div class="form-group">
                             <input type="checkbox" id="addCfgAllowQuantity">
                             <label for="addCfgAllowQuantity">Allow Quantity Selection</label>
@@ -124,7 +207,7 @@
                         <div class="sub-options" id="addCfgQuantityOptions" style="display:none;">
                             <div class="form-group"><label for="addCfgMinQuantity">Min Quantity:</label><input type="number" id="addCfgMinQuantity" value="1" step="1"></div>
                             <div class="form-group"><label for="addCfgMaxQuantity">Max Quantity:</label><input type="number" id="addCfgMaxQuantity" value="1" step="1"></div>
-                            <div class="form-group"><label for="addCfgPricePerUnit">Price per Unit:</label><input type="number" id="addCfgPricePerUnit" step="0.01"></div>
+                            <div class="form-group"><label for="addCfgPricePerUnit">Price per Unit (if quantity selectable):</label><input type="number" id="addCfgPricePerUnit" step="0.01"></div>
                         </div>
 
                         <div class="form-group">
@@ -142,53 +225,49 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="addCfgAllowedSyrupTypes">Allowed Syrup Types/Names/IDs (Mode auto-detects CSV):</label>
-                            <input type="text" id="addCfgAllowedSyrupTypes" placeholder="Syrup,Sauce OR Vanilla Syrup,Caramel Syrup OR id1,id2">
-                            <span class="info-text">Types (Syrup), specific names, or specific inventory IDs.</span>
+                            <label for="addCfgAllowedSyrupTypes">Allowed Syrup Values (Types/Names/IDs):</label>
+                            <input type="text" id="addCfgAllowedSyrupTypes" placeholder="Syrup,Sauce OR Vanilla Syrup OR id1,id2">
                         </div>
                         <div class="form-group">
-                            <label for="addCfgSyrupMode">Syrup Mode:</label>
+                            <label for="addCfgSyrupMode">Syrup Selection Mode:</label>
                             <select id="addCfgSyrupMode">
-                                <option value="by_type">By Type</option>
-                                <option value="by_name">By Specific Names</option>
-                                <option value="by_id">By Specific IDs</option>
-                                <option value="none">None</option>
+                                <option value="by_type">By Type (e.g., 'Syrup')</option>
+                                <option value="by_name">By Specific Names (comma-sep)</option>
+                                <option value="by_id">By Specific IDs (comma-sep)</option>
+                                <option value="none" selected>None (No Syrups)</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                             <label for="addCfgAllowedToppingTypes">Allowed Topping Types/Names/IDs (Mode auto-detects CSV):</label>
+                             <label for="addCfgAllowedToppingTypes">Allowed Topping Values (Types/Names/IDs):</label>
                              <input type="text" id="addCfgAllowedToppingTypes" placeholder="Topping OR Whipped Cream OR id3,id4">
-                             <span class="info-text">Types (Topping), specific names, or specific inventory IDs.</span>
                         </div>
                         <div class="form-group">
-                            <label for="addCfgToppingMode">Topping Mode:</label>
+                            <label for="addCfgToppingMode">Topping Selection Mode:</label>
                             <select id="addCfgToppingMode">
                                 <option value="by_type">By Type</option>
                                 <option value="by_name">By Specific Names</option>
                                 <option value="by_id">By Specific IDs</option>
-                                <option value="none">None</option>
+                                <option value="none" selected>None (No Toppings)</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label for="addCfgAllowedMilk">Allowed Milk Options (Types/Names/IDs):</label>
-                            <input type="text" id="addCfgAllowedMilk" placeholder="Milk OR Almond Milk,Oat Milk OR milkId1,milkId2">
-                            <span class="info-text">Typically 'Milk' for type, or specific names/IDs.</span>
+                            <label for="addCfgAllowedMilkValues">Allowed Milk Values (Types/Names/IDs):</label>
+                            <input type="text" id="addCfgAllowedMilkValues" placeholder="Milk OR Almond Milk,Oat Milk OR milkId1">
                         </div>
                         <div class="form-group">
-                            <label for="addCfgMilkMode">Milk Mode:</label>
+                            <label for="addCfgMilkMode">Milk Selection Mode:</label>
                             <select id="addCfgMilkMode">
-                                <option value="by_type" selected>By Type</option>
+                                <option value="by_type" selected>By Type (e.g., 'Milk')</option>
                                 <option value="by_name">By Specific Names</option>
                                 <option value="by_id">By Specific IDs</option>
                                 <option value="none">None (No Milk Options)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="addCfgDefaultMilk">Default Milk (Name or ID - optional):</label>
-                            <input type="text" id="addCfgDefaultMilk" placeholder="e.g., Whole Milk or milk_id_default">
-                            <span class="info-text">Must match an allowed milk's name or ID.</span>
+                            <label for="addCfgDefaultMilk">Default Milk (Name or ID from Allowed Values):</label>
+                            <input type="text" id="addCfgDefaultMilk" placeholder="e.g., Whole Milk or actual inventory ID">
                         </div>
                         <div class="form-group">
                             <input type="checkbox" id="addCfgAllowColdFoam">
@@ -216,7 +295,7 @@
                 <h3>Edit Menu Item</h3>
                 <form id="editMenuItemForm">
                     <input type="hidden" id="editMenuItemId">
-                    <div class="form-group"><label for="editName">Name:</label><input type="text" id="editName" required></div>
+                     <div class="form-group"><label for="editName">Name:</label><input type="text" id="editName" required></div>
                     <div class="form-group"><label for="editDescription">Description:</label><textarea id="editDescription"></textarea></div>
                     <div class="form-group"><label for="editPrice">Base Price:</label><input type="number" id="editPrice" step="0.01" required></div>
                     <div class="form-group"><label for="editCategory">Category:</label><input type="text" id="editCategory"></div>
@@ -250,39 +329,39 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="editCfgAllowedSyrupTypes">Allowed Syrup Types/Names/IDs:</label>
+                            <label for="editCfgAllowedSyrupTypes">Allowed Syrup Values (Types/Names/IDs):</label>
                             <input type="text" id="editCfgAllowedSyrupTypes">
                         </div>
                          <div class="form-group">
-                            <label for="editCfgSyrupMode">Syrup Mode:</label>
+                            <label for="editCfgSyrupMode">Syrup Selection Mode:</label>
                             <select id="editCfgSyrupMode">
                                 <option value="by_type">By Type</option>
                                 <option value="by_name">By Specific Names</option>
                                 <option value="by_id">By Specific IDs</option>
-                                <option value="none">None</option>
+                                <option value="none" selected>None</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label for="editCfgAllowedToppingTypes">Allowed Topping Types/Names/IDs:</label>
+                            <label for="editCfgAllowedToppingTypes">Allowed Topping Values (Types/Names/IDs):</label>
                             <input type="text" id="editCfgAllowedToppingTypes">
                         </div>
                         <div class="form-group">
-                            <label for="editCfgToppingMode">Topping Mode:</label>
+                            <label for="editCfgToppingMode">Topping Selection Mode:</label>
                             <select id="editCfgToppingMode">
                                 <option value="by_type">By Type</option>
                                 <option value="by_name">By Specific Names</option>
                                 <option value="by_id">By Specific IDs</option>
-                                <option value="none">None</option>
+                                <option value="none" selected>None</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label for="editCfgAllowedMilk">Allowed Milk Options (Types/Names/IDs):</label>
-                            <input type="text" id="editCfgAllowedMilk">
+                            <label for="editCfgAllowedMilkValues">Allowed Milk Values (Types/Names/IDs):</label>
+                            <input type="text" id="editCfgAllowedMilkValues">
                         </div>
                         <div class="form-group">
-                            <label for="editCfgMilkMode">Milk Mode:</label>
+                            <label for="editCfgMilkMode">Milk Selection Mode:</label>
                             <select id="editCfgMilkMode">
                                 <option value="by_type" selected>By Type</option>
                                 <option value="by_name">By Specific Names</option>
@@ -291,7 +370,7 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="editCfgDefaultMilk">Default Milk (Name or ID - optional):</label>
+                            <label for="editCfgDefaultMilk">Default Milk (Name or ID):</label>
                             <input type="text" id="editCfgDefaultMilk">
                         </div>
                         <div class="form-group">
@@ -333,9 +412,8 @@
                 </table>
                 <div id="listMenuMessage" class="message"></div>
             </div>
-        </div>
-        <div id="inventoryManagementSection" class="content-section">
-            <h2>Inventory Management</h2>
+        </div> <div id="inventoryManagementSection" class="content-section">
+             <h2>Inventory Management</h2>
              <div class="form-section">
                 <h3>Add New Inventory Item</h3>
                 <form id="addInventoryItemForm">
@@ -414,8 +492,6 @@
                 </table>
                 <div id="listInventoryMessage" class="message"></div>
             </div>
-        </div> </div> 
-</div> 
-<script src="/js/admin-menu.js"></script>
+        </div> </div> </div> <script src="/js/admin-menu.js"></script>
 </body>
 </html>

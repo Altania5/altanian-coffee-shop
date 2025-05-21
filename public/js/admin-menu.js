@@ -98,6 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.addEventListener('change', () => {
                 subOptions.style.display = checkbox.checked ? 'block' : 'none';
             });
+        } else {
+            console.warn(`Checkbox (${checkboxId}) or SubOptions (${subOptionsId}) not found for toggle.`);
         }
     }
 
@@ -479,85 +481,133 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function toggleSubOptions(checkboxId, subOptionsId) {
+        const checkbox = document.getElementById(checkboxId);
+        const subOptions = document.getElementById(subOptionsId);
+        if (checkbox && subOptions) {
+            // Set initial state
+            subOptions.style.display = checkbox.checked ? 'block' : 'none';
+            // Add event listener
+            checkbox.addEventListener('change', () => {
+                subOptions.style.display = checkbox.checked ? 'block' : 'none';
+            });
+        } else {
+            // console.warn(`Checkbox (${checkboxId}) or SubOptions (${subOptionsId}) not found for toggle.`);
+        }
+    }
+    
+    // Call toggleSubOptions for all relevant checkboxes after DOM is loaded
+    // For ADD form
+    toggleSubOptions('addCfgAllowQuantity', 'addCfgQuantityOptions');
+    toggleSubOptions('addCfgAllowEspresso', 'addCfgEspressoOptions');
+    toggleSubOptions('addCfgAllowColdFoam', 'addCfgColdFoamOptions');
+
+    // For EDIT form
+    toggleSubOptions('editCfgAllowQuantity', 'editCfgQuantityOptions');
+    toggleSubOptions('editCfgAllowEspresso', 'editCfgEspressoOptions');
+    toggleSubOptions('editCfgAllowColdFoam', 'editCfgColdFoamOptions');
+
+
     function getCustomizationConfigFromForm(prefix) {
         const config = {};
         
-        const allowQuantity = document.getElementById(`${prefix}CfgAllowQuantity`).checked;
-        if (allowQuantity) {
-            config.allowQuantitySelection = {
-                min: parseInt(document.getElementById(`${prefix}CfgMinQuantity`).value) || 1,
-                max: parseInt(document.getElementById(`${prefix}CfgMaxQuantity`).value) || 1,
-                pricePerUnit: parseFloat(document.getElementById(`${prefix}CfgPricePerUnit`).value) || 0
-            };
-        } else {
-            config.allowQuantitySelection = false; 
+        const allowQuantityCheckbox = document.getElementById(`${prefix}CfgAllowQuantity`);
+        if (allowQuantityCheckbox) { // Check if element exists
+            const allowQuantity = allowQuantityCheckbox.checked;
+            if (allowQuantity) {
+                config.allowQuantitySelection = {
+                    min: parseInt(document.getElementById(`${prefix}CfgMinQuantity`).value) || 1,
+                    max: parseInt(document.getElementById(`${prefix}CfgMaxQuantity`).value) || 1,
+                    pricePerUnit: parseFloat(document.getElementById(`${prefix}CfgPricePerUnit`).value) || 0
+                };
+            } else {
+                config.allowQuantitySelection = false; 
+            }
         }
 
-        config.allowSizes = document.getElementById(`${prefix}CfgAllowSizes`).checked;
+        const allowSizesCheckbox = document.getElementById(`${prefix}CfgAllowSizes`);
+        if(allowSizesCheckbox) config.allowSizes = allowSizesCheckbox.checked;
         
-        const allowEspresso = document.getElementById(`${prefix}CfgAllowEspresso`).checked;
-        if (allowEspresso) {
-            config.allowEspressoShots = {
-                max: parseInt(document.getElementById(`${prefix}CfgMaxEspresso`).value) || 0,
-                pricePerExtraShot: parseFloat(document.getElementById(`${prefix}CfgEspressoPrice`).value) || 0
-            };
-        } else {
-            config.allowEspressoShots = false;
+        const allowEspressoCheckbox = document.getElementById(`${prefix}CfgAllowEspresso`);
+        if (allowEspressoCheckbox) { // Check if element exists
+            const allowEspresso = allowEspressoCheckbox.checked;
+            if (allowEspresso) {
+                config.allowEspressoShots = {
+                    max: parseInt(document.getElementById(`${prefix}CfgMaxEspresso`).value) || 0,
+                    pricePerExtraShot: parseFloat(document.getElementById(`${prefix}CfgEspressoPrice`).value) || 0
+                };
+            } else {
+                config.allowEspressoShots = false;
+            }
         }
 
         // Syrups
-        const syrupMode = document.getElementById(`${prefix}CfgSyrupMode`).value;
-        if (syrupMode !== 'none') {
-            const syrupValuesRaw = document.getElementById(`${prefix}CfgAllowedSyrupTypes`).value.trim();
-            config.syrups = {
-                mode: syrupMode,
-                values: syrupValuesRaw ? syrupValuesRaw.split(',').map(s => s.trim()).filter(s => s) : [],
-                label: "Add Syrup:" // Default label, can be made configurable too
-            };
-        } else {
-            config.syrups = { mode: 'none' };
+        const syrupModeEl = document.getElementById(`${prefix}CfgSyrupMode`);
+        if (syrupModeEl) {
+            const syrupMode = syrupModeEl.value;
+            if (syrupMode !== 'none') {
+                const syrupValuesRaw = document.getElementById(`${prefix}CfgAllowedSyrupTypes`).value.trim();
+                config.syrups = {
+                    mode: syrupMode,
+                    values: syrupValuesRaw ? syrupValuesRaw.split(',').map(s => s.trim()).filter(s => s) : [],
+                    label: "Add Syrup:" // You can make this configurable too if needed
+                };
+            } else {
+                config.syrups = { mode: 'none' };
+            }
         }
         
         // Toppings
-        const toppingMode = document.getElementById(`${prefix}CfgToppingMode`).value;
-        if (toppingMode !== 'none') {
-            const toppingValuesRaw = document.getElementById(`${prefix}CfgAllowedToppingTypes`).value.trim();
-            config.toppings = {
-                mode: toppingMode,
-                values: toppingValuesRaw ? toppingValuesRaw.split(',').map(s => s.trim()).filter(s => s) : [],
-                label: "Add Topping:" // Default label
-            };
-        } else {
-            config.toppings = { mode: 'none' };
+        const toppingModeEl = document.getElementById(`${prefix}CfgToppingMode`);
+        if (toppingModeEl) {
+            const toppingMode = toppingModeEl.value;
+            if (toppingMode !== 'none') {
+                const toppingValuesRaw = document.getElementById(`${prefix}CfgAllowedToppingTypes`).value.trim();
+                config.toppings = {
+                    mode: toppingMode,
+                    values: toppingValuesRaw ? toppingValuesRaw.split(',').map(s => s.trim()).filter(s => s) : [],
+                    label: "Add Topping:" 
+                };
+            } else {
+                config.toppings = { mode: 'none' };
+            }
         }
 
-        // NEW: Milk Options
-        const milkMode = document.getElementById(`${prefix}CfgMilkMode`).value;
-        if (milkMode !== 'none') {
-            const milkValuesRaw = document.getElementById(`${prefix}CfgAllowedMilk`).value.trim();
-            const defaultMilk = document.getElementById(`${prefix}CfgDefaultMilk`).value.trim();
-            config.milkOptions = {
-                mode: milkMode,
-                values: milkValuesRaw ? milkValuesRaw.split(',').map(m => m.trim()).filter(m => m) : [],
-                default: defaultMilk || undefined, // Store default if provided
-                label: "Milk Choice:" // Default label
-            };
-        } else {
-            config.milkOptions = { mode: 'none' };
+        // MILK OPTIONS
+        const milkModeEl = document.getElementById(`${prefix}CfgMilkMode`);
+        if (milkModeEl) {
+            const milkMode = milkModeEl.value;
+            if (milkMode !== 'none') {
+                const milkValuesRaw = document.getElementById(`${prefix}CfgAllowedMilkValues`).value.trim();
+                const defaultMilk = document.getElementById(`${prefix}CfgDefaultMilk`).value.trim();
+                config.milkOptions = {
+                    mode: milkMode,
+                    values: milkValuesRaw ? milkValuesRaw.split(',').map(m => m.trim()).filter(m => m) : [],
+                    default: defaultMilk || undefined, 
+                    label: "Milk Choice:" 
+                };
+            } else {
+                config.milkOptions = { mode: 'none' };
+            }
         }
-        // END NEW: Milk Options
+        // END MILK OPTIONS
 
-        const allowColdFoam = document.getElementById(`${prefix}CfgAllowColdFoam`).checked;
-        if (allowColdFoam) {
-            config.allowColdFoam = true;
-            config.pricePerColdFoam = parseFloat(document.getElementById(`${prefix}CfgColdFoamPrice`).value) || 0;
-        } else {
-            config.allowColdFoam = false;
+        const allowColdFoamCheckbox = document.getElementById(`${prefix}CfgAllowColdFoam`);
+        if (allowColdFoamCheckbox) { // Check if element exists
+            const allowColdFoam = allowColdFoamCheckbox.checked;
+            if (allowColdFoam) {
+                config.allowColdFoam = true;
+                config.pricePerColdFoam = parseFloat(document.getElementById(`${prefix}CfgColdFoamPrice`).value) || 0;
+            } else {
+                config.allowColdFoam = false;
+            }
         }
         
-        config.isHotDrink = document.getElementById(`${prefix}CfgIsHotDrink`).checked;
-        config.allowColdFoamIfHot = document.getElementById(`${prefix}CfgAllowColdFoamIfHot`).checked;
+        const isHotDrinkCheckbox = document.getElementById(`${prefix}CfgIsHotDrink`);
+        if(isHotDrinkCheckbox) config.isHotDrink = isHotDrinkCheckbox.checked;
 
+        const allowColdFoamIfHotCheckbox = document.getElementById(`${prefix}CfgAllowColdFoamIfHot`);
+        if(allowColdFoamIfHotCheckbox) config.allowColdFoamIfHot = allowColdFoamIfHotCheckbox.checked;
 
         return config;
     }
@@ -565,72 +615,86 @@ document.addEventListener('DOMContentLoaded', () => {
     function setCustomizationConfigToForm(prefix, configData = {}) {
         const config = configData && typeof configData === 'object' ? configData : {};
         
-        // ... (Quantity, Sizes, Espresso handling remains the same) ...
         const allowQuantityCheckbox = document.getElementById(`${prefix}CfgAllowQuantity`);
         const quantityOptionsDiv = document.getElementById(`${prefix}CfgQuantityOptions`);
-        if (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object') {
-            allowQuantityCheckbox.checked = true;
-            document.getElementById(`${prefix}CfgMinQuantity`).value = config.allowQuantitySelection.min || 1;
-            document.getElementById(`${prefix}CfgMaxQuantity`).value = config.allowQuantitySelection.max || 1;
-            document.getElementById(`${prefix}CfgPricePerUnit`).value = config.allowQuantitySelection.pricePerUnit || 0;
-        } else {
-            allowQuantityCheckbox.checked = false;
-            document.getElementById(`${prefix}CfgMinQuantity`).value = 1; 
-            document.getElementById(`${prefix}CfgMaxQuantity`).value = 1; 
-            document.getElementById(`${prefix}CfgPricePerUnit`).value = ''; 
+        if (allowQuantityCheckbox) {
+            if (config.allowQuantitySelection && typeof config.allowQuantitySelection === 'object') {
+                allowQuantityCheckbox.checked = true;
+                document.getElementById(`${prefix}CfgMinQuantity`).value = config.allowQuantitySelection.min || 1;
+                document.getElementById(`${prefix}CfgMaxQuantity`).value = config.allowQuantitySelection.max || 1;
+                document.getElementById(`${prefix}CfgPricePerUnit`).value = config.allowQuantitySelection.pricePerUnit || '';
+            } else {
+                allowQuantityCheckbox.checked = !!config.allowQuantitySelection; // handles explicit false
+                document.getElementById(`${prefix}CfgMinQuantity`).value = 1; 
+                document.getElementById(`${prefix}CfgMaxQuantity`).value = 1; 
+                document.getElementById(`${prefix}CfgPricePerUnit`).value = ''; 
+            }
+            if(quantityOptionsDiv) quantityOptionsDiv.style.display = allowQuantityCheckbox.checked ? 'block' : 'none';
         }
-        if(quantityOptionsDiv) quantityOptionsDiv.style.display = allowQuantityCheckbox.checked ? 'block' : 'none';
 
-
-        document.getElementById(`${prefix}CfgAllowSizes`).checked = config.allowSizes !== undefined ? config.allowSizes : true;
+        const allowSizesCheckbox = document.getElementById(`${prefix}CfgAllowSizes`);
+        if(allowSizesCheckbox) allowSizesCheckbox.checked = config.allowSizes !== undefined ? config.allowSizes : true;
 
         const allowEspressoCheckbox = document.getElementById(`${prefix}CfgAllowEspresso`);
         const espressoOptionsDiv = document.getElementById(`${prefix}CfgEspressoOptions`);
-        if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object') {
-            allowEspressoCheckbox.checked = true;
-            document.getElementById(`${prefix}CfgMaxEspresso`).value = config.allowEspressoShots.max || 0;
-            document.getElementById(`${prefix}CfgEspressoPrice`).value = config.allowEspressoShots.pricePerExtraShot || 0;
-        } else {
-            allowEspressoCheckbox.checked = config.allowEspressoShots !== undefined ? config.allowEspressoShots : false;
-            document.getElementById(`${prefix}CfgMaxEspresso`).value = 3; 
-            document.getElementById(`${prefix}CfgEspressoPrice`).value = 1.00; 
+        if(allowEspressoCheckbox) {
+            if (config.allowEspressoShots && typeof config.allowEspressoShots === 'object') {
+                allowEspressoCheckbox.checked = true;
+                document.getElementById(`${prefix}CfgMaxEspresso`).value = config.allowEspressoShots.max || 3;
+                document.getElementById(`${prefix}CfgEspressoPrice`).value = config.allowEspressoShots.pricePerExtraShot || 1.00;
+            } else {
+                allowEspressoCheckbox.checked = !!config.allowEspressoShots; // handles explicit false
+                document.getElementById(`${prefix}CfgMaxEspresso`).value = 3; 
+                document.getElementById(`${prefix}CfgEspressoPrice`).value = 1.00; 
+            }
+             if(espressoOptionsDiv) espressoOptionsDiv.style.display = allowEspressoCheckbox.checked ? 'block' : 'none';
         }
-        if(espressoOptionsDiv) espressoOptionsDiv.style.display = allowEspressoCheckbox.checked ? 'block' : 'none';
         
         // Syrups
-        const syrupConfig = config.syrups || { mode: 'by_type', values: [] };
-        document.getElementById(`${prefix}CfgSyrupMode`).value = syrupConfig.mode || 'by_type';
-        document.getElementById(`${prefix}CfgAllowedSyrupTypes`).value = Array.isArray(syrupConfig.values) ? syrupConfig.values.join(',') : '';
+        const syrupConfig = config.syrups || { mode: 'none', values: [] };
+        const syrupModeEl = document.getElementById(`${prefix}CfgSyrupMode`);
+        const syrupValuesEl = document.getElementById(`${prefix}CfgAllowedSyrupTypes`);
+        if(syrupModeEl) syrupModeEl.value = syrupConfig.mode || 'none';
+        if(syrupValuesEl) syrupValuesEl.value = Array.isArray(syrupConfig.values) ? syrupConfig.values.join(',') : '';
         
         // Toppings
-        const toppingConfig = config.toppings || { mode: 'by_type', values: [] };
-        document.getElementById(`${prefix}CfgToppingMode`).value = toppingConfig.mode || 'by_type';
-        document.getElementById(`${prefix}CfgAllowedToppingTypes`).value = Array.isArray(toppingConfig.values) ? toppingConfig.values.join(',') : '';
+        const toppingConfig = config.toppings || { mode: 'none', values: [] };
+        const toppingModeEl = document.getElementById(`${prefix}CfgToppingMode`);
+        const toppingValuesEl = document.getElementById(`${prefix}CfgAllowedToppingTypes`);
+        if(toppingModeEl) toppingModeEl.value = toppingConfig.mode || 'none';
+        if(toppingValuesEl) toppingValuesEl.value = Array.isArray(toppingConfig.values) ? toppingConfig.values.join(',') : '';
 
-        // NEW: Milk Options
-        const milkConfig = config.milkOptions || { mode: 'by_type', values: [], default: '' };
-        document.getElementById(`${prefix}CfgMilkMode`).value = milkConfig.mode || 'by_type';
-        document.getElementById(`${prefix}CfgAllowedMilk`).value = Array.isArray(milkConfig.values) ? milkConfig.values.join(',') : '';
-        document.getElementById(`${prefix}CfgDefaultMilk`).value = milkConfig.default || '';
-        // END NEW: Milk Options
+        // MILK OPTIONS
+        const milkConfig = config.milkOptions || { mode: 'by_type', values: ['Milk'], default: '' }; // Sensible default
+        const milkModeEl = document.getElementById(`${prefix}CfgMilkMode`);
+        const milkValuesEl = document.getElementById(`${prefix}CfgAllowedMilkValues`);
+        const defaultMilkEl = document.getElementById(`${prefix}CfgDefaultMilk`);
+
+        if(milkModeEl) milkModeEl.value = milkConfig.mode || 'by_type';
+        if(milkValuesEl) milkValuesEl.value = Array.isArray(milkConfig.values) ? milkConfig.values.join(',') : '';
+        if(defaultMilkEl) defaultMilkEl.value = milkConfig.default || '';
+        // END MILK OPTIONS
 
         const allowColdFoamCheckbox = document.getElementById(`${prefix}CfgAllowColdFoam`);
         const coldFoamOptionsDiv = document.getElementById(`${prefix}CfgColdFoamOptions`);
-        if (config.allowColdFoam) {
-            allowColdFoamCheckbox.checked = true;
-            document.getElementById(`${prefix}CfgColdFoamPrice`).value = config.pricePerColdFoam || 0;
-        } else {
-            allowColdFoamCheckbox.checked = false;
-            document.getElementById(`${prefix}CfgColdFoamPrice`).value = 0.75; 
+        if(allowColdFoamCheckbox) {
+            if (config.allowColdFoam) {
+                allowColdFoamCheckbox.checked = true;
+                document.getElementById(`${prefix}CfgColdFoamPrice`).value = config.pricePerColdFoam || 0.75;
+            } else {
+                allowColdFoamCheckbox.checked = false;
+                document.getElementById(`${prefix}CfgColdFoamPrice`).value = 0.75; 
+            }
+            if(coldFoamOptionsDiv) coldFoamOptionsDiv.style.display = allowColdFoamCheckbox.checked ? 'block' : 'none';
         }
-        if(coldFoamOptionsDiv) coldFoamOptionsDiv.style.display = allowColdFoamCheckbox.checked ? 'block' : 'none';
+        
+        const isHotDrinkCheckbox = document.getElementById(`${prefix}CfgIsHotDrink`);
+        if(isHotDrinkCheckbox) isHotDrinkCheckbox.checked = config.isHotDrink || false;
+        
+        const allowColdFoamIfHotCheckbox = document.getElementById(`${prefix}CfgAllowColdFoamIfHot`);
+        if(allowColdFoamIfHotCheckbox) allowColdFoamIfHotCheckbox.checked = config.allowColdFoamIfHot || false;
 
-
-        document.getElementById(`${prefix}CfgIsHotDrink`).checked = config.isHotDrink || false;
-        document.getElementById(`${prefix}CfgAllowColdFoamIfHot`).checked = config.allowColdFoamIfHot || false;
-
-
-        // Manually trigger change events for checkboxes to ensure sub-options visibility is updated
+        // Manually trigger change events for main checkboxes to ensure sub-options visibility is correct on load
         if (allowQuantityCheckbox) allowQuantityCheckbox.dispatchEvent(new Event('change'));
         if (allowEspressoCheckbox) allowEspressoCheckbox.dispatchEvent(new Event('change'));
         if (allowColdFoamCheckbox) allowColdFoamCheckbox.dispatchEvent(new Event('change'));
@@ -671,15 +735,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Initialize add form config fields to default state (after attaching event listeners)
         setCustomizationConfigToForm('add', { 
-            allowSizes: true, // Example default
-            allowEspressoShots: { max:3, pricePerExtraShot: 1.00}, // Example default
-            syrups: { mode: 'by_type', values: ['Syrup']}, // Example default
-            toppings: { mode: 'by_type', values: ['Topping']}, // Example default
-            milkOptions: { mode: 'by_type', values: ['Milk'], default: 'Whole Milk'}, // Example default
-            isHotDrink: true // Example default
+            allowSizes: true,
+            allowEspressoShots: { max: 3, pricePerExtraShot: 1.00 },
+            syrups: { mode: 'none', values: [] }, // Default to none
+            toppings: { mode: 'none', values: [] }, // Default to none
+            milkOptions: { mode: 'by_type', values: ['Milk'], default: ''}, // Default for milk
+            allowColdFoam: false,
+            isHotDrink: false,
+            allowColdFoamIfHot: false
          });
-
-
     }
 
     function populateEditMenuItemForm(item) {

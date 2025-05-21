@@ -314,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (config.milkOptions && config.milkOptions.mode !== 'none' && customizeMilkSelect && milkLabelEl) {
             if (populateSelectWithOptions(customizeMilkSelect, milkLabelEl, config.milkOptions)) {
                 if(customizeMilkSection) customizeMilkSection.style.display = 'block';
+                // Set default milk if specified
                 if (config.milkOptions.default) {
                     let defaultFound = false;
                     for (let option of customizeMilkSelect.options) {
@@ -323,11 +324,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             break;
                         }
                     }
-                    if (!defaultFound) console.warn(`Default milk "${config.milkOptions.default}" not found in populated options.`);
+                    if (!defaultFound) console.warn(`Default milk "${config.milkOptions.default}" not found or not available for item "${item.name}".`);
                 } else {
-                    customizeMilkSelect.value = ""; // Select "None" if no default and options exist
+                     // If no default, and "None" is the first option, it will be selected.
+                     // If "None" isn't desired as a default selectable when options are present,
+                     // you might want to select the first actual milk option.
+                     if (customizeMilkSelect.options.length > 1 && customizeMilkSelect.options[0].value === "") {
+                         // If "None" is present and no default, do nothing to keep "None" selected.
+                         // If you want to force a selection if options exist:
+                         // customizeMilkSelect.value = customizeMilkSelect.options[1].value;
+                     }
                 }
+            } else {
+                 if(customizeMilkSection) customizeMilkSection.style.display = 'none';
             }
+        } else {
+            if(customizeMilkSection) customizeMilkSection.style.display = 'none';
         }
         
         if (config.allowColdFoam && customizeColdFoamCheckbox) {
@@ -423,9 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (config.milkOptions && customizeMilkSection.style.display !== 'none') {
+        if (config.milkOptions && customizeMilkSection && customizeMilkSection.style.display !== 'none' && customizeMilkSelect) {
             const selectedMilkOption = customizeMilkSelect.options[customizeMilkSelect.selectedIndex];
-            if (selectedMilkOption && selectedMilkOption.value) {
+            if (selectedMilkOption && selectedMilkOption.value) { 
                 total += parseFloat(selectedMilkOption.dataset.price || 0);
             }
         }
