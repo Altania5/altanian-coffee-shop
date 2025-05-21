@@ -145,7 +145,7 @@ app.get('/api/inventory/customizations', async (req, res) => {
         const customizationItems = await InventoryItem.find({
             isAvailable: true,
             quantityInStock: { $gt: 0 },
-            pricePerUnitCharge: { $gt: 0 }
+            pricePerUnitCharge: { $gte: 0 }
         }).sort({ itemType: 1, itemName: 1 }).lean(); // Added .lean() for safety
 
         console.log(`====== SERVER: InventoryItem.find() completed. Found ${customizationItems ? customizationItems.length : 'null/undefined'} items.`);

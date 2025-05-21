@@ -85,6 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (result.success && result.data) {
                 const menuItemsWithMockConfig = result.data.map(item => {
+                    item.customizationConfig.milkOptions = { 
+                    label: "Milk Choice:", 
+                    mode: 'by_type', 
+                    values: ['Milk'],
+                    default: 'Whole Milk'
+                };
+                item.customizationConfig.milkOptions = { mode: 'none' };
                     if (!item.customizationConfig || Object.keys(item.customizationConfig).length === 0) {
                         console.warn(`Item "${item.name}" missing customizationConfig. Applying mock data.`);
                         if (item.name && item.name.toLowerCase().includes('espresso shot')) {
@@ -222,11 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         } else if (configRule.mode === 'by_id') {
             relevantAddons = allCustomizationAddons.filter(addon => 
-                configRule.values.includes(addon._id) && addon.pricePerUnitCharge >= 0
+                configRule.values.includes(addon._id) && addon.pricePerUnitCharge >= 0 // Allow $0 options
             );
         } else if (configRule.mode === 'by_name') {
             relevantAddons = allCustomizationAddons.filter(addon => 
-                configRule.values.includes(addon.itemName) && addon.pricePerUnitCharge >= 0
+                configRule.values.includes(addon.itemName) && addon.pricePerUnitCharge >= 0 // Allow $0 options
             );
         }
         console.log(`Relevant addons for ${selectElement.id} after filtering:`, JSON.stringify(relevantAddons, null, 2));
