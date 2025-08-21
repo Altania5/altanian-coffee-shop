@@ -1,0 +1,68 @@
+const router = require('express').Router();
+const ownerAuth = require('../middleware/ownerAuth');
+let InventoryItem = require('../models/inventory.model');
+
+router.get('/', async (req, res) => {
+  try {
+    const items = await InventoryItem.find().sort({ name: 1 });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error fetching inventory: ' + err.message });
+  }
+});
+
+router.post('/add', ownerAuth, async (req, res) => {
+  try {
+    const { name, quantity, unit, category } = req.body;
+    if (!name || !unit || !category) {
+      return res.status(400).json({ msg: 'Please enter name, unit, and category.' });
+    }
+    const newItem = new InventoryItem({ name, quantity, unit, category });
+    const savedItem = await newItem.save();
+    res.json(savedItem);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ msg: messages[0] });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: `An inventory item named "${req.body.name}" already exists.` });
+    }
+    res.status(500).json({ error: 'Server error adding item: ' + err.message });
+  }
+});
+
+router.put('/update/:id', ownerAuth, async (req, res) => {
+  try {
+    const updatedItem = await InventoryItem.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true } 
+    );
+     if (!updatedItem) {
+      return res.status(404).json({ msg: 'Item not found' });
+    }
+    res.json(updatedItem);
+  } catch (err) {
+    // Also add robust error handling here
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ msg: messages[0] });
+    }
+    res.status(500).json({ error: 'Server error updating item: ' + err.message });
+  }
+});
+
+router.delete('/delete/:id', ownerAuth, async (req, res) => {
+    try {
+        const deletedItem = await InventoryItem.findByIdAndDelete(req.params.id);
+        if (!deletedItem) {
+            return res.status(404).json({ msg: 'Item not found' });
+        }
+        res.json({ msg: 'Item deleted', item: deletedItem });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error deleting item: ' + err.message });
+    }
+});
+
+module.exports = router;

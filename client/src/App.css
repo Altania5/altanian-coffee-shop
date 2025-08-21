@@ -1,0 +1,404 @@
+/* --- CSS Variables & Global Styles --- */
+:root {
+  --primary-color: #6F4E37; /* Coffee Brown */
+  --secondary-color: #A0522D; /* Lighter Brown */
+  --background-color: #F5F5F5; /* Light Gray */
+  --surface-color: #FFFFFF;
+  --text-color: #333333;
+  --text-light-color: #666666;
+  --border-color: #E0E0E0;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --max-width: 1200px;
+  --font-family: 'Lato', sans-serif;
+  --nav-height: 60px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+main {
+  max-width: var(--max-width);
+  margin: 20px auto;
+  padding: 0 15px;
+  padding-bottom: calc(var(--nav-height) + 20px);
+}
+/* --- Top Header --- */
+.app-header {
+  background-color: var(--surface-color);
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.navbar .nav-tabs {
+  display: none; /* Hidden on mobile */
+  gap: 10px;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  white-space: nowrap;
+}
+
+.desktop-nav {
+  display: none; /* Hidden on mobile by default */
+  background-color: var(--primary-color);
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.desktop-nav button {
+  background: none;
+  border: none;
+  color: white;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.desktop-nav button:hover {
+  background-color: var(--secondary-color);
+}
+
+/* --- Bottom Nav (Mobile) --- */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  background-color: var(--surface-color);
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.bottom-nav button {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  color: var(--text-light-color);
+  font-size: 0.75rem;
+  padding: 5px 0;
+  width: auto;
+  margin: 0;
+}
+
+.bottom-nav .nav-icon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+/* Hide text labels on desktop nav */
+.desktop-nav .nav-icon {
+  display: none;
+}
+
+.bottom-nav .nav-text {
+  display: block;
+}
+
+/* --- Media Queries for Desktop --- */
+@media (min-width: 768px) {
+  main {
+    padding-bottom: 20px; /* Reset padding on desktop */
+  }
+
+  .desktop-nav {
+    display: flex; /* Show desktop nav */
+  }
+
+  .desktop-nav .nav-text {
+    display: inline-block;
+  }
+  
+  .bottom-nav {
+    display: none; /* Hide bottom nav */
+  }
+}
+
+/* --- Forms & Buttons --- */
+.form-container {
+  background: var(--surface-color);
+  padding: 25px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  max-width: 500px;
+  margin: 30px auto;
+}
+
+.form-container h2 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+  font-size: 1rem;
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+  display: block; /* Make buttons block level */
+  width: 100%; /* Make buttons full width */
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #5a3f2b;
+}
+
+/* --- Component-Specific Styles --- */
+.container {
+  background: var(--surface-color);
+  padding: 20px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 25px;
+}
+
+.order-page-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 25px;
+}
+
+.product-item, .order-item {
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+/* --- Home Page Specific Styles --- */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+  margin-top: 25px;
+}
+
+.home-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.home-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.home-card h3 {
+  background-color: var(--primary-color);
+  color: white;
+  margin: 0;
+  padding: 15px 20px;
+  font-size: 1.1rem;
+}
+
+.card-content {
+  padding: 20px;
+}
+
+.card-content h4 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  color: var(--text-color);
+}
+
+.card-description {
+  color: var(--text-light-color);
+  min-height: 40px; /* Ensures cards have a similar height */
+}
+
+.card-price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.card-button {
+  width: auto !important; /* Overrides the global full-width button style */
+  background-color: var(--secondary-color) !important;
+  display: inline-block !important;
+}
+
+.card-button:hover {
+  background-color: var(--primary-color) !important;
+}
+
+.suggestion-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 0; /* Image fits edge-to-edge in the card */
+  margin-bottom: 15px;
+  display: block;
+}
+
+.home-card .card-content img + h4 {
+  margin-top: 0;
+}
+.home-card img {
+  margin: -20px -20px 15px -20px; /* Negative margin to make image fill the card width */
+  width: calc(100% + 40px);
+}
+
+/* --- Media Queries for Desktop --- */
+@media (min-width: 768px) {
+  .order-page-grid {
+    grid-template-columns: 1fr 2fr; /* Two columns on desktop */
+  }
+  .app-header {
+    padding: 15px 40px;
+    flex-wrap: nowrap;
+  }
+  main {
+    padding: 20px;
+  }
+  .home-grid {
+    grid-template-columns: 1fr 1fr; /* Two columns on desktop */
+  }
+}
+
+.product-item {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.product-item button {
+  margin-left: auto; /* Pushes button to the far right */
+  white-space: nowrap;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cart-item:last-child {
+  border-bottom: none;
+}
+
+.cart-item-details {
+  flex-grow: 1;
+}
+
+.cart-item-quantity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quantity-btn {
+  width: 30px !important;
+  height: 30px;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  margin: 0 !important;
+}
+
+.tip-amounts {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.tip-button {
+  flex: 1;
+  background-color: var(--secondary-color) !important;
+}
+
+.tip-button:hover {
+    background-color: var(--primary-color) !important;
+}
+
+.tip-custom-form {
+  display: flex;
+  gap: 10px;
+}
+
+.tip-custom-input {
+  flex-grow: 1;
+  margin-bottom: 0; /* Override default margin */
+}
+
+.tip-custom-button {
+  width: auto !important; /* Override global full-width button style */
+  margin-top: 0 !important; /* Override global margin */
+}
+
+.tip-message {
+  margin-top: 15px;
+  color: var(--primary-color);
+  font-weight: 700;
+  text-align: center;
+}
