@@ -100,8 +100,8 @@ app.use(session({
     }
 }));
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the React build directory
+app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 // --- Mongoose Schemas and Models ---
 
@@ -215,22 +215,9 @@ const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);
 
 // --- Routes ---
 
-// Welcome/Login page
-app.get('/', (req, res) => {
-    if (req.session.user) {
-        if (req.session.user.role === 'admin') {
-            return res.redirect('/admin/menu'); 
-        } else {
-            return res.redirect('/menu'); 
-        }
-    }
-    res.sendFile(path.join(__dirname, 'public', 'welcome.html'));
-});
+// Note: Root route now handled by React catch-all route at the end
 
-// Registration page 
-app.get('/register', (req, res) => { 
-    res.sendFile(path.join(__dirname, 'public', 'register.html'));
-});
+// Registration page route removed - now handled by React SPA
 
 
 // Registration Logic
@@ -417,11 +404,7 @@ app.get('/logout', (req, res, next) => {
 });
 
 
-// Public menu page
-app.get('/menu', (req, res) => {
-    console.log("Serving /menu HTML page"); 
-    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
-});
+// Menu page route removed - now handled by React SPA
 
 // API to get all menu items (Public)
 app.get('/api/menu', async (req, res) => {
@@ -457,10 +440,7 @@ app.get('/api/menu/:id', async (req, res) => {
     }
 });
 
-// Admin menu management page
-app.get('/admin/menu', isAuthenticated, isAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-menu.html'));
-});
+// Admin menu page route removed - now handled by React SPA
 
 // POST - Create a new menu item (Admin Only)
 app.post('/api/menu', isAuthenticated, isAdmin, async (req, res) => {
@@ -572,10 +552,7 @@ app.delete('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// Tycoon game page
-app.get('/tycoon.html', isAuthenticated, (req, res) => { 
-    res.sendFile(path.join(__dirname, 'public', 'tycoon.html'));
-});
+// Tycoon game page route removed - now handled by React SPA
 
 // --- Game API Endpoints --- (existing, kept for brevity)
 // Middleware to get or create game profile
@@ -855,6 +832,10 @@ app.delete('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+});
 
 // --- Start Server Only After DB Connection ---
 connectDB().then(() => {

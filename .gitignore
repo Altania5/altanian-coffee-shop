@@ -23,6 +23,7 @@ lerna-debug.log*
 # Production
 /build
 /dist
+/client/build
 
 # OS generated files
 .DS_Store
