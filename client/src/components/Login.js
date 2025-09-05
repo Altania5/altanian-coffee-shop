@@ -17,7 +17,7 @@ function Login({ onLogin  }) {
       // Store the token in the browser's local storage
       localStorage.setItem('token', response.data.token);
     } catch (err) {
-      setError(err.response.data.msg || 'An error occurred during login.');
+      setError(err.response?.data?.message || 'An error occurred during login.');
     }
   };
 

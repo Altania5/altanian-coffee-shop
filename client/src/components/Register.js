@@ -26,7 +26,7 @@ function Register() {
       // Clear the form
       setFormData({ firstName: '', lastName: '', birthday: '', username: '', password: '' });
     } catch (err) {
-      setMessage(err.response.data.msg || 'An error occurred during registration.');
+      setMessage(err.response?.data?.message || 'An error occurred during registration.');
     }
   };
 
