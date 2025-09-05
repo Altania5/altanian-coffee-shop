@@ -61,6 +61,9 @@ async function connectDB() {
         
         // Seed some sample menu items if collection is empty
         await seedMenuItems(menuItemsCollection);
+        
+        // Seed some sample inventory items
+        await seedInventoryItems();
 
     } catch (err) {
         console.error("Failed to connect to MongoDB:", err.message || err);
@@ -212,6 +215,76 @@ async function seedMenuItems(menuItemsCollection) {
         }
     } catch (error) {
         console.error('Error seeding menu items:', error);
+    }
+}
+
+// --- Inventory Seeding Function ---
+async function seedInventoryItems() {
+    try {
+        const count = await InventoryItem.countDocuments();
+        if (count === 0) {
+            const sampleInventory = [
+                {
+                    itemName: "Ethiopian Yirgacheffe",
+                    itemType: "Coffee Beans",
+                    unit: "lb",
+                    quantityInStock: 50,
+                    costPerUnit: 12.50,
+                    pricePerUnitCharge: 0.75,
+                    isAvailable: true,
+                    supplierInfo: "Direct Trade",
+                    notes: "Floral and citrusy notes"
+                },
+                {
+                    itemName: "Colombian Supremo",
+                    itemType: "Coffee Beans",
+                    unit: "lb",
+                    quantityInStock: 75,
+                    costPerUnit: 10.00,
+                    pricePerUnitCharge: 0.50,
+                    isAvailable: true,
+                    supplierInfo: "Fair Trade",
+                    notes: "Rich and balanced"
+                },
+                {
+                    itemName: "Vanilla Syrup",
+                    itemType: "Syrup",
+                    unit: "ml",
+                    quantityInStock: 2000,
+                    costPerUnit: 0.02,
+                    pricePerUnitCharge: 0.60,
+                    isAvailable: true,
+                    notes: "Premium vanilla flavor"
+                },
+                {
+                    itemName: "Caramel Sauce",
+                    itemType: "Sauce",
+                    unit: "ml",
+                    quantityInStock: 1500,
+                    costPerUnit: 0.03,
+                    pricePerUnitCharge: 0.75,
+                    isAvailable: true,
+                    notes: "Rich caramel drizzle"
+                },
+                {
+                    itemName: "Whole Milk",
+                    itemType: "Milk",
+                    unit: "ml",
+                    quantityInStock: 5000,
+                    costPerUnit: 0.001,
+                    pricePerUnitCharge: 0.00,
+                    isAvailable: true,
+                    notes: "Fresh daily delivery"
+                }
+            ];
+            
+            await InventoryItem.insertMany(sampleInventory);
+            console.log(`Seeded ${sampleInventory.length} sample inventory items.`);
+        } else {
+            console.log(`Inventory collection already has ${count} items, skipping seeding.`);
+        }
+    } catch (error) {
+        console.error('Error seeding inventory items:', error);
     }
 }
 
@@ -502,6 +575,56 @@ app.get('/inventory', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error("Error fetching inventory:", error);
         res.status(500).json({ error: 'Failed to fetch inventory.' });
+    }
+});
+
+// Product management endpoints for admin
+app.post('/products/add', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const menuItemsCollection = db.collection('menuitems');
+        const newItem = {
+            ...req.body,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        const result = await menuItemsCollection.insertOne(newItem);
+        const createdItem = await menuItemsCollection.findOne({ _id: result.insertedId });
+        res.status(201).json(createdItem);
+    } catch (error) {
+        console.error('Error adding product:', error);
+        res.status(500).json({ msg: 'Failed to add product.' });
+    }
+});
+
+app.put('/products/update/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const menuItemsCollection = db.collection('menuitems');
+        const updatedItem = {
+            ...req.body,
+            updatedAt: new Date()
+        };
+        const result = await menuItemsCollection.findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            { $set: updatedItem },
+            { returnDocument: 'after' }
+        );
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ msg: 'Failed to update product.' });
+    }
+});
+
+app.delete('/products/delete/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const menuItemsCollection = db.collection('menuitems');
+        await menuItemsCollection.deleteOne({ _id: new ObjectId(id) });
+        res.status(200).json({ message: 'Product deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ msg: 'Failed to delete product.' });
     }
 });
 
