@@ -8,6 +8,20 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [expanded, setExpanded] = useState(false);
   const [showingPersisted, setShowingPersisted] = useState(false);
 
+  const performAnalysis = useCallback(async () => {
+    try {
+      const ai = getEspressoAI();
+      const result = await ai.analyzeShot(shotData);
+      setAnalysis(result);
+      setAiStatus('ready');
+      setLoading(false);
+    } catch (error) {
+      console.error('Error performing analysis:', error);
+      setAiStatus('error');
+      setLoading(false);
+    }
+  }, [shotData]);
+
   const analyzeShot = useCallback(async () => {
     setLoading(true);
     setAiStatus('analyzing');
@@ -37,7 +51,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
       setAiStatus('error');
       setLoading(false);
     }
-  }, []);
+  }, [performAnalysis]);
 
   useEffect(() => {
     // First, try to load persisted AI response
@@ -63,21 +77,6 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
       analyzeShot();
     }
   }, [shotData, analyzeShot]);
-
-
-  const performAnalysis = async () => {
-    try {
-      const ai = getEspressoAI();
-      const result = await ai.analyzeShot(shotData);
-      setAnalysis(result);
-      setAiStatus('ready');
-      setLoading(false);
-    } catch (error) {
-      console.error('Error performing analysis:', error);
-      setAiStatus('error');
-      setLoading(false);
-    }
-  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {

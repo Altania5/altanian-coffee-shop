@@ -313,192 +313,209 @@ class EspressoAI {
     const recommendations = [];
     const { grindSize, extractionTime, temperature, inWeight, outWeight } = shotData;
     
-    // Quality-based recommendations
+    // Weighted priority scores for different issues (higher = more important)
+    const issuePriorities = new Map();
+    
+    // Quality-based recommendations with proper variable usage
     if (predictedQuality < 6) {
-      // Ratio analysis
+      // Ratio analysis using inWeight and outWeight
       if (ratio < IDEAL_PARAMETERS.ratio.min) {
-        recommendations.push({
-          type: 'grind',
-          action: 'Increase output or decrease input for better balance',
-          priority: 'high',
-          expectedImprovement: '+1-2 quality points'
-        });
-      } else if (ratio > IDEAL_PARAMETERS.ratio.max) {
-        recommendations.push({
+        issuePriorities.set('low_ratio', { score: 85, recommendations: [{
           type: 'ratio',
-          action: 'Reduce output or increase input - shot may be too weak',
+          action: `Increase output (currently ${outWeight}g) or decrease dose (currently ${inWeight}g) for better balance`,
           priority: 'high',
           expectedImprovement: '+1-2 quality points'
-        });
+        }]});
+      } else if (ratio > IDEAL_PARAMETERS.ratio.max) {
+        issuePriorities.set('high_ratio', { score: 80, recommendations: [{
+          type: 'ratio',
+          action: `Reduce output or increase dose - current ratio ${ratio.toFixed(2)}:1 may be too weak`,
+          priority: 'high',
+          expectedImprovement: '+1-2 quality points'
+        }]});
       }
       
-      // Extraction time analysis
+      // Extraction time analysis with grind size context
       if (extractionTime < IDEAL_PARAMETERS.extractionTime.min) {
-        recommendations.push({
+        const grindAdjustment = grindSize ? `(current grind: ${grindSize})` : '';
+        issuePriorities.set('fast_extraction', { score: 95, recommendations: [{
           type: 'grind',
-          action: `Grind finer - extraction time is too fast (${extractionTime}s vs ideal 25-30s)`,
+          action: `Grind finer ${grindAdjustment} - extraction time is too fast (${extractionTime}s vs ideal 25-30s)`,
           priority: 'high',
           expectedImprovement: '+2-3 quality points'
-        });
+        }]});
       } else if (extractionTime > IDEAL_PARAMETERS.extractionTime.max) {
-        recommendations.push({
+        const grindAdjustment = grindSize ? `(current grind: ${grindSize})` : '';
+        issuePriorities.set('slow_extraction', { score: 75, recommendations: [{
           type: 'grind',
-          action: `Grind coarser - extraction time is too slow (${extractionTime}s vs ideal 25-30s)`,
+          action: `Grind coarser ${grindAdjustment} - extraction time is too slow (${extractionTime}s vs ideal 25-30s)`,
           priority: 'medium',
           expectedImprovement: '+1-2 quality points'
-        });
+        }]});
       }
       
       // Temperature recommendations
       if (temperature < IDEAL_PARAMETERS.temperature.min) {
-        recommendations.push({
+        const tempDiff = IDEAL_PARAMETERS.temperature.ideal - temperature;
+        issuePriorities.set('low_temperature', { score: 60, recommendations: [{
           type: 'temperature',
-          action: `Increase temperature by ${IDEAL_PARAMETERS.temperature.ideal - temperature}°C`,
+          action: `Increase temperature by ${tempDiff}°C (current: ${temperature}°C, ideal: ${IDEAL_PARAMETERS.temperature.ideal}°C)`,
           priority: 'medium',
           expectedImprovement: '+0.5-1 quality points'
-        });
+        }]});
       }
     }
     
-    // Advanced recommendations based on taste profile
+    // Advanced recommendations based on taste profile with priority weighting
     if (shotData.tasteProfile) {
       const taste = shotData.tasteProfile;
       
       if (taste.bitterness >= 4 && taste.sweetness <= 2) {
-        recommendations.push({
+        issuePriorities.set('over_extracted_bitter', { score: 90, recommendations: [{
           type: 'extraction',
           action: 'Reduce extraction to decrease bitterness - try grinding coarser or lowering temperature',
           priority: 'high',
           expectedImprovement: 'Better balance'
-        });
+        }]});
       }
       
       if (taste.acidity >= 4 && taste.sweetness <= 2) {
-        recommendations.push({
+        issuePriorities.set('under_extracted_sour', { score: 90, recommendations: [{
           type: 'extraction',
           action: 'Increase extraction to reduce sourness - try grinding finer or raising temperature',
           priority: 'high',
           expectedImprovement: 'Sweeter, more balanced shot'
-        });
+        }]});
       }
       
       if (taste.body <= 2) {
-        recommendations.push({
+        const currentDose = inWeight ? `(current: ${inWeight}g)` : '';
+        issuePriorities.set('weak_body', { score: 55, recommendations: [{
           type: 'dose',
-          action: 'Increase dose by 0.5-1g for more body and richness',
+          action: `Increase dose by 0.5-1g for more body and richness ${currentDose}`,
           priority: 'medium',
           expectedImprovement: 'Fuller mouthfeel'
-        });
+        }]});
       }
     }
     
-    // NEW: Roast level specific recommendations
+    // Roast level specific recommendations
     if (shotData.roastLevel) {
       if (shotData.roastLevel === 'light' && extractionTime < 30) {
-        recommendations.push({
+        issuePriorities.set('light_roast_short', { score: 70, recommendations: [{
           type: 'technique',
           action: 'Light roasts need longer extraction - try grinding finer or increasing temperature to 94-96°C',
           priority: 'high',
           expectedImprovement: '+2-3 quality points'
-        });
+        }]});
       } else if (shotData.roastLevel === 'dark' && extractionTime > 25) {
-        recommendations.push({
+        issuePriorities.set('dark_roast_long', { score: 65, recommendations: [{
           type: 'technique',
           action: 'Dark roasts extract faster - try grinding coarser or lowering temperature to 90-92°C',
           priority: 'medium',
           expectedImprovement: '+1-2 quality points'
-        });
+        }]});
       }
     }
     
-    // NEW: Process method specific recommendations  
+    // Process method specific recommendations  
     if (shotData.processMethod === 'natural' && shotData.tasteProfile?.sweetness <= 2) {
-      recommendations.push({
+      issuePriorities.set('natural_process_sweet', { score: 50, recommendations: [{
         type: 'extraction',
         action: 'Natural process beans are inherently sweet - try longer extraction to bring out sweetness',
         priority: 'medium',
         expectedImprovement: 'Enhanced natural sweetness'
-      });
+      }]});
     }
     
-    // NEW: Preparation technique recommendations
+    // Preparation technique recommendations
     if (!shotData.usedWDT && (flowRate < 1.0 || flowRate > 2.5)) {
-      recommendations.push({
+      issuePriorities.set('wdt_needed', { score: 45, recommendations: [{
         type: 'preparation',
         action: 'Try WDT (Weiss Distribution Technique) for more even extraction and better flow consistency',
         priority: 'medium',
         expectedImprovement: 'More even extraction, better flow'
-      });
+      }]});
     }
     
     if (!shotData.usedPuckScreen && extractionTime < 20) {
-      recommendations.push({
+      issuePriorities.set('puck_screen_suggestion', { score: 25, recommendations: [{
         type: 'equipment',
         action: 'Consider using a puck screen to slow down extraction and improve evenness',
         priority: 'low',
         expectedImprovement: 'More controlled extraction'
-      });
+      }]});
     }
     
-    // NEW: Pre-infusion specific recommendations
+    // Pre-infusion specific recommendations
     if (shotData.machine === 'Meraki' && !shotData.usedPreInfusion && predictedQuality < 7) {
-      recommendations.push({
+      issuePriorities.set('meraki_preinfusion', { score: 80, recommendations: [{
         type: 'pre-infusion',
         action: 'Try pre-infusion (3-5s at 3-4 bars) - Meraki excels with pre-infusion for even saturation',
         priority: 'high',
         expectedImprovement: '+1-3 quality points'
-      });
+      }]});
     }
     
     if (shotData.usedPreInfusion) {
       if (shotData.preInfusionTime && shotData.preInfusionTime > 8 && extractionTime > 35) {
-        recommendations.push({
+        issuePriorities.set('preinfusion_too_long', { score: 55, recommendations: [{
           type: 'pre-infusion',
           action: 'Pre-infusion time too long - reduce to 3-5s to avoid over-saturation',
           priority: 'medium',
           expectedImprovement: 'Better flow and extraction balance'
-        });
+        }]});
       }
       
       if (shotData.preInfusionPressure && shotData.preInfusionPressure > 4.5 && flowRate > 2.0) {
-        recommendations.push({
+        issuePriorities.set('preinfusion_pressure_high', { score: 50, recommendations: [{
           type: 'pre-infusion',
           action: 'Pre-infusion pressure too high - reduce to 3-4 bars for gentle saturation',
           priority: 'medium',
           expectedImprovement: 'More controlled extraction start'
-        });
+        }]});
       }
       
       if (shotData.roastLevel === 'light' && (!shotData.preInfusionTime || shotData.preInfusionTime < 4)) {
-        recommendations.push({
+        issuePriorities.set('light_roast_preinfusion', { score: 60, recommendations: [{
           type: 'pre-infusion',
           action: 'Light roasts benefit from longer pre-infusion - try 4-6 seconds for better extraction',
           priority: 'medium',
           expectedImprovement: 'Enhanced sweetness and body'
-        });
+        }]});
       }
     }
     
-    // Bean age recommendations
+    // Bean age recommendations - Only as a LAST resort with very low priority
     if (shotData.daysPastRoast) {
-      if (shotData.daysPastRoast < 5) {
-        recommendations.push({
+      // Only suggest "too fresh" if no other significant issues found AND quality is poor
+      if (shotData.daysPastRoast < 3 && issuePriorities.size === 0 && predictedQuality < 4) {
+        issuePriorities.set('beans_very_fresh', { score: 15, recommendations: [{
           type: 'timing',
-          action: 'Beans are very fresh - let them rest 2-3 more days for better consistency',
+          action: `Beans are very fresh (${shotData.daysPastRoast} days) - consider letting them rest 1-2 more days, but check technique first`,
           priority: 'low',
-          expectedImprovement: 'More stable extractions'
-        });
+          expectedImprovement: 'Potentially more stable extractions'
+        }]});
       } else if (shotData.daysPastRoast > 28) {
-        recommendations.push({
+        issuePriorities.set('beans_aging', { score: 40, recommendations: [{
           type: 'beans',
-          action: 'Beans are aging - consider grinding finer or using fresher beans',
+          action: `Beans are aging (${shotData.daysPastRoast} days) - consider grinding finer or using fresher beans`,
           priority: 'medium',
           expectedImprovement: 'Brighter, more vibrant flavors'
-        });
+        }]});
       }
     }
     
-    return recommendations.slice(0, 4); // Return top 4 recommendations (increased from 3)
+    // Sort issues by priority score (highest first) and collect recommendations
+    const sortedIssues = Array.from(issuePriorities.entries())
+      .sort(([,a], [,b]) => b.score - a.score);
+    
+    const prioritizedRecommendations = [];
+    for (const [issueKey, issueData] of sortedIssues) {
+      prioritizedRecommendations.push(...issueData.recommendations);
+    }
+    
+    return prioritizedRecommendations.slice(0, 4); // Return top 4 recommendations
   }
 
   getDetailedAnalysis(shotData, ratio, flowRate) {
@@ -585,13 +602,23 @@ class EspressoAI {
     const ratio = shotData.outWeight / shotData.inWeight;
     const flowRate = shotData.outWeight / shotData.extractionTime;
     
-    // Find matching troubleshooting rules
-    const matchingRules = TROUBLESHOOTING_RULES.filter(rule => 
-      this.checkRuleConditions(rule.conditions, shotData, ratio, flowRate)
-    );
+    // Find matching troubleshooting rules with priority weighting
+    const matchingRules = TROUBLESHOOTING_RULES
+      .filter(rule => this.checkRuleConditions(rule.conditions, shotData, ratio, flowRate))
+      .sort((a, b) => (b.confidence || 0.5) - (a.confidence || 0.5)); // Sort by confidence
     
     if (matchingRules.length > 0) {
-      const bestRule = matchingRules[0]; // Take first matching rule
+      // Exclude "Beans too fresh" unless it's the ONLY match and quality is very poor
+      let bestRule = matchingRules.find(rule => !rule.diagnosis.toLowerCase().includes('beans') && !rule.diagnosis.toLowerCase().includes('fresh'));
+      
+      // If no non-bean rules match and quality is very poor, then consider bean freshness
+      if (!bestRule && shotData.shotQuality && shotData.shotQuality < 3) {
+        bestRule = matchingRules[0];
+      }
+      
+      if (!bestRule) {
+        bestRule = matchingRules[0]; // Fallback to first rule
+      }
       return {
         predictedQuality: Math.max(1, (shotData.shotQuality || 5) - 1),
         currentQuality: shotData.shotQuality || 5,

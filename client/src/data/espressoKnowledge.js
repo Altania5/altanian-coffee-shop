@@ -135,19 +135,22 @@ export const TROUBLESHOOTING_RULES = [
     confidence: 0.85
   },
   
-  // Bean-specific recommendations
+  // Bean freshness - only triggered if beans are VERY fresh AND no other issues
   {
     conditions: {
-      daysPastRoast: { max: 4 }
+      daysPastRoast: { max: 2 },
+      shotQuality: { max: 3 },
+      extractionTime: { min: 25, max: 35 }, // Only if extraction parameters are reasonable
+      temperature: { min: 90, max: 96 } // Only if temperature is reasonable
     },
-    diagnosis: "Beans too fresh",
+    diagnosis: "Beans extremely fresh - secondary factor",
     recommendations: [
-      "Let beans rest 2-3 more days",
-      "Grind slightly coarser than usual",
-      "Consider slightly longer extraction",
-      "Expect some inconsistency until degassed"
+      "Beans are very fresh, but focus on technique first",
+      "Check grind size, dose, and tamping before blaming bean age",
+      "Consider letting beans rest 1-2 days if all else is optimized",
+      "Bean freshness is rarely the primary issue"
     ],
-    confidence: 0.7
+    confidence: 0.4
   },
   
   {
@@ -336,7 +339,7 @@ const generateShotFromRule = (rule) => {
   return shot;
 };
 
-export default {
+const espressoKnowledgeBase = {
   IDEAL_PARAMETERS,
   TROUBLESHOOTING_RULES,
   MACHINE_PROFILES,
@@ -344,3 +347,5 @@ export default {
   ENVIRONMENTAL_FACTORS,
   generateTrainingData
 };
+
+export default espressoKnowledgeBase;
