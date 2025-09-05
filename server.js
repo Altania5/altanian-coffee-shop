@@ -1240,13 +1240,93 @@ app.post('/api/coffeelog', authenticateToken, async (req, res) => {
 // Coffee logs endpoint for frontend compatibility
 app.get('/coffeelogs', authenticateToken, async (req, res) => {
     try {
-        const logs = await CoffeeLog.find({ userId: req.user.id })
+        const logs = await CoffeeLog.find({ user: req.user.id })
+            .populate('bean', 'name roaster roastLevel processMethod')
             .sort({ createdAt: -1 })
             .limit(100);
         res.status(200).json(logs); // Return logs directly without wrapper
     } catch (error) {
         console.error('Error fetching coffee logs:', error);
         res.status(500).json({ error: 'Failed to fetch coffee logs.' });
+    }
+});
+
+// Enhanced coffee log creation endpoint
+app.post('/coffeelogs/add', authenticateToken, async (req, res) => {
+    try {
+        const { 
+            bean, 
+            machine, 
+            grindSize, 
+            extractionTime, 
+            temperature, 
+            inWeight, 
+            outWeight,
+            roastLevel,
+            processMethod,
+            usedPuckScreen,
+            usedWDT,
+            distributionTechnique,
+            shotQuality,
+            tasteProfile,
+            targetProfile,
+            humidity,
+            pressure,
+            tasteMetExpectations,
+            notes
+        } = req.body;
+        
+        // Validate required fields
+        if (!bean || !machine || !grindSize || !extractionTime || !inWeight || !outWeight) {
+            return res.status(400).json({ 
+                msg: 'Bean, machine, grind size, extraction time, input weight, and output weight are required.' 
+            });
+        }
+        
+        // Validate numeric fields
+        if (isNaN(grindSize) || isNaN(extractionTime) || isNaN(inWeight) || isNaN(outWeight)) {
+            return res.status(400).json({ 
+                msg: 'Grind size, extraction time, and weights must be valid numbers.' 
+            });
+        }
+        
+        const newLog = new CoffeeLog({
+            user: req.user.id,
+            bean,
+            machine,
+            grindSize: parseFloat(grindSize),
+            extractionTime: parseFloat(extractionTime),
+            temperature: temperature ? parseFloat(temperature) : undefined,
+            inWeight: parseFloat(inWeight),
+            outWeight: parseFloat(outWeight),
+            roastLevel: roastLevel || undefined,
+            processMethod: processMethod || undefined,
+            usedPuckScreen: Boolean(usedPuckScreen),
+            usedWDT: Boolean(usedWDT),
+            distributionTechnique: distributionTechnique || 'none',
+            shotQuality: shotQuality ? parseInt(shotQuality) : 5,
+            tasteProfile: tasteProfile || {
+                sweetness: 3,
+                acidity: 3,
+                bitterness: 3,
+                body: 3
+            },
+            targetProfile: targetProfile || 'balanced',
+            humidity: humidity ? parseFloat(humidity) : undefined,
+            pressure: pressure ? parseFloat(pressure) : 9,
+            tasteMetExpectations: Boolean(tasteMetExpectations),
+            notes: notes || ''
+        });
+        
+        await newLog.save();
+        res.status(201).json(newLog);
+        
+    } catch (error) {
+        console.error('Error creating enhanced coffee log:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ msg: 'Validation error: ' + error.message });
+        }
+        res.status(500).json({ msg: 'Failed to create coffee log entry.' });
     }
 });
 
