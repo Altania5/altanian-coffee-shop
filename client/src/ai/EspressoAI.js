@@ -447,27 +447,19 @@ class EspressoAI {
     }
     
     // Pre-infusion specific recommendations
-    if (shotData.machine === 'Meraki' && !shotData.usedPreInfusion && predictedQuality < 7) {
-      issuePriorities.set('meraki_preinfusion', { score: 80, recommendations: [{
-        type: 'pre-infusion',
-        action: 'Try pre-infusion (3-5s at 3-4 bars) - Meraki excels with pre-infusion for even saturation',
-        priority: 'high',
-        expectedImprovement: '+1-3 quality points'
-      }]});
-    }
-    
     if (shotData.usedPreInfusion) {
+      // Analyze existing pre-infusion usage
       if (shotData.preInfusionTime && shotData.preInfusionTime > 8 && extractionTime > 35) {
-        issuePriorities.set('preinfusion_too_long', { score: 55, recommendations: [{
+        issuePriorities.set('preinfusion_too_long', { score: 75, recommendations: [{
           type: 'pre-infusion',
           action: 'Pre-infusion time too long - reduce to 3-5s to avoid over-saturation',
-          priority: 'medium',
+          priority: 'high',
           expectedImprovement: 'Better flow and extraction balance'
         }]});
       }
       
       if (shotData.preInfusionPressure && shotData.preInfusionPressure > 4.5 && flowRate > 2.0) {
-        issuePriorities.set('preinfusion_pressure_high', { score: 50, recommendations: [{
+        issuePriorities.set('preinfusion_pressure_high', { score: 65, recommendations: [{
           type: 'pre-infusion',
           action: 'Pre-infusion pressure too high - reduce to 3-4 bars for gentle saturation',
           priority: 'medium',
@@ -476,27 +468,56 @@ class EspressoAI {
       }
       
       if (shotData.roastLevel === 'light' && (!shotData.preInfusionTime || shotData.preInfusionTime < 4)) {
-        issuePriorities.set('light_roast_preinfusion', { score: 60, recommendations: [{
+        issuePriorities.set('light_roast_preinfusion', { score: 70, recommendations: [{
           type: 'pre-infusion',
           action: 'Light roasts benefit from longer pre-infusion - try 4-6 seconds for better extraction',
-          priority: 'medium',
+          priority: 'high',
           expectedImprovement: 'Enhanced sweetness and body'
         }]});
       }
+      
+      // If pre-infusion is used but parameters seem suboptimal
+      if (shotData.preInfusionTime && shotData.preInfusionPressure && predictedQuality < 6) {
+        if (shotData.preInfusionTime < 2 || shotData.preInfusionTime > 7 || 
+            shotData.preInfusionPressure < 2.5 || shotData.preInfusionPressure > 5) {
+          issuePriorities.set('preinfusion_optimization', { score: 60, recommendations: [{
+            type: 'pre-infusion',
+            action: `Fine-tune pre-infusion: aim for 3-5s at 3-4 bars (current: ${shotData.preInfusionTime}s at ${shotData.preInfusionPressure} bars)`,
+            priority: 'medium',
+            expectedImprovement: 'Better extraction consistency'
+          }]});
+        }
+      }
+    } else if (shotData.machine === 'Meraki' && predictedQuality < 7) {
+      // Only suggest pre-infusion if not already using it
+      issuePriorities.set('meraki_preinfusion', { score: 80, recommendations: [{
+        type: 'pre-infusion',
+        action: 'Try pre-infusion (3-5s at 3-4 bars) - Meraki excels with pre-infusion for even saturation',
+        priority: 'high',
+        expectedImprovement: '+1-3 quality points'
+      }]});
     }
     
-    // Bean age recommendations - Only as a LAST resort with very low priority
+    // Bean age recommendations - Only as an absolute LAST resort with very low priority
     if (shotData.daysPastRoast) {
-      // Only suggest "too fresh" if no other significant issues found AND quality is poor
-      if (shotData.daysPastRoast < 3 && issuePriorities.size === 0 && predictedQuality < 4) {
-        issuePriorities.set('beans_very_fresh', { score: 15, recommendations: [{
+      // Only suggest "too fresh" if ABSOLUTELY NO other issues found AND quality is very poor
+      // AND extraction parameters are actually good (ruling out technique issues)
+      if (shotData.daysPastRoast < 2 && 
+          issuePriorities.size === 0 && 
+          predictedQuality < 3 &&
+          ratio >= IDEAL_PARAMETERS.ratio.min && 
+          ratio <= IDEAL_PARAMETERS.ratio.max &&
+          extractionTime >= IDEAL_PARAMETERS.extractionTime.min && 
+          extractionTime <= IDEAL_PARAMETERS.extractionTime.max &&
+          (shotData.temperature >= IDEAL_PARAMETERS.temperature.min || !shotData.temperature)) {
+        issuePriorities.set('beans_very_fresh', { score: 10, recommendations: [{
           type: 'timing',
-          action: `Beans are very fresh (${shotData.daysPastRoast} days) - consider letting them rest 1-2 more days, but check technique first`,
+          action: `Beans are extremely fresh (${shotData.daysPastRoast} days) - but technique seems fine. Consider 1-2 more days rest as last resort`,
           priority: 'low',
           expectedImprovement: 'Potentially more stable extractions'
         }]});
-      } else if (shotData.daysPastRoast > 28) {
-        issuePriorities.set('beans_aging', { score: 40, recommendations: [{
+      } else if (shotData.daysPastRoast > 35) {
+        issuePriorities.set('beans_aging', { score: 35, recommendations: [{
           type: 'beans',
           action: `Beans are aging (${shotData.daysPastRoast} days) - consider grinding finer or using fresher beans`,
           priority: 'medium',
