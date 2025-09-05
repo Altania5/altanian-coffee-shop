@@ -15,7 +15,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Altania5/altaniancoffee.git"
-  }
   },
   "keywords": ["coffee", "shop", "nodejs", "express", "react"],
   "author": "",
