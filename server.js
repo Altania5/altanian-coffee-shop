@@ -223,8 +223,16 @@ const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);
 
 // --- JWT Authentication Middleware ---
 function authenticateToken(req, res, next) {
+    // Check for token in both Authorization header and x-auth-token header
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const xAuthToken = req.headers['x-auth-token'];
+    
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    } else if (xAuthToken) {
+        token = xAuthToken;
+    }
 
     if (!token) {
         return res.status(401).json({ success: false, message: 'Access token required' });
@@ -654,6 +662,61 @@ app.get('/api/admin/orders', authenticateToken, isAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error fetching all orders:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch orders.' });
+    }
+});
+
+// Get user's usual/most frequent order
+app.get('/orders/usual', authenticateToken, async (req, res) => {
+    try {
+        // Find the user's most recent order or most frequent item
+        const recentOrders = await Order.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(5);
+        
+        if (recentOrders.length === 0) {
+            return res.status(200).json(null); // No usual order yet
+        }
+        
+        // For now, just return the most recent order's first item
+        const usualItem = recentOrders[0].items[0];
+        
+        res.status(200).json({
+            name: usualItem.name,
+            description: 'Your most recent order',
+            price: usualItem.price,
+            id: usualItem.menuItemId
+        });
+    } catch (error) {
+        console.error('Error fetching usual order:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch usual order.' });
+    }
+});
+
+// Get suggested product for user
+app.get('/settings/suggested-product', authenticateToken, async (req, res) => {
+    try {
+        // Get a random menu item as suggestion
+        const menuItemsCollection = db.collection('menuitems');
+        const menuItems = await menuItemsCollection.find({ isAvailable: true }).toArray();
+        
+        if (menuItems.length === 0) {
+            return res.status(200).json(null);
+        }
+        
+        // Return a random menu item as suggestion
+        const randomIndex = Math.floor(Math.random() * menuItems.length);
+        const suggestedItem = menuItems[randomIndex];
+        
+        res.status(200).json({
+            name: suggestedItem.name,
+            description: suggestedItem.description || 'Try something new!',
+            price: suggestedItem.price,
+            imageUrl: suggestedItem.imageUrl || 'default.jpg',
+            id: suggestedItem._id
+        });
+    } catch (error) {
+        console.error('Error fetching suggested product:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch suggested product.' });
     }
 });
 
