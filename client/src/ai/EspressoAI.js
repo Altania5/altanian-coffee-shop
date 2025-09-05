@@ -165,7 +165,7 @@ class EspressoAI {
     this.isTraining = true;
     
     const history = await this.model.fit(features, labels, {
-      epochs: 100,
+      epochs: 500,
       batchSize: 32,
       validationSplit: 0.2,
       verbose: 0,
