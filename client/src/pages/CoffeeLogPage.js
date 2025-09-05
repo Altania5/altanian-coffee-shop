@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react'; // 1. Import useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import AddCoffeeLogForm from '../components/AddCoffeeLogForm';
 import CoffeeLogHistory from '../components/CoffeeLogHistory';
+import AICoach from '../components/AICoach';
 
 function CoffeeLogPage({ user }) {
   const [logs, setLogs] = useState([]);
   const [beans, setBeans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [latestLog, setLatestLog] = useState(null);
+  const [showAICoach, setShowAICoach] = useState(false);
 
   // 2. Wrap the function in useCallback
   const fetchLogsAndBeans = useCallback(async () => {
@@ -35,6 +38,16 @@ function CoffeeLogPage({ user }) {
   const handleLogAdded = (newLog) => {
     // Add the new log to the top of the list
     setLogs([newLog, ...logs]);
+    
+    // Set the latest log for AI analysis
+    setLatestLog(newLog);
+    setShowAICoach(true);
+  };
+  
+  const handleRecommendationApplied = (recommendation) => {
+    console.log('User applied recommendation:', recommendation);
+    // Here you could track which recommendations users follow
+    // and use this data to improve the AI model over time
   };
 
   const handleBeanAdded = (newBean) => {
@@ -47,7 +60,7 @@ function CoffeeLogPage({ user }) {
   }
 
   return (
-    <div>
+    <div className="coffee-log-page">
       <AddCoffeeLogForm
         user={user}
         token={user.token}
@@ -55,8 +68,18 @@ function CoffeeLogPage({ user }) {
         onLogAdded={handleLogAdded}
         onBeanAdded={handleBeanAdded}
       />
-      <hr />
-      <CoffeeLogHistory logs={logs} />
+      
+      {/* AI Coach - Shows after adding a new log */}
+      {showAICoach && latestLog && (
+        <AICoach 
+          shotData={latestLog}
+          onRecommendationApplied={handleRecommendationApplied}
+        />
+      )}
+      
+      <div className="log-history-section">
+        <CoffeeLogHistory logs={logs} />
+      </div>
     </div>
   );
 }

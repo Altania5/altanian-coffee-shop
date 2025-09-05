@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ? 
+  loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) : 
+  Promise.resolve(null);
 const TIP_AMOUNTS = [1, 3, 5];
 
 function TipJar({ user }) {
@@ -16,6 +18,13 @@ function TipJar({ user }) {
 
     try {
       const stripe = await stripePromise;
+      
+      if (!stripe) {
+        setMessage('Stripe is not configured. Please add your Stripe publishable key to the .env file.');
+        setIsLoading(false);
+        return;
+      }
+      
       const headers = { 'x-auth-token': user.token };
       const response = await axios.post('/payments/create-tip-session', { amount }, { headers });
       const session = response.data;

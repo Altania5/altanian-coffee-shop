@@ -43,8 +43,12 @@ function Products({ token, addToCart }) {
   };
 
   return (
-    <div className="container">
-      <h2>Menu</h2>
+    <div className="products-container">
+      <div className="products-header">
+        <h2 className="products-title">Our Menu ☕</h2>
+        <p className="products-subtitle">Handcrafted with love, served with passion</p>
+      </div>
+      
       {customizingProduct && (
         <CustomizationModal 
           product={customizingProduct}
@@ -55,43 +59,92 @@ function Products({ token, addToCart }) {
       )}
 
       {products.length === 0 ? (
-        <p>No products on the menu yet.</p>
+        <div className="empty-menu">
+          <div className="empty-menu-icon">📋</div>
+          <p>No products on the menu yet.</p>
+          <p className="empty-subtitle">Check back soon for delicious offerings!</p>
+        </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {products.map(product => {
+        <div className="products-grid">
+          {products.map((product, index) => {
             const inStock = isProductInStock(product);
             return (
-              <li key={product._id} className="product-item">
-                <img 
-                  src={images[product.imageUrl.split('.')[0]] || images.default} 
-                  alt={product.name}
-                  className="product-image" 
-                />
-                <div>
-                  <strong>{product.name}</strong> - ${product.price.toFixed(2)}
-                  <p style={{color: '#666', margin: '5px 0'}}>{product.description}</p>
+              <div 
+                key={product._id} 
+                className={`product-card ${!inStock ? 'out-of-stock' : ''}`}
+                style={{
+                  animationDelay: `${index * 0.1}s`
+                }}
+              >
+                <div className="product-image-container">
+                  <img 
+                    src={images[product.imageUrl.split('.')[0]] || images.default} 
+                    alt={product.name}
+                    className="product-card-image" 
+                    loading="lazy"
+                  />
+                  {!inStock && (
+                    <div className="stock-overlay">
+                      <span className="stock-text">Out of Stock</span>
+                    </div>
+                  )}
+                  <div className="product-category">
+                    {product.category}
+                  </div>
                 </div>
-                {product.canBeModified && inStock ? (
-                  <button onClick={() => setCustomizingProduct(product)} style={{ width: 'auto', marginRight: '10px' }}>
-                    Customize
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => addToCart(product)} 
-                    disabled={!inStock}
-                    style={{ 
-                      width: 'auto', 
-                      cursor: inStock ? 'pointer' : 'not-allowed',
-                      backgroundColor: inStock ? 'var(--primary-color)' : '#ccc'
-                    }}
-                  >
-                    {inStock ? 'Add to Cart' : 'Out of Stock'}
-                  </button>
+                
+                <div className="product-card-content">
+                  <div className="product-info">
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-description">{product.description}</p>
+                  </div>
+                  
+                  <div className="product-footer">
+                    <div className="product-price">
+                      ${product.price.toFixed(2)}
+                    </div>
+                    
+                    <div className="product-actions">
+                      {product.canBeModified && inStock ? (
+                        <>
+                          <button 
+                            className="product-btn customize-btn"
+                            onClick={() => setCustomizingProduct(product)}
+                          >
+                            <span>Customize</span>
+                            <span className="btn-icon">🎨</span>
+                          </button>
+                          <button 
+                            className="product-btn add-btn"
+                            onClick={() => addToCart(product)}
+                          >
+                            <span>Add</span>
+                            <span className="btn-icon">➕</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          className={`product-btn add-btn ${!inStock ? 'disabled' : ''}`}
+                          onClick={() => addToCart(product)} 
+                          disabled={!inStock}
+                        >
+                          <span>{inStock ? 'Add to Cart' : 'Out of Stock'}</span>
+                          <span className="btn-icon">{inStock ? '🛒' : '❌'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {inStock && (
+                  <div className="product-hover-effect">
+                    <div className="hover-text">Click to add!</div>
+                  </div>
                 )}
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ? 
+  loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) : 
+  Promise.resolve(null);
 
 function CheckoutPage({ user, cart, onSuccessfulCheckout }) {
   const [promoCode, setPromoCode] = useState('');
@@ -17,6 +19,12 @@ function CheckoutPage({ user, cart, onSuccessfulCheckout }) {
 
     try {
       const stripe = await stripePromise;
+      
+      if (!stripe) {
+        setError('Stripe is not configured. Please add your Stripe publishable key to the .env file.');
+        setIsLoading(false);
+        return;
+      }
       const headers = { 'x-auth-token': user.token };
       
       const response = await axios.post('/payments/create-checkout-session', { cart, promoCode }, { headers });

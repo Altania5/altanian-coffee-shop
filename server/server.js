@@ -4,7 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5003;
 
 app.use(cors());
 app.use(express.json());
@@ -37,7 +37,6 @@ app.use('/promocodes', promoCodesRouter);
 app.use('/payments', paymentsRouter);
 
 if (process.env.NODE_ENV === 'production') {
-    const path = require('path');
     app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 
     app.get('*', (req, res) => {
