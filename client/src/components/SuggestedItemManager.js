@@ -7,13 +7,18 @@ function SuggestedItemManager({ token }) {
   const [currentSuggested, setCurrentSuggested] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const headers = { 'x-auth-token': token };
 
   const fetchData = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const authHeaders = { 'x-auth-token': token };
       const [productsRes, suggestedRes] = await Promise.all([
-        axios.get('/products', { headers }),
-        axios.get('/settings/suggested-product', { headers })
+        axios.get(`${baseURL}/products`),
+        axios.get(`${baseURL}/settings/suggested-product`, { headers: authHeaders })
       ]);
       setProducts(productsRes.data);
       if (suggestedRes.data) {
@@ -22,18 +27,24 @@ function SuggestedItemManager({ token }) {
       }
     } catch (err) {
       console.error("Error fetching data:", err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [headers]);
+  }, [token]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const handleSave = async () => {
+    if (!token) {
+      alert('Authentication required');
+      return;
+    }
     try {
-      const res = await axios.put('/settings/suggested-product', { productId: suggestedProduct }, { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await axios.put(`${baseURL}/settings/suggested-product`, { productId: suggestedProduct }, { headers: { 'x-auth-token': token } });
       setCurrentSuggested(res.data);
       alert('Suggested item updated successfully!');
     } catch (err) {

@@ -7,18 +7,23 @@ function PromoCodeManager({ token }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const headers = { 'x-auth-token': token };
 
   const fetchCodes = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await axios.get('/promocodes', { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await axios.get(`${baseURL}/promocodes`, { headers: { 'x-auth-token': token } });
       setCodes(res.data);
     } catch (err) {
       console.error("Error fetching promo codes:", err);
+      setCodes([]);
     } finally {
       setLoading(false);
     }
-  }, [headers]);
+  }, [token]);
 
   useEffect(() => {
     fetchCodes();
@@ -31,8 +36,13 @@ function PromoCodeManager({ token }) {
   const handleAddCode = async (e) => {
     e.preventDefault();
     setError('');
+    if (!token) {
+      setError('Authentication required');
+      return;
+    }
     try {
-      const res = await axios.post('/promocodes/add', newCode, { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await axios.post(`${baseURL}/promocodes/add`, newCode, { headers: { 'x-auth-token': token } });
       setCodes([res.data, ...codes]);
       setNewCode({ code: '', discountPercentage: '', expiresAt: '' }); // Reset form
       alert('Promo code created successfully!');
