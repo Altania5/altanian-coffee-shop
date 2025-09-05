@@ -10,7 +10,7 @@ function Login({ onLogin  }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/users/login', { username, password });
+      const response = await axios.post('/login', { username, password });
       // On successful login, call the function passed from App.js
       // to update the global token state.
       onLogin(response.data.token);

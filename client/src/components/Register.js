@@ -21,7 +21,7 @@ function Register() {
     e.preventDefault();
     try {
       // 3. Send the full formData object
-      await axios.post('/users/register', formData);
+      await axios.post('/register', formData);
       setMessage('Registration successful! You can now log in.');
       // Clear the form
       setFormData({ firstName: '', lastName: '', birthday: '', username: '', password: '' });
