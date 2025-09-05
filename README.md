@@ -1,10 +1,10 @@
-# Altanian Coffee - Full Stack Application
+# Altanian Coffee Shop - Full Stack Application
 
 A modern coffee shop management system built with React frontend and Node.js/Express backend.
 
 ## Description
 
-Welcome to Altanian Coffee! This application provides a seamless experience for customers to browse our menu, place orders, and for staff to manage inventory and customer requests. Built with modern web technologies and designed for scalability.
+Welcome to Altanian Coffee Shop! This application provides a seamless experience for customers to browse our menu, place orders, and for staff to manage inventory and customer requests. Built with modern web technologies and designed for scalability.
 
 ## Architecture
 
@@ -53,8 +53,8 @@ Before you begin, ensure you have the following installed:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Altania5/altaniancoffee.git
-cd altaniancoffee
+git clone https://github.com/Altania5/altanian-coffee-shop.git
+cd altanian-coffee-shop
 ```
 
 2. Install dependencies:
@@ -142,7 +142,7 @@ The backend provides the following main endpoints:
 
 2. **Create a Heroku app (if you haven't already):**
     ```bash
-    heroku create altaniacoffee
+    heroku create altanian-coffee-shop
     ```
 
 3. **Set Heroku Config Vars:**

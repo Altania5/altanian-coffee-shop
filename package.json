@@ -1,7 +1,7 @@
 {
-  "name": "altaniancoffee",
+  "name": "altanian-coffee-shop",
   "version": "1.0.0",
-  "description": "Altanian Coffee - Full Stack Application with React frontend and Node.js/Express backend",
+  "description": "Altanian Coffee Shop - Full Stack React & Node.js Application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,15 +14,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Altania5/altaniancoffee.git"
+    "url": "git+https://github.com/Altania5/altanian-coffee-shop.git"
   },
   "keywords": ["coffee", "shop", "nodejs", "express", "react"],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Altania5/altaniancoffee/issues"
+    "url": "https://github.com/Altania5/altanian-coffee-shop/issues"
   },
-  "homepage": "https://github.com/Altania5/altaniancoffee#readme",
+  "homepage": "https://github.com/Altania5/altanian-coffee-shop#readme",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
