@@ -94,10 +94,11 @@ function Products({ token, addToCart }) {
               >
                 <div className="product-image-container">
                   <img 
-                    src={images[product.imageUrl.split('.')[0]] || images.default} 
-                    alt={product.name}
+                    src={images[product.imageUrl?.split?.('.')?.[0]] || images.default} 
+                    alt={product.name || 'Product'}
                     className="product-card-image" 
                     loading="lazy"
+                    onError={(e) => { e.target.src = images.default; }}
                   />
                   {!inStock && (
                     <div className="stock-overlay">
@@ -105,19 +106,19 @@ function Products({ token, addToCart }) {
                     </div>
                   )}
                   <div className="product-category">
-                    {product.category}
+                    {product.category || 'General'}
                   </div>
                 </div>
                 
                 <div className="product-card-content">
                   <div className="product-info">
-                    <h3 className="product-name">{product.name}</h3>
-                    <p className="product-description">{product.description}</p>
+                    <h3 className="product-name">{product.name || 'Unknown Product'}</h3>
+                    <p className="product-description">{product.description || 'No description available'}</p>
                   </div>
                   
                   <div className="product-footer">
                     <div className="product-price">
-                      ${product.price.toFixed(2)}
+                      ${Number(product.price || 0).toFixed(2)}
                     </div>
                     
                     <div className="product-actions">

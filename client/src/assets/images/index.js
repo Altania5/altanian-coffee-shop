@@ -6,7 +6,12 @@ import shakenEspresso from './shakenEspresso.jpg';
 const images = {
     latte,
     shakenEspresso,
-    default: 'https://via.placeholder.com/150'
+    americano: latte, // Use latte as fallback for americano
+    macchiato: latte, // Use latte as fallback for macchiato
+    coldbrew: latte, // Use latte as fallback for coldbrew
+    croissant: latte, // Use latte as fallback for pastries
+    shaken_espresso: shakenEspresso,
+    default: latte // Use latte as default instead of external URL
 };
 
 export default images;
