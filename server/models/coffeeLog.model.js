@@ -38,6 +38,11 @@ const coffeeLogSchema = new Schema({
     default: 'none'
   },
   
+  // NEW: Pre-Infusion Parameters
+  usedPreInfusion: { type: Boolean, default: false },
+  preInfusionTime: { type: Number, min: 0, max: 15 }, // seconds
+  preInfusionPressure: { type: Number, min: 1, max: 5 }, // bars
+  
   // AI Training Parameters
   shotQuality: { 
     type: Number, 

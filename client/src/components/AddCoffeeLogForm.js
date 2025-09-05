@@ -39,6 +39,11 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     humidity: '',
     pressure: 9,
     
+    // NEW: Pre-Infusion Parameters
+    usedPreInfusion: false,
+    preInfusionTime: '',
+    preInfusionPressure: '',
+    
     // Legacy
     tasteMetExpectations: true,
     notes: ''
@@ -149,6 +154,12 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         targetProfile: 'balanced',
         humidity: '',
         pressure: 9,
+        
+        // NEW: Pre-Infusion Parameters
+        usedPreInfusion: false,
+        preInfusionTime: '',
+        preInfusionPressure: '',
+        
         tasteMetExpectations: true,
         notes: ''
       });
@@ -492,6 +503,67 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                   step="0.1"
                 />
               </div>
+            </div>
+            
+            {/* Pre-Infusion Section */}
+            <div className="form-section pre-infusion">
+              <h4 className="subsection-title">💧 Pre-Infusion</h4>
+              <p className="section-description">Pre-infusion helps achieve even saturation before full extraction</p>
+              
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    name="usedPreInfusion" 
+                    checked={formData.usedPreInfusion} 
+                    onChange={handleChange} 
+                  />
+                  <span>Used Pre-Infusion</span>
+                </label>
+                <span className="input-hint">{formData.machine === 'Meraki' ? 'Recommended for optimal extraction' : 'If your machine supports it'}</span>
+              </div>
+              
+              {formData.usedPreInfusion && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Pre-Infusion Time (seconds)</label>
+                    <input 
+                      type="number" 
+                      name="preInfusionTime" 
+                      value={formData.preInfusionTime} 
+                      onChange={handleChange} 
+                      min="0" 
+                      max="15" 
+                      step="0.5"
+                      placeholder={formData.machine === 'Meraki' ? '3-5s recommended' : ''}
+                    />
+                    <span className="input-hint">
+                      {formData.machine === 'Meraki' 
+                        ? 'Meraki optimal: 3-5 seconds for most beans' 
+                        : '0-15 seconds typical range'}
+                    </span>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Pre-Infusion Pressure (bars)</label>
+                    <input 
+                      type="number" 
+                      name="preInfusionPressure" 
+                      value={formData.preInfusionPressure} 
+                      onChange={handleChange} 
+                      min="1" 
+                      max="5" 
+                      step="0.1"
+                      placeholder={formData.machine === 'Meraki' ? '3-4 bars' : ''}
+                    />
+                    <span className="input-hint">
+                      {formData.machine === 'Meraki' 
+                        ? 'Meraki optimal: 3-4 bars for gentle saturation' 
+                        : '1-5 bars typical range'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

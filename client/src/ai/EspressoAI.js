@@ -94,7 +94,12 @@ class EspressoAI {
         // NEW: Preparation technique features
         shot.usedPuckScreen ? 1 : 0,
         shot.usedWDT ? 1 : 0,
-        this.encodeDistributionTechnique(shot.distributionTechnique || 'none')
+        this.encodeDistributionTechnique(shot.distributionTechnique || 'none'),
+        
+        // NEW: Pre-infusion parameters
+        shot.usedPreInfusion ? 1 : 0,
+        shot.preInfusionTime || 0,
+        shot.preInfusionPressure || 0
       ];
       
       features.push(feature);
@@ -172,7 +177,7 @@ class EspressoAI {
     const model = tf.sequential({
       layers: [
         tf.layers.dense({
-          inputShape: [17], // Updated from 12 to 17 input features
+          inputShape: [20], // Updated from 17 to 20 input features (added pre-infusion)
           units: 48, // Increased capacity for more complex patterns
           activation: 'relu',
           kernelInitializer: 'varianceScaling'
@@ -260,7 +265,12 @@ class EspressoAI {
         this.encodeProcessMethod(shotData.processMethod || 'washed'),
         shotData.usedPuckScreen ? 1 : 0,
         shotData.usedWDT ? 1 : 0,
-        this.encodeDistributionTechnique(shotData.distributionTechnique || 'none')
+        this.encodeDistributionTechnique(shotData.distributionTechnique || 'none'),
+        
+        // NEW: Pre-infusion parameters
+        shotData.usedPreInfusion ? 1 : 0,
+        shotData.preInfusionTime || 0,
+        shotData.preInfusionPressure || 0
       ];
 
       // Normalize features
@@ -430,6 +440,45 @@ class EspressoAI {
       });
     }
     
+    // NEW: Pre-infusion specific recommendations
+    if (shotData.machine === 'Meraki' && !shotData.usedPreInfusion && predictedQuality < 7) {
+      recommendations.push({
+        type: 'pre-infusion',
+        action: 'Try pre-infusion (3-5s at 3-4 bars) - Meraki excels with pre-infusion for even saturation',
+        priority: 'high',
+        expectedImprovement: '+1-3 quality points'
+      });
+    }
+    
+    if (shotData.usedPreInfusion) {
+      if (shotData.preInfusionTime && shotData.preInfusionTime > 8 && extractionTime > 35) {
+        recommendations.push({
+          type: 'pre-infusion',
+          action: 'Pre-infusion time too long - reduce to 3-5s to avoid over-saturation',
+          priority: 'medium',
+          expectedImprovement: 'Better flow and extraction balance'
+        });
+      }
+      
+      if (shotData.preInfusionPressure && shotData.preInfusionPressure > 4.5 && flowRate > 2.0) {
+        recommendations.push({
+          type: 'pre-infusion',
+          action: 'Pre-infusion pressure too high - reduce to 3-4 bars for gentle saturation',
+          priority: 'medium',
+          expectedImprovement: 'More controlled extraction start'
+        });
+      }
+      
+      if (shotData.roastLevel === 'light' && (!shotData.preInfusionTime || shotData.preInfusionTime < 4)) {
+        recommendations.push({
+          type: 'pre-infusion',
+          action: 'Light roasts benefit from longer pre-infusion - try 4-6 seconds for better extraction',
+          priority: 'medium',
+          expectedImprovement: 'Enhanced sweetness and body'
+        });
+      }
+    }
+    
     // Bean age recommendations
     if (shotData.daysPastRoast) {
       if (shotData.daysPastRoast < 5) {
@@ -482,6 +531,34 @@ class EspressoAI {
       analysis.flowRate = { 
         status: 'warning', 
         message: `Flow rate (${flowRate.toFixed(2)} ml/s) needs adjustment` 
+      };
+    }
+    
+    // NEW: Pre-infusion analysis
+    if (shotData.usedPreInfusion) {
+      if (shotData.preInfusionTime && shotData.preInfusionPressure) {
+        if (shotData.preInfusionTime >= 3 && shotData.preInfusionTime <= 6 &&
+            shotData.preInfusionPressure >= 3 && shotData.preInfusionPressure <= 4) {
+          analysis.preInfusion = { 
+            status: 'good', 
+            message: `Optimal pre-infusion (${shotData.preInfusionTime}s at ${shotData.preInfusionPressure} bars)` 
+          };
+        } else {
+          analysis.preInfusion = { 
+            status: 'warning', 
+            message: `Pre-infusion parameters may need adjustment (${shotData.preInfusionTime}s at ${shotData.preInfusionPressure} bars)` 
+          };
+        }
+      } else {
+        analysis.preInfusion = { 
+          status: 'warning', 
+          message: 'Pre-infusion enabled but parameters not specified' 
+        };
+      }
+    } else if (shotData.machine === 'Meraki' && shotData.shotQuality && shotData.shotQuality < 7) {
+      analysis.preInfusion = { 
+        status: 'warning', 
+        message: 'Consider using pre-infusion for better extraction consistency' 
       };
     }
     
