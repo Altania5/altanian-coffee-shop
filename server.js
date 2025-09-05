@@ -833,7 +833,8 @@ app.delete('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // Catch-all handler: send back React's index.html file for any non-API routes
-app.get('*', (req, res) => {
+// This must be the LAST route defined
+app.get(/^(?!\/api).+/, (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
 
