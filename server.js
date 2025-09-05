@@ -399,7 +399,7 @@ function authenticateToken(req, res, next) {
     }
 
     if (!token) {
-        console.log('Authentication failed: No token provided for', req.method, req.path);
+        console.log('Authentication failed: No token provided for', req.method, req.path, 'Headers:', JSON.stringify(req.headers));
         return res.status(401).json({ success: false, message: 'Access token required' });
     }
 
