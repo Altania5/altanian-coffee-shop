@@ -1,6 +1,12 @@
-/* --- CSS Variables & Global Styles --- */
+/* --- Mobile-First Responsive Design --- */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap');
 
+/* Ensure proper box-sizing before any other rules */
+* {
+  box-sizing: border-box;
+}
+
+/* Mobile-first base styles - 320px and up */
 :root {
   /* Coffee Shop Color Palette */
   --primary-coffee: #4A2C17; /* Rich Dark Coffee */
@@ -60,6 +66,7 @@
 
 body {
   margin: 0;
+  padding: 0;
   font-family: var(--font-primary);
   background-color: var(--background-color);
   color: var(--text-color);
@@ -70,22 +77,29 @@ body {
   background-image: 
     radial-gradient(circle at 20% 80%, rgba(139, 69, 19, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(210, 180, 140, 0.05) 0%, transparent 50%);
-  background-attachment: fixed;
+  background-attachment: scroll; /* Changed from fixed for better mobile performance */
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  width: 100%;
+  position: relative;
 }
 
+/* Mobile-first main container */
 main {
+  width: 100%;
   max-width: var(--max-width);
-  margin: var(--spacing-lg) auto;
-  padding: 0 var(--spacing-md);
+  margin: 0 auto;
+  padding: var(--spacing-sm);
   padding-bottom: calc(var(--nav-height) + var(--spacing-lg));
   position: relative;
   z-index: 1;
+  min-height: calc(100vh - var(--nav-height));
+  min-height: calc(100dvh - var(--nav-height));
 }
-/* --- Top Header --- */
+/* --- Mobile-First Header --- */
 .app-header {
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--coffee-steam) 100%);
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-md); /* Smaller padding on mobile */
   box-shadow: var(--box-shadow);
   display: flex;
   justify-content: space-between;
@@ -97,6 +111,8 @@ main {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(139, 69, 19, 0.1);
   transition: all var(--transition-smooth);
+  min-height: 60px; /* Ensure minimum height */
+  flex-wrap: nowrap; /* Prevent wrapping on small screens */
 }
 
 .app-header:hover {
@@ -105,14 +121,17 @@ main {
 
 .app-title {
   font-family: var(--font-display);
-  font-size: 2.2rem;
+  font-size: clamp(1.2rem, 4vw, 2.2rem); /* Responsive font size */
   font-weight: 900;
   color: var(--primary-coffee);
   text-shadow: 0 2px 4px rgba(76, 44, 23, 0.1);
   position: relative;
   transition: all var(--transition-smooth);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px; /* Reduced for mobile */
+  white-space: nowrap; /* Prevent text wrapping */
+  overflow: hidden; /* Hide overflow on very small screens */
+  text-overflow: ellipsis; /* Add ellipsis if needed */
 }
 
 .app-title:hover {
@@ -142,8 +161,10 @@ main {
 .nav-user {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--spacing-sm); /* Use consistent spacing */
   white-space: nowrap;
+  font-size: 0.9rem; /* Smaller text on mobile */
+  min-width: 0; /* Allow shrinking */
 }
 
 .desktop-nav {
@@ -189,7 +210,7 @@ main {
   color: var(--cream);
 }
 
-/* --- Bottom Nav (Mobile) --- */
+/* --- Mobile-First Bottom Navigation --- */
 .bottom-nav {
   display: flex;
   justify-content: space-around;
@@ -203,6 +224,9 @@ main {
   z-index: 1000;
   backdrop-filter: blur(15px);
   border-top: 1px solid rgba(139, 69, 19, 0.1);
+  padding-bottom: env(safe-area-inset-bottom); /* iOS safe area support */
+  min-height: var(--nav-height);
+  width: 100%;
 }
 
 .bottom-nav button {
@@ -249,10 +273,100 @@ main {
   display: block;
 }
 
-/* --- Media Queries for Desktop --- */
+/* --- Mobile-Only Styles (up to 767px) --- */
+@media (max-width: 767px) {
+  :root {
+    --spacing-xs: 3px;
+    --spacing-sm: 6px;
+    --spacing-md: 12px;
+    --spacing-lg: 18px;
+    --spacing-xl: 24px;
+    --spacing-2xl: 36px;
+  }
+  
+  .app-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .app-title::after {
+    display: none; /* Hide coffee emoji on very small screens */
+  }
+  
+  main {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    padding-bottom: calc(var(--nav-height) + var(--spacing-md));
+  }
+  
+  /* Adjust container padding for mobile */
+  .container {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  /* Make buttons more touch-friendly */
+  button {
+    min-height: 44px; /* iOS touch target minimum */
+    font-size: 0.9rem;
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .bottom-nav button {
+    min-height: var(--nav-height);
+    font-size: 0.7rem;
+    padding: var(--spacing-xs) 0;
+  }
+  
+  /* Mobile form optimizations */
+  input, select, textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-small);
+  }
+  
+  /* Mobile-friendly form sections */
+  .form-section {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr; /* Single column on mobile */
+    gap: var(--spacing-sm);
+  }
+  
+  /* Mobile coffee log container */
+  .coffee-log-container {
+    padding: var(--spacing-md);
+    margin: var(--spacing-sm);
+  }
+  
+  .log-title {
+    font-size: 1.4rem;
+  }
+  
+  /* Mobile AI coach */
+  .ai-coach-container {
+    margin: var(--spacing-sm) 0;
+  }
+  
+  .ai-coach-header {
+    padding: var(--spacing-md);
+  }
+  
+  .ai-coach-content {
+    padding: var(--spacing-md);
+  }
+}
+
+/* --- Tablet and Desktop Styles (768px and up) --- */
 @media (min-width: 768px) {
   main {
-    padding-bottom: 20px; /* Reset padding on desktop */
+    padding: var(--spacing-md) var(--spacing-lg);
+    padding-bottom: var(--spacing-lg); /* Reset padding on desktop */
+  }
+  
+  .app-header {
+    padding: var(--spacing-lg) var(--spacing-xl);
   }
 
   .desktop-nav {
