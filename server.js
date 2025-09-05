@@ -378,11 +378,13 @@ function authenticateToken(req, res, next) {
     }
 
     if (!token) {
+        console.log('Authentication failed: No token provided for', req.method, req.path);
         return res.status(401).json({ success: false, message: 'Access token required' });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
+            console.log('Authentication failed: Invalid token for', req.method, req.path, 'Error:', err.message);
             return res.status(403).json({ success: false, message: 'Invalid or expired token' });
         }
         req.user = user;
@@ -521,6 +523,88 @@ app.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'An error occurred during login.' });
+    }
+});
+
+// Create test admin user (for development/testing only)
+app.post('/create-test-admin', async (req, res) => {
+    try {
+        // Check if test admin already exists
+        const existingAdmin = await User.findOne({ username: 'admin@test.com' });
+        
+        if (existingAdmin) {
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Test admin already exists',
+                username: 'admin@test.com',
+                note: 'Use password: admin123 to login'
+            });
+        }
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('admin123', salt);
+        
+        const testAdmin = new User({
+            firstName: 'Test',
+            lastName: 'Admin',
+            username: 'admin@test.com',
+            password: hashedPassword,
+            role: 'owner'
+        });
+        
+        await testAdmin.save();
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Test admin created successfully!',
+            username: 'admin@test.com',
+            password: 'admin123',
+            note: 'This is for testing purposes only'
+        });
+    } catch (error) {
+        console.error('Error creating test admin:', error);
+        res.status(500).json({ success: false, message: 'Failed to create test admin.' });
+    }
+});
+
+// Create test customer user (for development/testing only)
+app.post('/create-test-customer', async (req, res) => {
+    try {
+        // Check if test customer already exists
+        const existingCustomer = await User.findOne({ username: 'customer@test.com' });
+        
+        if (existingCustomer) {
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Test customer already exists',
+                username: 'customer@test.com',
+                note: 'Use password: customer123 to login'
+            });
+        }
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('customer123', salt);
+        
+        const testCustomer = new User({
+            firstName: 'Test',
+            lastName: 'Customer',
+            username: 'customer@test.com',
+            password: hashedPassword,
+            role: 'customer'
+        });
+        
+        await testCustomer.save();
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Test customer created successfully!',
+            username: 'customer@test.com',
+            password: 'customer123',
+            note: 'This is for testing purposes only'
+        });
+    } catch (error) {
+        console.error('Error creating test customer:', error);
+        res.status(500).json({ success: false, message: 'Failed to create test customer.' });
     }
 });
 
