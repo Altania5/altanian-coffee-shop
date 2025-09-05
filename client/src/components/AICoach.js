@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getEspressoAI } from '../ai/EspressoAI';
 
 const AICoach = ({ shotData, onRecommendationApplied }) => {
@@ -7,11 +7,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [aiStatus, setAiStatus] = useState('initializing');
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    analyzeShot();
-  }, [shotData]);
-
-  const analyzeShot = async () => {
+  const analyzeShot = useCallback(async () => {
     setLoading(true);
     setAiStatus('analyzing');
     
@@ -40,7 +36,12 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
       setAiStatus('error');
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    analyzeShot();
+  }, [shotData, analyzeShot]);
+
 
   const performAnalysis = async () => {
     try {
