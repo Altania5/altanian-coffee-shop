@@ -90,22 +90,16 @@ app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 // --- Mongoose Schemas and Models ---
 
-// User Schema for proper user management
+// User Schema matching the old format
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true, trim: true },
-    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
-    passwordHash: { type: String, required: true },
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    birthday: { type: Date },
+    username: { type: String, required: true, unique: true, trim: true }, // This is email in old format
+    password: { type: String, required: true }, // Changed from passwordHash to password
     role: { type: String, enum: ['customer', 'admin', 'owner'], default: 'customer' },
     createdAt: { type: Date, default: Date.now },
-    profile: {
-        firstName: String,
-        lastName: String,
-        phone: String,
-        preferences: {
-            favoriteItems: [String],
-            dietaryRestrictions: [String]
-        }
-    }
+    updatedAt: { type: Date, default: Date.now }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -334,10 +328,10 @@ function isAdmin(req, res, next) {
 
 // Registration Logic
 app.post('/register', async (req, res) => {
-    const { username, email, password } = req.body;
+    const { firstName, lastName, username, password, birthday } = req.body;
     
-    if (!username || !email || !password) {
-        return res.status(400).json({ success: false, message: 'Username, email, and password are required.' });
+    if (!firstName || !lastName || !username || !password) {
+        return res.status(400).json({ success: false, message: 'First name, last name, username, and password are required.' });
     }
     if (password.length < 6) { 
         return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
@@ -345,22 +339,21 @@ app.post('/register', async (req, res) => {
 
     try {
         // Check if user already exists
-        const existingUser = await User.findOne({ 
-            $or: [{ username }, { email }] 
-        });
+        const existingUser = await User.findOne({ username });
         
         if (existingUser) {
-            const field = existingUser.username === username ? 'username' : 'email';
-            return res.status(409).json({ success: false, message: `${field} already exists.` });
+            return res.status(409).json({ success: false, message: 'Username already exists.' });
         }
 
         const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
+            firstName,
+            lastName,
             username,
-            email,
-            passwordHash,
+            password: hashedPassword,
+            birthday: birthday ? new Date(birthday) : undefined,
             role: 'customer'
         });
 
@@ -371,10 +364,10 @@ app.post('/register', async (req, res) => {
         const token = jwt.sign(
             { 
                 id: newUser._id, 
-                username: newUser.username, 
-                email: newUser.email,
-                role: newUser.role,
-                firstName: newUser.profile?.firstName || newUser.username.split('@')[0] || 'User'
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                username: newUser.username,
+                role: newUser.role
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -386,8 +379,9 @@ app.post('/register', async (req, res) => {
             token,
             user: {
                 id: newUser._id,
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
                 username: newUser.username,
-                email: newUser.email,
                 role: newUser.role
             }
         });
@@ -410,16 +404,14 @@ app.post('/login', async (req, res) => {
     }
 
     try {
-        // Find user by username or email
-        const user = await User.findOne({
-            $or: [{ username }, { email: username }]
-        });
+        // Find user by username
+        const user = await User.findOne({ username });
         
         if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        const isMatch = await bcrypt.compare(password, user.password);
         
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
@@ -429,10 +421,10 @@ app.post('/login', async (req, res) => {
         const token = jwt.sign(
             { 
                 id: user._id, 
-                username: user.username, 
-                email: user.email,
-                role: user.role,
-                firstName: user.profile?.firstName || user.username.split('@')[0] || 'User'
+                firstName: user.firstName,
+                lastName: user.lastName,
+                username: user.username,
+                role: user.role
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -446,8 +438,9 @@ app.post('/login', async (req, res) => {
             token,
             user: {
                 id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 username: user.username,
-                email: user.email,
                 role: user.role
             }
         });
@@ -461,7 +454,7 @@ app.post('/login', async (req, res) => {
 // User profile route
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-passwordHash');
+        const user = await User.findById(req.user.id).select('-password');
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -486,6 +479,29 @@ app.get('/api/menu', async (req, res) => {
     } catch (error) {
         console.error("Server Error: Error fetching menu items from DB:", error); 
         res.status(500).json({ success: false, message: 'Failed to fetch menu items on server.' });
+    }
+});
+
+// Products endpoint for frontend compatibility
+app.get('/products', async (req, res) => {
+    try {
+        const menuItemsCollection = db.collection('menuitems');
+        const items = await menuItemsCollection.find({}).sort({ category: 1, name: 1 }).toArray();
+        res.status(200).json(items); // Return items directly without wrapper
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ error: 'Failed to fetch products.' });
+    }
+});
+
+// Inventory endpoint for frontend compatibility 
+app.get('/inventory', authenticateToken, async (req, res) => {
+    try {
+        const items = await InventoryItem.find({}).sort({ itemType: 1, itemName: 1 });
+        res.status(200).json(items); // Return items directly without wrapper
+    } catch (error) {
+        console.error("Error fetching inventory:", error);
+        res.status(500).json({ error: 'Failed to fetch inventory.' });
     }
 });
 
@@ -664,6 +680,31 @@ app.post('/api/coffeelog', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error creating coffee log:', error);
         res.status(500).json({ success: false, message: 'Failed to create coffee log entry.' });
+    }
+});
+
+// Coffee logs endpoint for frontend compatibility
+app.get('/coffeelogs', authenticateToken, async (req, res) => {
+    try {
+        const logs = await CoffeeLog.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(100);
+        res.status(200).json(logs); // Return logs directly without wrapper
+    } catch (error) {
+        console.error('Error fetching coffee logs:', error);
+        res.status(500).json({ error: 'Failed to fetch coffee logs.' });
+    }
+});
+
+// Beans endpoint (simplified - could be coffee beans from inventory or separate collection)
+app.get('/beans', authenticateToken, async (req, res) => {
+    try {
+        // For now, return coffee beans from inventory items
+        const beans = await InventoryItem.find({ itemType: 'Coffee Beans' });
+        res.status(200).json(beans);
+    } catch (error) {
+        console.error('Error fetching beans:', error);
+        res.status(500).json({ error: 'Failed to fetch beans.' });
     }
 });
 
