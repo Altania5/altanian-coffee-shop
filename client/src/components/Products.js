@@ -105,7 +105,8 @@ function Products({ token, addToCart }) {
                     </div>
                     
                     <div className="product-actions">
-                      {product.canBeModified && inStock ? (
+                      {/* Always show both customize and add buttons for available items */}
+                      {inStock ? (
                         <>
                           <button 
                             className="product-btn customize-btn"
@@ -124,12 +125,11 @@ function Products({ token, addToCart }) {
                         </>
                       ) : (
                         <button 
-                          className={`product-btn add-btn ${!inStock ? 'disabled' : ''}`}
-                          onClick={() => addToCart(product)} 
-                          disabled={!inStock}
+                          className="product-btn add-btn disabled"
+                          disabled={true}
                         >
-                          <span>{inStock ? 'Add to Cart' : 'Out of Stock'}</span>
-                          <span className="btn-icon">{inStock ? '🛒' : '❌'}</span>
+                          <span>Out of Stock</span>
+                          <span className="btn-icon">❌</span>
                         </button>
                       )}
                     </div>

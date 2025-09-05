@@ -35,8 +35,9 @@ function PromoCodeManager({ token }) {
       const res = await axios.post('/promocodes/add', newCode, { headers });
       setCodes([res.data, ...codes]);
       setNewCode({ code: '', discountPercentage: '', expiresAt: '' }); // Reset form
+      alert('Promo code created successfully!');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Error adding code.');
+      setError(err.response?.data?.error || err.response?.data?.msg || 'Error adding code.');
     }
   };
 

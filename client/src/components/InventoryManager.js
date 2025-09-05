@@ -35,31 +35,37 @@ function InventoryManager({ token }) {
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      const itemData = { ...newItem, category: selectedCategory };
-      const res = await axios.post('/inventory/add', itemData, { headers });
-      setItems([...items, res.data]);
+      const itemData = { 
+        itemName: newItem.name,
+        itemType: selectedCategory, 
+        unit: newItem.unit,
+        quantityInStock: parseInt(newItem.quantity) || 0,
+        isAvailable: true
+      };
+      const res = await axios.post('/api/inventory', itemData, { headers });
+      setItems([...items, res.data.data]); // API returns { success: true, data: item }
       setNewItem({ name: '', quantity: 0, unit: 'Bags' });
     } catch (err) {
-      alert('Error adding item: ' + (err.response?.data?.msg || err.message));
+      alert('Error adding item: ' + (err.response?.data?.message || err.message));
     }
   };
 
   const handleUpdate = async (id, field, value) => {
     try {
-      await axios.put(`/inventory/update/${id}`, { [field]: value }, { headers });
+      await axios.put(`/api/inventory/${id}`, { [field]: value }, { headers });
       fetchItems();
     } catch (err) {
-      alert('Error updating item: ' + (err.response?.data?.msg || err.message));
+      alert('Error updating item: ' + (err.response?.data?.message || err.message));
     }
   };
   
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
         try {
-            await axios.delete(`/inventory/delete/${id}`, { headers });
+            await axios.delete(`/api/inventory/${id}`, { headers });
             setItems(items.filter(item => item._id !== id));
         } catch (err) {
-            alert('Error deleting item: ' + (err.response?.data?.msg || err.message));
+            alert('Error deleting item: ' + (err.response?.data?.message || err.message));
         }
     }
   };
@@ -100,13 +106,13 @@ function InventoryManager({ token }) {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {items.map(item => (
           <li key={item._id} className="order-item">
-            <strong>{item.name}</strong> ({item.category} - {item.unit})
+            <strong>{item.itemName || item.name}</strong> ({item.itemType || item.category} - {item.unit})
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
               <label>Qty:</label>
               <input 
                 type="number" 
-                defaultValue={item.quantity} 
-                onBlur={(e) => handleUpdate(item._id, 'quantity', e.target.value)} 
+                defaultValue={item.quantityInStock || item.quantity || 0} 
+                onBlur={(e) => handleUpdate(item._id, 'quantityInStock', parseInt(e.target.value) || 0)} 
                 style={{ width: '80px', margin: 0 }}
               />
               <label>Available:</label>

@@ -146,7 +146,7 @@ function ProductForm({ product, inventory, onSave, onCancel }) {
                     <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
                         <select value={recipeItem.item} onChange={(e) => handleRecipeChange(index, 'item', e.target.value)} required>
                             <option value="">Select Ingredient</option>
-                            {inventory.map(invItem => <option key={invItem._id} value={invItem._id}>{invItem.name} ({invItem.unit})</option>)}
+                            {inventory.map(invItem => <option key={invItem._id} value={invItem._id}>{invItem.itemName || invItem.name} ({invItem.unit})</option>)}
                         </select>
                         <input type="number" value={recipeItem.quantityRequired} onChange={(e) => handleRecipeChange(index, 'quantityRequired', e.target.value)} style={{width: '80px'}}/>
                         <button type="button" onClick={() => removeRecipeItem(index)} style={{backgroundColor: '#dc3545', width: 'auto'}}>X</button>

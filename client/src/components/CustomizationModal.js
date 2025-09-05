@@ -18,17 +18,22 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel }) {
   useEffect(() => {
     const initialCustomizations = {};
     let initialShots = 2;
-    product.recipe.forEach(ingredient => {
-      if (ingredient.item) {
-        initialCustomizations[ingredient.item.category] = {
-          id: ingredient.item._id,
-          name: ingredient.item.name
-        };
-        if (ingredient.item.category === 'Beans') {
-          initialShots = ingredient.quantityRequired;
+    
+    // Handle products with recipe (new format) and without recipe (legacy format)
+    if (product.recipe && Array.isArray(product.recipe)) {
+      product.recipe.forEach(ingredient => {
+        if (ingredient.item) {
+          initialCustomizations[ingredient.item.category] = {
+            id: ingredient.item._id,
+            name: ingredient.item.name
+          };
+          if (ingredient.item.category === 'Beans') {
+            initialShots = ingredient.quantityRequired;
+          }
         }
-      }
-    });
+      });
+    }
+    
     setCustomizations(initialCustomizations);
     setBaseShots(initialShots);
   }, [product]);
@@ -47,7 +52,7 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel }) {
     const item = inventory.find(i => i._id === itemId);
     setCustomizations({ 
         ...customizations, 
-        [category]: { id: itemId, name: item ? item.name : '' }
+        [category]: { id: itemId, name: item ? (item.name || item.itemName) : '' }
     });
   };
 
@@ -58,7 +63,7 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel }) {
   
   const handleExtraChange = (index, value, type) => {
     const item = inventory.find(i => i._id === value);
-    const newItem = { id: value, name: item ? item.name : '' };
+    const newItem = { id: value, name: item ? (item.name || item.itemName) : '' };
 
     if (type === 'Syrup') {
         const newSyrups = [...extraSyrups];
@@ -98,7 +103,17 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel }) {
     onAddToCart(customizedProduct);
   };
   
-const getInventoryByCategory = (category) => inventory.filter(item => item.category === category);
+const getInventoryByCategory = (category) => {
+  // Handle both 'category' and 'itemType' properties from inventory
+  return inventory.filter(item => 
+    item.category === category || 
+    item.itemType === category ||
+    // Handle common mapping between display names and actual categories
+    (category === 'Beans' && (item.itemType === 'Coffee Beans' || item.category === 'Coffee Beans')) ||
+    (category === 'Milk' && (item.itemType === 'Milk' || item.category === 'Milk')) ||
+    (category === 'Syrup' && (item.itemType === 'Syrup' || item.category === 'Syrup'))
+  );
+};
 
   return (
     <div className="modal-overlay">
@@ -159,7 +174,7 @@ const CustomizationOption = ({ label, items, category, value, onChange }) => (
       <label>{label}:</label>
       <select value={value || ''} onChange={(e) => onChange(category, e.target.value)}>
         <option value="">Select {label}</option>
-        {items.map(item => <option key={item._id} value={item._id}>{item.name}</option>)}
+        {items.map(item => <option key={item._id} value={item._id}>{item.name || item.itemName}</option>)}
       </select>
     </div>
   );

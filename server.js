@@ -363,6 +363,27 @@ inventoryItemSchema.pre('findOneAndUpdate', function(next) {
 const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);
 // --- END: Inventory Item Schema ---
 
+// --- PromoCode Schema ---
+const promoCodeSchema = new mongoose.Schema({
+    code: { type: String, required: true, unique: true, trim: true, uppercase: true },
+    discountPercentage: { type: Number, required: true, min: 1, max: 100 },
+    isActive: { type: Boolean, default: true },
+    expiresAt: { type: Date, required: false },
+    usageCount: { type: Number, default: 0 },
+    maxUsage: { type: Number, default: null }, // null means unlimited
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+promoCodeSchema.pre('save', function(next) {
+    this.updatedAt = Date.now();
+    next();
+});
+
+const PromoCode = mongoose.model('PromoCode', promoCodeSchema);
+// --- END: PromoCode Schema ---
+
 
 // --- JWT Authentication Middleware ---
 function authenticateToken(req, res, next) {
@@ -780,8 +801,8 @@ app.delete('/products/delete/:id', authenticateToken, isAdmin, async (req, res) 
 // Promo codes endpoint for admin page
 app.get('/promocodes', authenticateToken, isAdmin, async (req, res) => {
     try {
-        // For now, return empty array - you can implement promo codes later
-        res.status(200).json([]);
+        const promoCodes = await PromoCode.find({}).sort({ createdAt: -1 });
+        res.status(200).json(promoCodes);
     } catch (error) {
         console.error('Error fetching promo codes:', error);
         res.status(500).json({ error: 'Failed to fetch promo codes.' });
@@ -791,10 +812,31 @@ app.get('/promocodes', authenticateToken, isAdmin, async (req, res) => {
 // Promo code management endpoints
 app.post('/promocodes/add', authenticateToken, isAdmin, async (req, res) => {
     try {
-        // Implement promo code creation logic here
-        res.status(201).json({ message: 'Promo code created successfully.' });
+        const { code, discountPercentage, expiresAt, maxUsage } = req.body;
+        
+        if (!code || !discountPercentage) {
+            return res.status(400).json({ error: 'Code and discount percentage are required.' });
+        }
+        
+        if (discountPercentage < 1 || discountPercentage > 100) {
+            return res.status(400).json({ error: 'Discount percentage must be between 1 and 100.' });
+        }
+        
+        const newPromoCode = new PromoCode({
+            code: code.toUpperCase(),
+            discountPercentage: parseInt(discountPercentage),
+            expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+            maxUsage: maxUsage ? parseInt(maxUsage) : null,
+            createdBy: req.user.id
+        });
+        
+        const savedPromoCode = await newPromoCode.save();
+        res.status(201).json(savedPromoCode);
     } catch (error) {
         console.error('Error creating promo code:', error);
+        if (error.code === 11000) {
+            return res.status(409).json({ error: 'Promo code already exists.' });
+        }
         res.status(500).json({ error: 'Failed to create promo code.' });
     }
 });
