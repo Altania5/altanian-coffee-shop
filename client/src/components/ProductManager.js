@@ -13,9 +13,10 @@ function ProductManager({ token }) {
 
     const fetchData = useCallback(async () => {
         try {
+            const baseURL = process.env.REACT_APP_API_BASE_URL || '';
             const [productsRes, inventoryRes] = await Promise.all([
-                axios.get('/products', { headers }),
-                axios.get('/inventory', { headers })
+                axios.get(`${baseURL}/products`, { headers }),
+                axios.get(`${baseURL}/inventory`, { headers })
             ]);
             setProducts(productsRes.data);
             setInventory(inventoryRes.data);
@@ -35,10 +36,11 @@ function ProductManager({ token }) {
         const productData = { ...productToSave, recipe: finalRecipe };
 
         try {
+            const baseURL = process.env.REACT_APP_API_BASE_URL || '';
             if (productData._id) {
-                await axios.put(`/products/update/${productData._id}`, productData, { headers });
+                await axios.put(`${baseURL}/products/update/${productData._id}`, productData, { headers });
             } else {
-                await axios.post('/products/add', productData, { headers });
+                await axios.post(`${baseURL}/products/add`, productData, { headers });
             }
             setEditingProduct(null);
             fetchData();
@@ -50,7 +52,8 @@ function ProductManager({ token }) {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                await axios.delete(`/products/delete/${id}`, { headers });
+                const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+                await axios.delete(`${baseURL}/products/delete/${id}`, { headers });
                 fetchData();
             } catch (err) {
                 alert('Error deleting product: ' + (err.response?.data?.msg || err.message));

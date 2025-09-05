@@ -15,7 +15,8 @@ function InventoryManager({ token }) {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/inventory', { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await axios.get(`${baseURL}/inventory`, { headers });
       setItems(res.data);
     } catch (err) {
       console.error("Error fetching inventory:", err);
@@ -42,7 +43,8 @@ function InventoryManager({ token }) {
         quantityInStock: parseInt(newItem.quantity) || 0,
         isAvailable: true
       };
-      const res = await axios.post('/api/inventory', itemData, { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await axios.post(`${baseURL}/api/inventory`, itemData, { headers });
       setItems([...items, res.data.data]); // API returns { success: true, data: item }
       setNewItem({ name: '', quantity: 0, unit: 'Bags' });
     } catch (err) {
@@ -52,7 +54,8 @@ function InventoryManager({ token }) {
 
   const handleUpdate = async (id, field, value) => {
     try {
-      await axios.put(`/api/inventory/${id}`, { [field]: value }, { headers });
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+      await axios.put(`${baseURL}/api/inventory/${id}`, { [field]: value }, { headers });
       fetchItems();
     } catch (err) {
       alert('Error updating item: ' + (err.response?.data?.message || err.message));
@@ -62,7 +65,8 @@ function InventoryManager({ token }) {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
         try {
-            await axios.delete(`/api/inventory/${id}`, { headers });
+            const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+            await axios.delete(`${baseURL}/api/inventory/${id}`, { headers });
             setItems(items.filter(item => item._id !== id));
         } catch (err) {
             alert('Error deleting item: ' + (err.response?.data?.message || err.message));

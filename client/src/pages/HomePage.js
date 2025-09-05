@@ -17,10 +17,11 @@ function HomePage({ user }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const baseURL = process.env.REACT_APP_API_BASE_URL || '';
         const headers = { 'x-auth-token': user.token };
         const [usualResponse, suggestedResponse] = await Promise.all([
-          axios.get('/orders/usual', { headers }),
-          axios.get('/settings/suggested-product', { headers })
+          axios.get(`${baseURL}/orders/usual`, { headers }),
+          axios.get(`${baseURL}/settings/suggested-product`, { headers })
         ]);
         setUsualOrder(usualResponse.data);
         setSuggestedProduct(suggestedResponse.data);
