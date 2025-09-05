@@ -16,6 +16,15 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     inWeight: 18,
     outWeight: 36,
     
+    // NEW: Bean Characteristics (auto-populated from bean selection)
+    roastLevel: '',
+    processMethod: '',
+    
+    // NEW: Preparation Technique Parameters
+    usedPuckScreen: false,
+    usedWDT: false,
+    distributionTechnique: 'none',
+    
     // AI Training Parameters
     shotQuality: 5,
     tasteProfile: {
@@ -68,10 +77,21 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         }
       });
     } else {
-      setFormData({
+      let newFormData = {
         ...formData,
         [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || 0 : value)
-      });
+      };
+      
+      // Auto-populate bean characteristics when bean is selected
+      if (name === 'bean' && value && beans) {
+        const selectedBean = beans.find(bean => bean._id === value);
+        if (selectedBean) {
+          newFormData.roastLevel = selectedBean.roastLevel || '';
+          newFormData.processMethod = selectedBean.processMethod || '';
+        }
+      }
+      
+      setFormData(newFormData);
     }
   };
   
@@ -109,6 +129,16 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         temperature: 93,
         inWeight: 18,
         outWeight: 36,
+        
+        // NEW: Bean Characteristics
+        roastLevel: '',
+        processMethod: '',
+        
+        // NEW: Preparation Technique Parameters
+        usedPuckScreen: false,
+        usedWDT: false,
+        distributionTechnique: 'none',
+        
         shotQuality: 5,
         tasteProfile: {
           sweetness: 3,
@@ -190,6 +220,82 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                 <option value="Gaggia">Gaggia</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+          </div>
+          
+          {/* Bean Characteristics (auto-populated) */}
+          {(formData.roastLevel || formData.processMethod) && (
+            <div className="form-row bean-characteristics">
+              <div className="form-group">
+                <label>Roast Level</label>
+                <select name="roastLevel" value={formData.roastLevel} onChange={handleChange}>
+                  <option value="">Select roast level</option>
+                  <option value="light">Light</option>
+                  <option value="light-medium">Light-Medium</option>
+                  <option value="medium">Medium</option>
+                  <option value="medium-dark">Medium-Dark</option>
+                  <option value="dark">Dark</option>
+                </select>
+                <span className="input-hint">Auto-filled from bean selection</span>
+              </div>
+              
+              <div className="form-group">
+                <label>Process Method</label>
+                <select name="processMethod" value={formData.processMethod} onChange={handleChange}>
+                  <option value="">Select process method</option>
+                  <option value="washed">Washed</option>
+                  <option value="natural">Natural</option>
+                  <option value="honey">Honey</option>
+                  <option value="semi-washed">Semi-Washed</option>
+                  <option value="other">Other</option>
+                </select>
+                <span className="input-hint">Auto-filled from bean selection</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Preparation Technique */}
+          <div className="form-section prep-technique">
+            <h4 className="subsection-title">🔧 Preparation Technique</h4>
+            
+            <div className="form-row">
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    name="usedPuckScreen" 
+                    checked={formData.usedPuckScreen} 
+                    onChange={handleChange} 
+                  />
+                  <span>Used Puck Screen</span>
+                </label>
+                <span className="input-hint">Helps with even extraction</span>
+              </div>
+              
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    name="usedWDT" 
+                    checked={formData.usedWDT} 
+                    onChange={handleChange} 
+                  />
+                  <span>Used WDT (Weiss Distribution Technique)</span>
+                </label>
+                <span className="input-hint">Distributes grounds for even extraction</span>
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Distribution Technique</label>
+              <select name="distributionTechnique" value={formData.distributionTechnique} onChange={handleChange}>
+                <option value="none">None / Just Tamp</option>
+                <option value="tap-only">Tap Only</option>
+                <option value="distribution-tool">Distribution Tool</option>
+                <option value="wdt">WDT Only</option>
+                <option value="wdt-plus-distribution">WDT + Distribution Tool</option>
+              </select>
+              <span className="input-hint">How you prepared the puck</span>
             </div>
           </div>
 

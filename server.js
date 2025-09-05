@@ -107,19 +107,90 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Coffee Log Schema
+// Coffee Log Schema - Enhanced for Espresso AI Training
 const coffeeLogSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    coffeeName: { type: String, required: true },
-    roastLevel: { type: String, enum: ['Light', 'Medium', 'Dark', 'Extra Dark'] },
-    brewMethod: { type: String, required: true },
-    grindSize: String,
-    waterTemp: Number,
-    brewTime: Number,
-    rating: { type: Number, min: 1, max: 5 },
-    notes: String,
-    tags: [String],
-    createdAt: { type: Date, default: Date.now }
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    bean: { type: mongoose.Schema.Types.ObjectId, ref: 'Bean', required: true },
+    machine: {
+        type: String,
+        enum: ['Meraki', 'Breville', 'La Marzocco', 'Rancilio', 'Gaggia', 'Other'],
+        required: true
+    },
+    
+    // Core Extraction Parameters
+    grindSize: { type: Number, required: true, min: 1, max: 50 },
+    extractionTime: { type: Number, required: true, min: 10, max: 60 }, // in seconds
+    temperature: { type: Number, min: 85, max: 96 }, // in Celsius
+    inWeight: { type: Number, required: true, min: 10, max: 30 }, // in grams
+    outWeight: { type: Number, required: true, min: 15, max: 80 }, // in grams
+    
+    // NEW: Bean Characteristics (from Bean reference)
+    roastLevel: { 
+        type: String, 
+        enum: ['light', 'light-medium', 'medium', 'medium-dark', 'dark'],
+        required: true
+    },
+    processMethod: {
+        type: String,
+        enum: ['washed', 'natural', 'honey', 'semi-washed', 'other'],
+        required: true
+    },
+    
+    // NEW: Preparation Technique Parameters
+    usedPuckScreen: { type: Boolean, default: false },
+    usedWDT: { type: Boolean, default: false }, // WDT (Weiss Distribution Technique)
+    distributionTechnique: {
+        type: String,
+        enum: ['none', 'tap-only', 'distribution-tool', 'wdt', 'wdt-plus-distribution'],
+        default: 'none'
+    },
+    
+    // AI Training Parameters
+    shotQuality: { 
+        type: Number, 
+        required: true, 
+        min: 1, 
+        max: 10,
+        default: 5 
+    },
+    tasteProfile: {
+        sweetness: { type: Number, min: 1, max: 5, default: 3 },
+        acidity: { type: Number, min: 1, max: 5, default: 3 },
+        bitterness: { type: Number, min: 1, max: 5, default: 3 },
+        body: { type: Number, min: 1, max: 5, default: 3 }
+    },
+    
+    // Bean Age & Usage Tracking
+    daysPastRoast: { type: Number, min: 0, max: 60 },
+    beanUsageCount: { type: Number, default: 1 },
+    
+    // Environmental Factors
+    humidity: { type: Number, min: 30, max: 80 },
+    pressure: { type: Number, default: 9 },
+    
+    // Calculated Values (auto-computed)
+    ratio: { type: Number },
+    extractionYield: { type: Number },
+    flowRate: { type: Number },
+    
+    // User Satisfaction & Goals
+    tasteMetExpectations: { type: Boolean, required: true },
+    targetProfile: {
+        type: String,
+        enum: ['balanced', 'bright', 'sweet', 'strong', 'fruity', 'chocolatey', 'custom'],
+        default: 'balanced'
+    },
+    
+    // AI Recommendations Applied
+    aiRecommendationFollowed: {
+        recommendation: { type: String },
+        followed: { type: Boolean, default: false },
+        improvement: { type: Number, min: -5, max: 5 }
+    },
+    
+    notes: { type: String, trim: true, maxlength: 500 }
+}, {
+    timestamps: true,
 });
 
 const CoffeeLog = mongoose.model('CoffeeLog', coffeeLogSchema);

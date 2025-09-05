@@ -6,6 +6,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [loading, setLoading] = useState(true);
   const [aiStatus, setAiStatus] = useState('initializing');
   const [expanded, setExpanded] = useState(false);
+  const [showingPersisted, setShowingPersisted] = useState(false);
 
   const analyzeShot = useCallback(async () => {
     setLoading(true);
@@ -39,7 +40,28 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   }, []);
 
   useEffect(() => {
-    analyzeShot();
+    // First, try to load persisted AI response
+    const loadPersistedResponse = async () => {
+      const ai = getEspressoAI();
+      const lastResponse = ai.getLastAIResponse();
+      
+      if (lastResponse && !shotData) {
+        // Show persisted recommendation if no new shot data
+        setAnalysis(lastResponse);
+        setShowingPersisted(true);
+        setLoading(false);
+        setAiStatus('ready');
+        setExpanded(true); // Auto-expand for persisted recommendations
+        return;
+      }
+    };
+    
+    if (!shotData) {
+      loadPersistedResponse();
+    } else {
+      setShowingPersisted(false);
+      analyzeShot();
+    }
   }, [shotData, analyzeShot]);
 
 
@@ -168,11 +190,23 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   return (
     <div className="ai-coach-container">
       <div className="ai-coach-header" onClick={() => setExpanded(!expanded)}>
-        <h3 className="ai-coach-title">🤖 AI Espresso Coach</h3>
+        <h3 className="ai-coach-title">
+          🤖 AI Espresso Coach
+          {showingPersisted && (
+            <span className="persisted-badge" title="Last recommendation from previous session">
+              💾 Saved
+            </span>
+          )}
+        </h3>
         <div className="coach-summary">
           <div className="confidence-badge" style={{ borderColor: getConfidenceColor(analysis.confidence) }}>
             {Math.round(analysis.confidence * 100)}% confident
           </div>
+          {showingPersisted && (
+            <div className="timestamp-badge">
+              {new Date(analysis.timestamp).toLocaleTimeString()}
+            </div>
+          )}
           <div className="expand-arrow" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
             ⬇️
           </div>

@@ -17,6 +17,27 @@ const coffeeLogSchema = new Schema({
   inWeight: { type: Number, required: true, min: 10, max: 30 }, // in grams
   outWeight: { type: Number, required: true, min: 15, max: 80 }, // in grams
   
+  // NEW: Bean Characteristics (from Bean reference)
+  roastLevel: { 
+    type: String, 
+    enum: ['light', 'light-medium', 'medium', 'medium-dark', 'dark'],
+    required: true
+  },
+  processMethod: {
+    type: String,
+    enum: ['washed', 'natural', 'honey', 'semi-washed', 'other'],
+    required: true
+  },
+  
+  // NEW: Preparation Technique Parameters
+  usedPuckScreen: { type: Boolean, default: false },
+  usedWDT: { type: Boolean, default: false }, // WDT (Weiss Distribution Technique)
+  distributionTechnique: {
+    type: String,
+    enum: ['none', 'tap-only', 'distribution-tool', 'wdt', 'wdt-plus-distribution'],
+    default: 'none'
+  },
+  
   // AI Training Parameters
   shotQuality: { 
     type: Number, 
@@ -84,16 +105,27 @@ coffeeLogSchema.pre('save', async function(next) {
     this.flowRate = parseFloat((this.outWeight / this.extractionTime).toFixed(2));
   }
   
-  // Calculate days past roast if bean is populated
+  // Auto-populate bean characteristics and calculate days past roast
   if (this.isNew || this.isModified('bean')) {
     try {
       const bean = await this.model('Bean').findById(this.bean);
-      if (bean && bean.roastDate) {
-        const diffTime = Date.now() - bean.roastDate.getTime();
-        this.daysPastRoast = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      if (bean) {
+        // Auto-populate roast level and process method from bean if not already set
+        if (!this.roastLevel && bean.roastLevel) {
+          this.roastLevel = bean.roastLevel;
+        }
+        if (!this.processMethod && bean.processMethod) {
+          this.processMethod = bean.processMethod;
+        }
+        
+        // Calculate days past roast
+        if (bean.roastDate) {
+          const diffTime = Date.now() - bean.roastDate.getTime();
+          this.daysPastRoast = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
       }
     } catch (error) {
-      console.error('Error calculating days past roast:', error);
+      console.error('Error processing bean data:', error);
     }
   }
   

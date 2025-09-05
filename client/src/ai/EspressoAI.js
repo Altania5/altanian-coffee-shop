@@ -70,7 +70,7 @@ class EspressoAI {
     const labels = [];
     
     data.forEach(shot => {
-      // Extract features (input variables)
+      // Extract features (input variables) - Enhanced with new parameters
       const feature = [
         shot.grindSize,
         shot.inWeight,
@@ -83,7 +83,18 @@ class EspressoAI {
         shot.tasteProfile.bitterness,
         shot.tasteProfile.body,
         shot.outWeight / shot.inWeight, // ratio
-        shot.outWeight / shot.extractionTime // flow rate
+        shot.outWeight / shot.extractionTime, // flow rate
+        
+        // NEW: Roast level encoding (1=light, 2=light-medium, 3=medium, 4=medium-dark, 5=dark)
+        this.encodeRoastLevel(shot.roastLevel || 'medium'),
+        
+        // NEW: Process method encoding (1=washed, 2=natural, 3=honey, 4=semi-washed, 5=other)
+        this.encodeProcessMethod(shot.processMethod || 'washed'),
+        
+        // NEW: Preparation technique features
+        shot.usedPuckScreen ? 1 : 0,
+        shot.usedWDT ? 1 : 0,
+        this.encodeDistributionTechnique(shot.distributionTechnique || 'none')
       ];
       
       features.push(feature);
@@ -123,12 +134,46 @@ class EspressoAI {
     return features.sub(meanTensor).div(stdTensor);
   }
 
+  // Encoding methods for new parameters
+  encodeRoastLevel(roastLevel) {
+    const mapping = {
+      'light': 1,
+      'light-medium': 2,
+      'medium': 3,
+      'medium-dark': 4,
+      'dark': 5
+    };
+    return mapping[roastLevel] || 3; // default to medium
+  }
+  
+  encodeProcessMethod(processMethod) {
+    const mapping = {
+      'washed': 1,
+      'natural': 2,
+      'honey': 3,
+      'semi-washed': 4,
+      'other': 5
+    };
+    return mapping[processMethod] || 1; // default to washed
+  }
+  
+  encodeDistributionTechnique(technique) {
+    const mapping = {
+      'none': 0,
+      'tap-only': 1,
+      'distribution-tool': 2,
+      'wdt': 3,
+      'wdt-plus-distribution': 4
+    };
+    return mapping[technique] || 0; // default to none
+  }
+
   createModel() {
     const model = tf.sequential({
       layers: [
         tf.layers.dense({
-          inputShape: [12], // 12 input features
-          units: 32,
+          inputShape: [17], // Updated from 12 to 17 input features
+          units: 48, // Increased capacity for more complex patterns
           activation: 'relu',
           kernelInitializer: 'varianceScaling'
         }),
@@ -195,7 +240,7 @@ class EspressoAI {
       const ratio = shotData.outWeight / shotData.inWeight;
       const flowRate = shotData.outWeight / shotData.extractionTime;
       
-      // Prepare features
+      // Prepare features - Enhanced with new parameters
       const features = [
         shotData.grindSize,
         shotData.inWeight,
@@ -208,7 +253,14 @@ class EspressoAI {
         shotData.tasteProfile?.bitterness || 3,
         shotData.tasteProfile?.body || 3,
         ratio,
-        flowRate
+        flowRate,
+        
+        // NEW: Enhanced parameters
+        this.encodeRoastLevel(shotData.roastLevel || 'medium'),
+        this.encodeProcessMethod(shotData.processMethod || 'washed'),
+        shotData.usedPuckScreen ? 1 : 0,
+        shotData.usedWDT ? 1 : 0,
+        this.encodeDistributionTechnique(shotData.distributionTechnique || 'none')
       ];
 
       // Normalize features
@@ -226,13 +278,20 @@ class EspressoAI {
       normalizedFeatures.dispose();
       prediction.dispose();
       
-      return {
+      const aiResponse = {
         predictedQuality: qualityScore,
         currentQuality: shotData.shotQuality || 5,
         recommendations,
         analysis: this.getDetailedAnalysis(shotData, ratio, flowRate),
-        confidence: this.calculateConfidence(shotData)
+        confidence: this.calculateConfidence(shotData),
+        timestamp: new Date().toISOString(),
+        shotId: shotData._id || 'latest'
       };
+      
+      // Save AI response to localStorage for persistence
+      this.saveLastAIResponse(aiResponse);
+      
+      return aiResponse;
       
     } catch (error) {
       console.error('Error in AI analysis:', error);
@@ -323,6 +382,54 @@ class EspressoAI {
       }
     }
     
+    // NEW: Roast level specific recommendations
+    if (shotData.roastLevel) {
+      if (shotData.roastLevel === 'light' && extractionTime < 30) {
+        recommendations.push({
+          type: 'technique',
+          action: 'Light roasts need longer extraction - try grinding finer or increasing temperature to 94-96°C',
+          priority: 'high',
+          expectedImprovement: '+2-3 quality points'
+        });
+      } else if (shotData.roastLevel === 'dark' && extractionTime > 25) {
+        recommendations.push({
+          type: 'technique',
+          action: 'Dark roasts extract faster - try grinding coarser or lowering temperature to 90-92°C',
+          priority: 'medium',
+          expectedImprovement: '+1-2 quality points'
+        });
+      }
+    }
+    
+    // NEW: Process method specific recommendations  
+    if (shotData.processMethod === 'natural' && shotData.tasteProfile?.sweetness <= 2) {
+      recommendations.push({
+        type: 'extraction',
+        action: 'Natural process beans are inherently sweet - try longer extraction to bring out sweetness',
+        priority: 'medium',
+        expectedImprovement: 'Enhanced natural sweetness'
+      });
+    }
+    
+    // NEW: Preparation technique recommendations
+    if (!shotData.usedWDT && (flowRate < 1.0 || flowRate > 2.5)) {
+      recommendations.push({
+        type: 'preparation',
+        action: 'Try WDT (Weiss Distribution Technique) for more even extraction and better flow consistency',
+        priority: 'medium',
+        expectedImprovement: 'More even extraction, better flow'
+      });
+    }
+    
+    if (!shotData.usedPuckScreen && extractionTime < 20) {
+      recommendations.push({
+        type: 'equipment',
+        action: 'Consider using a puck screen to slow down extraction and improve evenness',
+        priority: 'low',
+        expectedImprovement: 'More controlled extraction'
+      });
+    }
+    
     // Bean age recommendations
     if (shotData.daysPastRoast) {
       if (shotData.daysPastRoast < 5) {
@@ -342,7 +449,7 @@ class EspressoAI {
       }
     }
     
-    return recommendations.slice(0, 3); // Return top 3 recommendations
+    return recommendations.slice(0, 4); // Return top 4 recommendations (increased from 3)
   }
 
   getDetailedAnalysis(shotData, ratio, flowRate) {
@@ -466,6 +573,42 @@ class EspressoAI {
     }
     
     return true;
+  }
+
+  // AI Response Persistence Methods
+  saveLastAIResponse(aiResponse) {
+    try {
+      localStorage.setItem('espresso-ai-last-response', JSON.stringify(aiResponse));
+      console.log('💾 AI response saved to localStorage');
+    } catch (error) {
+      console.error('Error saving AI response:', error);
+    }
+  }
+  
+  getLastAIResponse() {
+    try {
+      const stored = localStorage.getItem('espresso-ai-last-response');
+      if (stored) {
+        const response = JSON.parse(stored);
+        // Check if response is less than 24 hours old
+        const responseAge = Date.now() - new Date(response.timestamp).getTime();
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        if (responseAge < maxAge) {
+          return response;
+        } else {
+          // Clean up old response
+          localStorage.removeItem('espresso-ai-last-response');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading AI response:', error);
+    }
+    return null;
+  }
+  
+  clearLastAIResponse() {
+    localStorage.removeItem('espresso-ai-last-response');
   }
 
   async saveModel() {
