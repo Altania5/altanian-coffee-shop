@@ -4,8 +4,8 @@ require('dotenv').config(); // Load environment variables first
 const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const session = require('express-session');
-const MongoStore = require('connect-mongo'); // For storing sessions in MongoDB
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb'); // Native MongoDB driver
 const mongoose = require('mongoose');
 
@@ -33,116 +33,117 @@ const DBNAME = "coffeeshop_app_db"; // Define your database name here
 
 async function connectMongoose() {
     try {
-        await mongoose.connect(mongoUri, { // Use the same mongoUri
-            dbName: DBNAME, // Specify the database name for Mongoose as well
-            useNewUrlParser: true, // Add common Mongoose options
-            useUnifiedTopology: true
+        await mongoose.connect(mongoUri, {
+            dbName: DBNAME
         });
-        console.log(`Mongoose connected successfully to MongoDB for game models! Database: ${DBNAME}`);
+        console.log(`Mongoose connected successfully to MongoDB! Database: ${DBNAME}`);
     } catch (err) {
-        console.error("Failed to connect Mongoose to MongoDB for game models:", err);
-        // Decide if this is a fatal error for your app.
-        // If the game is essential, you might process.exit(1);
+        console.error("Failed to connect Mongoose to MongoDB:", err);
+        process.exit(1); // Exit if Mongoose connection fails
     }
 }
 
 async function connectDB() {
     try {
+        // Connect Mongoose (primary database connection)
+        await connectMongoose();
+        
+        // Connect native MongoDB client for menu items (if still needed)
         await client.connect();
         db = client.db(DBNAME);
         await db.command({ ping: 1 });
-        console.log(`Successfully connected to MongoDB! Database: ${DBNAME}`);
+        console.log(`Native MongoDB client connected! Database: ${DBNAME}`);
 
-        await connectMongoose(); // Ensure Mongoose is connected before defining models that might be used by native driver parts indirectly or for consistency
-        
-        const usersCollection = db.collection('users');
-        await usersCollection.createIndex({ username: 1 }, { unique: true });
-        console.log("Ensured unique index on users.username");
-
+        // Create indexes for collections that still use native driver
         const menuItemsCollection = db.collection('menuitems');
         await menuItemsCollection.createIndex({ name: 1 });
         console.log("Ensured indexes on menuitems collection.");
 
-        // --- Add this for inventoryitems ---
-        const inventoryItemsCollection = db.collection('inventoryitems');
-        await inventoryItemsCollection.createIndex({ itemName: 1 }, { unique: true });
-        await inventoryItemsCollection.createIndex({ itemType: 1 });
-        console.log("Ensured indexes on inventoryitems collection.");
-        // --- End of addition for inventoryitems ---
-
     } catch (err) {
-        console.error("Failed to connect to MongoDB or create/ensure indexes:", err.message || err);
+        console.error("Failed to connect to MongoDB:", err.message || err);
         console.error("Error details:", {
             name: err.name,
             code: err.code,
             codeName: err.codeName,
             connectionString: mongoUri ? mongoUri.substring(0, 50) + '...' : 'Not provided'
         });
-        await client.close();
+        try {
+            await mongoose.disconnect();
+            await client.close();
+        } catch (closeErr) {
+            console.error("Error closing connections:", closeErr);
+        }
         process.exit(1);
     }
 }
 
 // --- Middleware Setup ---
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // To parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // To parse URL-encoded request bodies
-
-// Session Configuration (using connect-mongo with native client)
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret-for-dev', // Fix deprecation warning
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        client: client,
-        dbName: DBNAME,
-        collectionName: 'sessions',
-        stringify: true, 
-        ttl: 14 * 24 * 60 * 60
-    }),
-    cookie: {
-        secure: process.env.NODE_ENV === 'production', // Set secure based on environment
-        httpOnly: true,
-        maxAge: 14 * 24 * 60 * 60 * 1000, // Align with TTL or set as needed
-        sameSite: 'lax' 
-    }
-}));
 
 // Serve static files from the React build directory
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 // --- Mongoose Schemas and Models ---
 
-// PlayerGameProfile Schema (existing)
-const farmSchema = new mongoose.Schema({
-    regionName: { type: String, required: true },
-    beanType: { type: String, required: true },
-    costToInvest: { type: Number, required: true, default: 1000 },
-    yieldPerCycle: { type: Number, required: true, default: 10 }, // kg
-    cycleDuration: { type: Number, default: 24 * 60 * 60 * 1000 * 7 }, // 7 days in ms
-    currentCycleProgress: { type: Number, default: 0 },
-    isActive: { type: Boolean, default: true },
-    lastHarvestTime: {type: Date, default: Date.now }
+// User Schema for proper user management
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true, trim: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    passwordHash: { type: String, required: true },
+    role: { type: String, enum: ['customer', 'admin', 'owner'], default: 'customer' },
+    createdAt: { type: Date, default: Date.now },
+    profile: {
+        firstName: String,
+        lastName: String,
+        phone: String,
+        preferences: {
+            favoriteItems: [String],
+            dietaryRestrictions: [String]
+        }
+    }
 });
 
-const cafeSchema = new mongoose.Schema({
-    cityName: { type: String, required: true },
-    size: { type: String, default: 'Small Kiosk' },
-    operationalCostPerCycle: { type: Number, default: 100 },
-    revenuePerCycle: {type: Number, default: 150}, // Simplified for now
-    isActive: { type: Boolean, default: true }
+const User = mongoose.model('User', userSchema);
+
+// Coffee Log Schema
+const coffeeLogSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    coffeeName: { type: String, required: true },
+    roastLevel: { type: String, enum: ['Light', 'Medium', 'Dark', 'Extra Dark'] },
+    brewMethod: { type: String, required: true },
+    grindSize: String,
+    waterTemp: Number,
+    brewTime: Number,
+    rating: { type: Number, min: 1, max: 5 },
+    notes: String,
+    tags: [String],
+    createdAt: { type: Date, default: Date.now }
 });
 
-const playerGameProfileSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-    gameName: { type: String, default: 'Global Brew Tycoon' },
-    money: { type: Number, default: 5000 }, // Starting cash
-    ownedFarms: [farmSchema],
-    ownedCafes: [cafeSchema],
-    inventory: { type: Map, of: Number, default: {} }, // e.g., { "Green Ethiopian Yirgacheffe": 0 }
-    lastTickProcessed: { type: Date, default: Date.now }
+const CoffeeLog = mongoose.model('CoffeeLog', coffeeLogSchema);
+
+// Order Schema for tracking customer orders
+const orderSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    items: [{
+        menuItemId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        name: String,
+        price: Number,
+        quantity: Number,
+        customizations: Object
+    }],
+    totalAmount: { type: Number, required: true },
+    status: { type: String, enum: ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'], default: 'pending' },
+    paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+    stripePaymentIntentId: String,
+    customerNotes: String,
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
 });
 
-const PlayerGameProfile = mongoose.model('PlayerGameProfile', playerGameProfileSchema);
+const Order = mongoose.model('Order', orderSchema);
 
 app.get('/api/inventory/customizations', async (req, res) => {
     console.log("====== SERVER: Reached /api/inventory/customizations ======");
@@ -220,48 +221,96 @@ const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);
 // --- END: Inventory Item Schema ---
 
 
+// --- JWT Authentication Middleware ---
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+        }
+        req.user = user;
+        next();
+    });
+}
+
+function isAdmin(req, res, next) {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'owner')) {
+        return next();
+    }
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+}
+
 // --- Routes ---
-
-// Note: Root route now handled by React catch-all route at the end
-
-// Registration page route removed - now handled by React SPA
-
 
 // Registration Logic
 app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    const usersCollection = db.collection('users');
-
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'Username and password are required.' });
+    const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+        return res.status(400).json({ success: false, message: 'Username, email, and password are required.' });
     }
     if (password.length < 6) { 
         return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
     }
 
     try {
-        const existingUser = await usersCollection.findOne({ username: username });
+        // Check if user already exists
+        const existingUser = await User.findOne({ 
+            $or: [{ username }, { email }] 
+        });
+        
         if (existingUser) {
-            return res.status(409).json({ success: false, message: 'Username already exists.' });
+            const field = existingUser.username === username ? 'username' : 'email';
+            return res.status(409).json({ success: false, message: `${field} already exists.` });
         }
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const result = await usersCollection.insertOne({
-            username: username,
-            passwordHash: passwordHash,
-            role: 'customer', // Default role
-            createdAt: new Date()
+        const newUser = new User({
+            username,
+            email,
+            passwordHash,
+            role: 'customer'
         });
 
-        console.log('User registered:', { id: result.insertedId, username });
-        res.status(201).json({ success: true, message: 'User registered successfully! Please log in.' });
+        await newUser.save();
+        console.log('User registered:', { id: newUser._id, username, email });
+        
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                id: newUser._id, 
+                username: newUser.username, 
+                email: newUser.email,
+                role: newUser.role 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'User registered successfully!', 
+            token,
+            user: {
+                id: newUser._id,
+                username: newUser.username,
+                email: newUser.email,
+                role: newUser.role
+            }
+        });
 
     } catch (error) {
         console.error('Registration error:', error);
         if (error.code === 11000) { 
-            return res.status(409).json({ success: false, message: 'Username already taken.' });
+            return res.status(409).json({ success: false, message: 'Username or email already taken.' });
         }
         res.status(500).json({ success: false, message: 'An error occurred during registration.' });
     }
@@ -270,144 +319,71 @@ app.post('/register', async (req, res) => {
 // Login Logic
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const usersCollection = db.collection('users');
 
     if (!username || !password) {
         return res.status(400).json({ success: false, message: 'Username and password are required.' });
     }
 
     try {
-        const user = await usersCollection.findOne({ username: username });
+        // Find user by username or email
+        const user = await User.findOne({
+            $or: [{ username }, { email: username }]
+        });
+        
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+            return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (isMatch) {
-             req.session.user = {
-                 id: user._id.toHexString(),
-                 username: user.username,
-                 role: user.role || 'customer' 
-             };
-             console.log('[Login] req.session.user populated with:', req.session.user);
-             try {
-                 console.log('[Login] Full req.session object BEFORE save:', JSON.stringify(req.session, null, 2));
-             } catch (e) {
-                 console.log('[Login] Could not stringify req.session before save:', e.message);
-             }
-
-             req.session.save(err => {
-                 if (err) {
-                     console.error('[Login] Session save error:', err);
-                     try {
-                        console.log('[Login] Full req.session object ON SAVE ERROR:', JSON.stringify(req.session, null, 2));
-                     } catch (e) {
-                        console.log('[Login] Could not stringify req.session on save error:', e.message);
-                     }
-                     return res.status(500).json({ success: false, message: 'Session save error occurred.' });
-                 }
-                 console.log('[Login] Session save callback: Success! Session should be in store.');
-                 try {
-                    console.log('[Login] Full req.session object IN SAVE CALLBACK (after presumed save):', JSON.stringify(req.session, null, 2));
-                 } catch (e) {
-                    console.log('[Login] Could not stringify req.session in save callback:', e.message);
-                 }
-
-                 res.status(200).json({
-                     success: true,
-                     message: 'Login successful!',
-                     user: {
-                         id: req.session.user.id, 
-                         username: req.session.user.username,
-                         role: req.session.user.role
-                     }
-                 });
-             });
-         } else {
-            res.status(401).json({ success: false, message: 'Invalid username or password.' });
+        
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                id: user._id, 
+                username: user.username, 
+                email: user.email,
+                role: user.role 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        console.log('User logged in:', { id: user._id, username: user.username });
+        
+        res.status(200).json({
+            success: true,
+            message: 'Login successful!',
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+        
     } catch (error) {
-        console.error('[Login] Outer catch error:', error);
+        console.error('Login error:', error);
         res.status(500).json({ success: false, message: 'An error occurred during login.' });
     }
 });
 
-// Middleware to check if user is authenticated
-function isAuthenticated(req, res, next) {
-    console.log('------ isAuthenticated CHECK ------');
-    console.log('Path:', req.method, req.originalUrl);
-    console.log('Session ID:', req.sessionID);
-
-    if (!req.session) {
-        console.log('[AuthCheck] No session object found (req.session is falsy).');
-        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
-            return res.status(401).json({ success: false, message: 'Unauthorized. No session.' });
-        } else {
-            return res.redirect('/');
-        }
-    }
-
-    console.log('[AuthCheck] Session Exists (req.session is truthy).');
+// User profile route
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
     try {
-        console.log('[AuthCheck] Full loaded req.session object from store:', JSON.stringify(req.session, null, 2));
-    } catch (e) {
-        console.log('[AuthCheck] Could not stringify loaded req.session:', e.message);
-        console.log('[AuthCheck] Loaded req.session object (raw):', req.session); 
-    }
-
-    if (req.session.user && req.session.user.id) { // Added check for req.session.user.id
-        console.log('[AuthCheck] User is Authenticated. Session User Data:', req.session.user);
-        return next();
-    } else {
-        console.log('[AuthCheck] User NOT Authenticated (req.session.user is falsy/missing or id missing).');
-        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
-            return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
-        } else {
-            console.log('[AuthCheck] Redirecting to /.');
-            return res.redirect('/');
+        const user = await User.findById(req.user.id).select('-passwordHash');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
         }
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch user profile.' });
     }
-}
-
-function isAdmin(req, res, next) {
-    console.log(`------ isAdmin CHECK ------`);
-    console.log(`Path: ${req.method} ${req.path}`);
-    if (req.session && req.session.user && req.session.user.role === 'admin') {
-        console.log(`User ${req.session.user.username} IS an Admin.`);
-        return next();
-    } else {
-        console.log('User IS NOT an Admin or session/user data missing.');
-        // console.log('Current Session User Data for isAdmin check:', JSON.stringify(req.session.user, null, 2)); // Can be noisy
-        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
-            return res.status(403).json({ success: false, message: 'Forbidden. Admin access required.' });
-        } else {
-            console.log('Redirecting to / due to insufficient admin privileges.'); // Clarified log
-            return res.redirect('/');
-        }
-    }
-}
-
-// Protected Dashboard Route 
-app.get('/dashboard', isAuthenticated, (req, res) => {
-    // console.log('/dashboard route, req.session.user:', req.session.user); // Can be noisy
-    res.status(200).json({
-        success: true,
-        message: `Welcome to your dashboard, ${req.session.user.username}!`,
-        user: req.session.user 
-    });
-});
-
-// Logout Logic
-app.get('/logout', (req, res, next) => { 
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Logout error:', err);
-            return res.status(500).json({ success: false, message: 'Could not log out, please try again.' });
-        }
-        res.clearCookie('connect.sid'); // Default session cookie name
-        console.log('User logged out, session destroyed, cookie cleared.');
-        res.status(200).json({ success: true, message: 'Logged out successfully.' });
-    });
 });
 
 
@@ -450,7 +426,7 @@ app.get('/api/menu/:id', async (req, res) => {
 // Admin menu page route removed - now handled by React SPA
 
 // POST - Create a new menu item (Admin Only)
-app.post('/api/menu', isAuthenticated, isAdmin, async (req, res) => {
+app.post('/api/menu', authenticateToken, isAdmin, async (req, res) => {
     // Destructure customizationConfig from req.body
     const { name, description, price, category, imageUrl, isAvailable = true, customizationConfig } = req.body;
 
@@ -488,7 +464,7 @@ app.post('/api/menu', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // PUT - Update an existing menu item by ID (Admin Only)
-app.put('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
+app.put('/api/menu/:id', authenticateToken, isAdmin, async (req, res) => {
     const { id } = req.params;
     // Destructure customizationConfig from req.body
     const { name, description, price, category, imageUrl, isAvailable, customizationConfig } = req.body;
@@ -538,7 +514,7 @@ app.put('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // DELETE - Delete a menu item by ID (Admin Only)
-app.delete('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
+app.delete('/api/menu/:id', authenticateToken, isAdmin, async (req, res) => {
     const { id } = req.params;
 
     if (!ObjectId.isValid(id)) {
@@ -559,116 +535,129 @@ app.delete('/api/menu/:id', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// Tycoon game page route removed - now handled by React SPA
+// --- Coffee Log API Endpoints ---
 
-// --- Game API Endpoints --- (existing, kept for brevity)
-// Middleware to get or create game profile
-async function getOrCreateGameProfile(req, res, next) {
-    if (!req.session.user) {
-        return res.status(401).json({ success: false, message: "User not authenticated." });
-    }
+// Get all coffee logs for the authenticated user
+app.get('/api/coffeelog', authenticateToken, async (req, res) => {
     try {
-        let profile = await PlayerGameProfile.findOne({ userId: req.session.user.id });
-        if (!profile) {
-            profile = new PlayerGameProfile({
-                userId: req.session.user.id,
-            });
-            await profile.save();
-            console.log(`New game profile created for user ${req.session.user.id}`);
+        const logs = await CoffeeLog.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(100); // Limit to last 100 entries
+        
+        res.status(200).json({ success: true, data: logs });
+    } catch (error) {
+        console.error('Error fetching coffee logs:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch coffee logs.' });
+    }
+});
+
+// Create a new coffee log entry
+app.post('/api/coffeelog', authenticateToken, async (req, res) => {
+    try {
+        const { coffeeName, roastLevel, brewMethod, grindSize, waterTemp, brewTime, rating, notes, tags } = req.body;
+        
+        if (!coffeeName || !brewMethod) {
+            return res.status(400).json({ success: false, message: 'Coffee name and brew method are required.' });
         }
-        req.gameProfile = profile;
-        next();
+        
+        const newLog = new CoffeeLog({
+            userId: req.user.id,
+            coffeeName,
+            roastLevel,
+            brewMethod,
+            grindSize,
+            waterTemp,
+            brewTime,
+            rating,
+            notes,
+            tags: Array.isArray(tags) ? tags : []
+        });
+        
+        await newLog.save();
+        res.status(201).json({ success: true, message: 'Coffee log entry created successfully.', data: newLog });
     } catch (error) {
-        console.error("Error in getOrCreateGameProfile:", error);
-        res.status(500).json({ success: false, message: "Error accessing game profile." });
+        console.error('Error creating coffee log:', error);
+        res.status(500).json({ success: false, message: 'Failed to create coffee log entry.' });
     }
-}
-
-app.get('/api/game/tycoon/state', isAuthenticated, getOrCreateGameProfile, (req, res) => {
-    res.status(200).json({ success: true, data: req.gameProfile });
 });
 
-const farmOptions = [
-    { id: "ethiopia_yirgacheffe", regionName: "Ethiopia", beanType: "Yirgacheffe", costToInvest: 1500, yieldPerCycle: 15, cycleDurationDays: 7 },
-    { id: "colombia_supremo", regionName: "Colombia", beanType: "Supremo", costToInvest: 1200, yieldPerCycle: 20, cycleDurationDays: 5 },
-    { id: "vietnam_robusta", regionName: "Vietnam", beanType: "Robusta", costToInvest: 800, yieldPerCycle: 25, cycleDurationDays: 4 },
-];
-
-app.get('/api/game/tycoon/world/farm-options', isAuthenticated, (req, res) => {
-    res.status(200).json({ success: true, data: farmOptions });
-});
-
-app.post('/api/game/tycoon/action/invest-farm', isAuthenticated, getOrCreateGameProfile, async (req, res) => {
-    const { farmOptionId } = req.body;
-    const profile = req.gameProfile;
-
-    const selectedOption = farmOptions.find(f => f.id === farmOptionId);
-    if (!selectedOption) {
-        return res.status(400).json({ success: false, message: "Invalid farm option selected." });
-    }
-
-    if (profile.money < selectedOption.costToInvest) {
-        return res.status(400).json({ success: false, message: "Not enough money to invest." });
-    }
-
-    profile.money -= selectedOption.costToInvest;
-    profile.ownedFarms.push({
-        regionName: selectedOption.regionName,
-        beanType: selectedOption.beanType,
-        costToInvest: selectedOption.costToInvest,
-        yieldPerCycle: selectedOption.yieldPerCycle,
-        cycleDuration: selectedOption.cycleDurationDays * 24 * 60 * 60 * 1000, 
-        lastHarvestTime: Date.now() 
-    });
-
+// Delete a coffee log entry
+app.delete('/api/coffeelog/:id', authenticateToken, async (req, res) => {
     try {
-        await profile.save();
-        res.status(200).json({ success: true, message: `Successfully invested in ${selectedOption.beanType} farm in ${selectedOption.regionName}!`, data: profile });
-    } catch (error) {
-        console.error("Error investing in farm:", error);
-        res.status(500).json({ success: false, message: "Error saving farm investment." });
-    }
-});
-
-async function processGameTick(profile) {
-    const now = Date.now();
-    let changed = false;
-
-    profile.ownedFarms.forEach(farm => {
-        if (farm.isActive) {
-            const timeSinceLastHarvest = now - new Date(farm.lastHarvestTime).getTime();
-            if (timeSinceLastHarvest >= farm.cycleDuration) {
-                const cyclesCompleted = Math.floor(timeSinceLastHarvest / farm.cycleDuration);
-                const beansHarvested = cyclesCompleted * farm.yieldPerCycle;
-                
-                const inventoryKey = `Green ${farm.beanType}`; // Game inventory, not shop inventory
-                profile.inventory.set(inventoryKey, (profile.inventory.get(inventoryKey) || 0) + beansHarvested);
-                
-                farm.lastHarvestTime = new Date(new Date(farm.lastHarvestTime).getTime() + cyclesCompleted * farm.cycleDuration); 
-                console.log(`Harvested ${beansHarvested}kg of ${farm.beanType} for user ${profile.userId}`);
-                changed = true;
-            }
+        const { id } = req.params;
+        const log = await CoffeeLog.findOneAndDelete({ _id: id, userId: req.user.id });
+        
+        if (!log) {
+            return res.status(404).json({ success: false, message: 'Coffee log entry not found.' });
         }
-    });
-
-    profile.lastTickProcessed = now;
-    if (changed) {
-        await profile.save();
-    }
-    return profile;
-}
-
-app.get('/api/game/tycoon/state/ticked', isAuthenticated, getOrCreateGameProfile, async (req, res) => {
-    try {
-        const updatedProfile = await processGameTick(req.gameProfile);
-        res.status(200).json({ success: true, data: updatedProfile });
+        
+        res.status(200).json({ success: true, message: 'Coffee log entry deleted successfully.' });
     } catch (error) {
-        console.error("Error processing game tick:", error);
-        res.status(500).json({ success: false, message: "Error processing game state." });
+        console.error('Error deleting coffee log:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete coffee log entry.' });
     }
 });
 
-app.post('/api/inventory', isAuthenticated, isAdmin, async (req, res) => {
+// --- Order API Endpoints ---
+
+// Create a new order
+app.post('/api/orders', authenticateToken, async (req, res) => {
+    try {
+        const { items, totalAmount, customerNotes } = req.body;
+        
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ success: false, message: 'Order items are required.' });
+        }
+        
+        if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Valid total amount is required.' });
+        }
+        
+        const newOrder = new Order({
+            userId: req.user.id,
+            items,
+            totalAmount,
+            customerNotes
+        });
+        
+        await newOrder.save();
+        res.status(201).json({ success: true, message: 'Order created successfully.', data: newOrder });
+    } catch (error) {
+        console.error('Error creating order:', error);
+        res.status(500).json({ success: false, message: 'Failed to create order.' });
+    }
+});
+
+// Get orders for the authenticated user
+app.get('/api/orders', authenticateToken, async (req, res) => {
+    try {
+        const orders = await Order.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50); // Limit to last 50 orders
+        
+        res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch orders.' });
+    }
+});
+
+// Get all orders (Admin only)
+app.get('/api/admin/orders', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const orders = await Order.find({})
+            .populate('userId', 'username email')
+            .sort({ createdAt: -1 })
+            .limit(100);
+        
+        res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        console.error('Error fetching all orders:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch orders.' });
+    }
+});
+
+app.post('/api/inventory', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { 
             itemName, 
@@ -723,7 +712,7 @@ app.post('/api/inventory', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // GET /api/inventory - Get all inventory items (Admin Only)
-app.get('/api/inventory', isAuthenticated, isAdmin, async (req, res) => {
+app.get('/api/inventory', authenticateToken, isAdmin, async (req, res) => {
     try {
         const items = await InventoryItem.find({}).sort({ itemType: 1, itemName: 1 });
         res.status(200).json({ success: true, data: items });
@@ -734,7 +723,7 @@ app.get('/api/inventory', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // GET /api/inventory/:id - Get a single inventory item by ID (Admin Only)
-app.get('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
+app.get('/api/inventory/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!ObjectId.isValid(id)) {
@@ -752,7 +741,7 @@ app.get('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // PUT /api/inventory/:id - Update an existing inventory item (Admin Only)
-app.put('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
+app.put('/api/inventory/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!ObjectId.isValid(id)) {
@@ -822,7 +811,7 @@ app.put('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // DELETE /api/inventory/:id - Delete an inventory item (Admin Only)
-app.delete('/api/inventory/:id', isAuthenticated, isAdmin, async (req, res) => {
+app.delete('/api/inventory/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!ObjectId.isValid(id)) {
