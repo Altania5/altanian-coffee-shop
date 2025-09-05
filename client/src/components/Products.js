@@ -11,14 +11,15 @@ function Products({ token, addToCart }) {
   const fetchData = useCallback(async () => {
     try {
       // Products endpoint doesn't require auth, but send headers anyway
+      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
       const headers = token ? { 'x-auth-token': token } : {};
-      const productsRes = await axios.get('/products', Object.keys(headers).length > 0 ? { headers } : {});
+      const productsRes = await axios.get(`${baseURL}/products`, Object.keys(headers).length > 0 ? { headers } : {});
       setProducts(productsRes.data);
       
       // Only try to fetch inventory if we have a token
       if (token) {
         try {
-          const inventoryRes = await axios.get('/inventory', { headers });
+          const inventoryRes = await axios.get(`${baseURL}/inventory`, { headers });
           setAllInventory(inventoryRes.data);
         } catch (inventoryError) {
           console.log('Could not fetch inventory (authentication required):', inventoryError.response?.status);

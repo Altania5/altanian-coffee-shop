@@ -1,9 +1,7 @@
 {
   "name": "client",
   "version": "0.1.0",
-  "main": "App.js",
   "private": true,
-  "proxy": "http://localhost:5002",
   "dependencies": {
     "@stripe/react-stripe-js": "^3.9.1",
     "@stripe/stripe-js": "^7.8.0",
@@ -24,7 +22,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "postinstall": "patch-package"
   },
   "eslintConfig": {
     "extends": [
@@ -43,5 +42,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.0"
   }
 }
