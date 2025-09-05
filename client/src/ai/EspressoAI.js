@@ -310,7 +310,6 @@ class EspressoAI {
   }
 
   generateAIRecommendations(shotData, ratio, flowRate, predictedQuality) {
-    const recommendations = [];
     const { grindSize, extractionTime, temperature, inWeight, outWeight } = shotData;
     
     // Weighted priority scores for different issues (higher = more important)
@@ -511,7 +510,7 @@ class EspressoAI {
       .sort(([,a], [,b]) => b.score - a.score);
     
     const prioritizedRecommendations = [];
-    for (const [issueKey, issueData] of sortedIssues) {
+    for (const [, issueData] of sortedIssues) {
       prioritizedRecommendations.push(...issueData.recommendations);
     }
     
