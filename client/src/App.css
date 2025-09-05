@@ -1,9 +1,16 @@
 /* --- Mobile-First Responsive Design --- */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap');
 
-/* Ensure proper box-sizing before any other rules */
+/* Ensure proper box-sizing and prevent horizontal overflow */
 * {
   box-sizing: border-box;
+}
+
+/* Prevent any element from exceeding viewport width */
+*,
+*::before,
+*::after {
+  max-width: 100%;
 }
 
 /* Mobile-first base styles - 320px and up */
@@ -87,7 +94,7 @@ body {
 /* Mobile-first main container */
 main {
   width: 100%;
-  max-width: var(--max-width);
+  max-width: min(var(--max-width), 100vw);
   margin: 0 auto;
   padding: var(--spacing-sm);
   padding-bottom: calc(var(--nav-height) + var(--spacing-lg));
@@ -95,6 +102,8 @@ main {
   z-index: 1;
   min-height: calc(100vh - var(--nav-height));
   min-height: calc(100dvh - var(--nav-height));
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 /* --- Mobile-First Header --- */
 .app-header {
@@ -286,10 +295,39 @@ main {
   
   .app-header {
     padding: var(--spacing-sm) var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .app-title {
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
+    font-size: clamp(1rem, 3vw, 1.4rem); /* Smaller on mobile */
   }
   
   .app-title::after {
     display: none; /* Hide coffee emoji on very small screens */
+  }
+  
+  .nav-user {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    justify-content: flex-end;
+    font-size: 0.8rem;
+    min-width: 0;
+  }
+  
+  .nav-user span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .nav-user button {
+    font-size: 0.8rem !important;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    min-width: auto !important;
+    white-space: nowrap;
   }
   
   main {
@@ -355,6 +393,64 @@ main {
   
   .ai-coach-content {
     padding: var(--spacing-md);
+  }
+  
+  /* Mobile-specific admin page fixes */
+  .container {
+    padding: var(--spacing-sm);
+    margin: var(--spacing-xs);
+    width: calc(100% - var(--spacing-md));
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+  
+  /* Mobile inventory management fixes */
+  .order-item {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+  
+  .order-item > div {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    align-items: stretch;
+  }
+  
+  .order-item input {
+    min-width: 60px;
+    width: auto !important;
+    margin: 0 !important;
+  }
+  
+  .order-item button {
+    width: auto !important;
+    min-width: 70px;
+    font-size: 0.8rem !important;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    margin: 0 !important;
+    white-space: nowrap;
+  }
+  
+  .order-item label {
+    font-size: 0.8rem;
+    margin-right: var(--spacing-xs);
+  }
+  
+  /* Ensure all interactive elements are properly contained */
+  ul {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  li {
+    width: 100%;
+    box-sizing: border-box;
+    list-style: none;
   }
 }
 
