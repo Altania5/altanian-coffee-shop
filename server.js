@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 3001;
 
 // --- MongoDB Configuration ---
 const mongoUri = process.env.DATABASE_URL;
+console.log('MongoDB URI configured:', mongoUri ? 'YES (length: ' + mongoUri.length + ')' : 'NO');
 if (!mongoUri) {
     console.error("FATAL ERROR: DATABASE_URL is not defined in .env file.");
     process.exit(1); // Exit if DB URI is not set
@@ -70,7 +71,13 @@ async function connectDB() {
         // --- End of addition for inventoryitems ---
 
     } catch (err) {
-        console.error("Failed to connect to MongoDB or create/ensure indexes:", err);
+        console.error("Failed to connect to MongoDB or create/ensure indexes:", err.message || err);
+        console.error("Error details:", {
+            name: err.name,
+            code: err.code,
+            codeName: err.codeName,
+            connectionString: mongoUri ? mongoUri.substring(0, 50) + '...' : 'Not provided'
+        });
         await client.close();
         process.exit(1);
     }
@@ -82,7 +89,7 @@ app.use(express.urlencoded({ extended: true })); // To parse URL-encoded request
 
 // Session Configuration (using connect-mongo with native client)
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'fallback-secret-for-dev', // Fix deprecation warning
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -93,10 +100,10 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60
     }),
     cookie: {
-        secure: false,
+        secure: process.env.NODE_ENV === 'production', // Set secure based on environment
         httpOnly: true,
-        maxAge: 14 * 24 * 60 * 60 * 1000 // Align with TTL or set as needed
-        // sameSite: 'lax' 
+        maxAge: 14 * 24 * 60 * 60 * 1000, // Align with TTL or set as needed
+        sameSite: 'lax' 
     }
 }));
 
