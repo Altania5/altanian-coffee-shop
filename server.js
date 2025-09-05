@@ -384,6 +384,37 @@ promoCodeSchema.pre('save', function(next) {
 const PromoCode = mongoose.model('PromoCode', promoCodeSchema);
 // --- END: PromoCode Schema ---
 
+// --- Bean Schema ---
+const beanSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true, trim: true },
+    roaster: { type: String, trim: true },
+    origin: { type: String, trim: true },
+    roastDate: { type: Date, required: true },
+    roastLevel: { 
+        type: String, 
+        enum: ['light', 'light-medium', 'medium', 'medium-dark', 'dark'],
+        default: 'medium'
+    },
+    processMethod: {
+        type: String,
+        enum: ['washed', 'natural', 'honey', 'semi-washed', 'other'],
+        default: 'washed'
+    },
+    notes: { type: String, trim: true, maxlength: 300 },
+    isActive: { type: Boolean, default: true }, // to track if bean is finished
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+beanSchema.pre('save', function(next) {
+    this.updatedAt = Date.now();
+    next();
+});
+
+const Bean = mongoose.model('Bean', beanSchema);
+// --- END: Bean Schema ---
+
 
 // --- JWT Authentication Middleware ---
 function authenticateToken(req, res, next) {
@@ -1148,17 +1179,136 @@ app.get('/coffeelogs', authenticateToken, async (req, res) => {
     }
 });
 
-// Beans endpoint (simplified - could be coffee beans from inventory or separate collection)
+// --- Bean Management API Endpoints ---
+
+// Get all beans for the authenticated user
 app.get('/beans', authenticateToken, async (req, res) => {
     try {
-        // For now, return coffee beans from inventory items
-        const beans = await InventoryItem.find({ itemType: 'Coffee Beans' });
+        const beans = await Bean.find({ user: req.user.id })
+            .sort({ createdAt: -1 });
         res.status(200).json(beans);
     } catch (error) {
         console.error('Error fetching beans:', error);
         res.status(500).json({ error: 'Failed to fetch beans.' });
     }
 });
+
+// Add a new bean
+app.post('/beans/add', authenticateToken, async (req, res) => {
+    try {
+        const { name, roaster, origin, roastDate, roastLevel, processMethod, notes } = req.body;
+        
+        if (!name || !roastDate) {
+            return res.status(400).json({ error: 'Bean name and roast date are required.' });
+        }
+        
+        // Validate roast date
+        const parsedRoastDate = new Date(roastDate);
+        if (isNaN(parsedRoastDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid roast date format.' });
+        }
+        
+        const newBean = new Bean({
+            user: req.user.id,
+            name: name.trim(),
+            roaster: roaster ? roaster.trim() : '',
+            origin: origin ? origin.trim() : '',
+            roastDate: parsedRoastDate,
+            roastLevel: roastLevel || 'medium',
+            processMethod: processMethod || 'washed',
+            notes: notes ? notes.trim() : ''
+        });
+        
+        await newBean.save();
+        res.status(201).json(newBean);
+    } catch (error) {
+        console.error('Error adding bean:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Invalid bean data: ' + error.message });
+        }
+        res.status(500).json({ error: 'Failed to add bean.' });
+    }
+});
+
+// Update a bean
+app.put('/beans/update/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, roaster, origin, roastDate, roastLevel, processMethod, notes, isActive } = req.body;
+        
+        const updateData = {};
+        if (name !== undefined) updateData.name = name.trim();
+        if (roaster !== undefined) updateData.roaster = roaster.trim();
+        if (origin !== undefined) updateData.origin = origin.trim();
+        if (roastDate !== undefined) {
+            const parsedRoastDate = new Date(roastDate);
+            if (isNaN(parsedRoastDate.getTime())) {
+                return res.status(400).json({ error: 'Invalid roast date format.' });
+            }
+            updateData.roastDate = parsedRoastDate;
+        }
+        if (roastLevel !== undefined) updateData.roastLevel = roastLevel;
+        if (processMethod !== undefined) updateData.processMethod = processMethod;
+        if (notes !== undefined) updateData.notes = notes.trim();
+        if (isActive !== undefined) updateData.isActive = isActive;
+        
+        const updatedBean = await Bean.findOneAndUpdate(
+            { _id: id, user: req.user.id },
+            updateData,
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedBean) {
+            return res.status(404).json({ error: 'Bean not found.' });
+        }
+        
+        res.status(200).json(updatedBean);
+    } catch (error) {
+        console.error('Error updating bean:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: 'Invalid bean data: ' + error.message });
+        }
+        res.status(500).json({ error: 'Failed to update bean.' });
+    }
+});
+
+// Delete a bean
+app.delete('/beans/delete/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const deletedBean = await Bean.findOneAndDelete({ _id: id, user: req.user.id });
+        
+        if (!deletedBean) {
+            return res.status(404).json({ error: 'Bean not found.' });
+        }
+        
+        res.status(200).json({ message: 'Bean deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting bean:', error);
+        res.status(500).json({ error: 'Failed to delete bean.' });
+    }
+});
+
+// Get a specific bean by ID
+app.get('/beans/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const bean = await Bean.findOne({ _id: id, user: req.user.id });
+        
+        if (!bean) {
+            return res.status(404).json({ error: 'Bean not found.' });
+        }
+        
+        res.status(200).json(bean);
+    } catch (error) {
+        console.error('Error fetching bean:', error);
+        res.status(500).json({ error: 'Failed to fetch bean.' });
+    }
+});
+
+// --- END Bean Management API Endpoints ---
 
 // Delete a coffee log entry
 app.delete('/api/coffeelog/:id', authenticateToken, async (req, res) => {
