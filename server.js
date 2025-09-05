@@ -524,6 +524,50 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Promote user to admin (for development/testing only)
+app.post('/promote-to-admin', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { role: 'owner' },
+            { new: true }
+        );
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+        
+        // Generate new token with updated role
+        const token = jwt.sign(
+            { 
+                id: user._id, 
+                firstName: user.firstName,
+                lastName: user.lastName,
+                username: user.username,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'Successfully promoted to owner!',
+            token,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Error promoting user:', error);
+        res.status(500).json({ success: false, message: 'Failed to promote user.' });
+    }
+});
+
 // User profile route
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
     try {
