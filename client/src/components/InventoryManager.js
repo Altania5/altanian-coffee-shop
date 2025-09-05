@@ -37,15 +37,14 @@ function InventoryManager({ token }) {
     e.preventDefault();
     try {
       const itemData = { 
-        itemName: newItem.name,
-        itemType: selectedCategory, 
+        name: newItem.name,
+        category: selectedCategory, 
         unit: newItem.unit,
-        quantityInStock: parseInt(newItem.quantity) || 0,
-        isAvailable: true
+        quantity: parseInt(newItem.quantity) || 0,
       };
       const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.post(`${baseURL}/api/inventory`, itemData, { headers });
-      setItems([...items, res.data.data]); // API returns { success: true, data: item }
+      const res = await axios.post(`${baseURL}/inventory/add`, itemData, { headers });
+      setItems([...items, res.data]); 
       setNewItem({ name: '', quantity: 0, unit: 'Bags' });
     } catch (err) {
       alert('Error adding item: ' + (err.response?.data?.message || err.message));
@@ -55,7 +54,7 @@ function InventoryManager({ token }) {
   const handleUpdate = async (id, field, value) => {
     try {
       const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      await axios.put(`${baseURL}/api/inventory/${id}`, { [field]: value }, { headers });
+      await axios.put(`${baseURL}/inventory/update/${id}`, { [field]: value }, { headers });
       fetchItems();
     } catch (err) {
       alert('Error updating item: ' + (err.response?.data?.message || err.message));
@@ -66,13 +65,14 @@ function InventoryManager({ token }) {
     if (window.confirm('Are you sure you want to delete this item?')) {
         try {
             const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-            await axios.delete(`${baseURL}/api/inventory/${id}`, { headers });
+            await axios.delete(`${baseURL}/inventory/delete/${id}`, { headers });
             setItems(items.filter(item => item._id !== id));
         } catch (err) {
             alert('Error deleting item: ' + (err.response?.data?.message || err.message));
         }
     }
   };
+
 
   if (loading) return <p>Loading inventory...</p>;
 
@@ -116,7 +116,7 @@ function InventoryManager({ token }) {
               <input 
                 type="number" 
                 defaultValue={item.quantityInStock || item.quantity || 0} 
-                onBlur={(e) => handleUpdate(item._id, 'quantityInStock', parseInt(e.target.value) || 0)} 
+                onBlur={(e) => handleUpdate(item._id, 'quantity', parseInt(e.target.value) || 0)} 
                 style={{ width: '80px', margin: 0 }}
               />
               <label>Available:</label>

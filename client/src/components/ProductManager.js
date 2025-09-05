@@ -18,10 +18,13 @@ function ProductManager({ token }) {
                 axios.get(`${baseURL}/products`, { headers }),
                 axios.get(`${baseURL}/inventory`, { headers })
             ]);
-            setProducts(productsRes.data);
-            setInventory(inventoryRes.data);
+            setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+            setInventory(Array.isArray(inventoryRes.data) ? inventoryRes.data : []);
         } catch (err) {
             console.error("Error fetching data:", err);
+            // Ensure state remains arrays even on error
+            setProducts([]);
+            setInventory([]);
         } finally {
             setLoading(false);
         }
@@ -32,7 +35,9 @@ function ProductManager({ token }) {
     }, [fetchData]);
     
     const handleSave = async (productToSave) => {
-        const finalRecipe = productToSave.recipe.filter(r => r.item && r.quantityRequired > 0);
+        const finalRecipe = Array.isArray(productToSave.recipe) 
+            ? productToSave.recipe.filter(r => r.item && r.quantityRequired > 0)
+            : [];
         const productData = { ...productToSave, recipe: finalRecipe };
 
         try {
@@ -107,16 +112,21 @@ function ProductForm({ product, inventory, onSave, onCancel }) {
     };
 
     const handleRecipeChange = (index, field, value) => {
+        if (!Array.isArray(formData.recipe)) return;
         const newRecipe = [...formData.recipe];
-        newRecipe[index][field] = value;
-        setFormData({ ...formData, recipe: newRecipe });
+        if (newRecipe[index]) {
+            newRecipe[index][field] = value;
+            setFormData({ ...formData, recipe: newRecipe });
+        }
     };
     
     const addRecipeItem = () => {
-        setFormData({ ...formData, recipe: [...formData.recipe, { item: '', quantityRequired: 1 }] });
+        const currentRecipe = Array.isArray(formData.recipe) ? formData.recipe : [];
+        setFormData({ ...formData, recipe: [...currentRecipe, { item: '', quantityRequired: 1 }] });
     };
 
     const removeRecipeItem = (index) => {
+        if (!Array.isArray(formData.recipe)) return;
         const newRecipe = formData.recipe.filter((_, i) => i !== index);
         setFormData({ ...formData, recipe: newRecipe });
     };
@@ -145,16 +155,16 @@ function ProductForm({ product, inventory, onSave, onCancel }) {
                 
                 <hr />
                 <h5>Recipe</h5>
-                {formData.recipe.map((recipeItem, index) => (
+                {Array.isArray(formData.recipe) ? formData.recipe.map((recipeItem, index) => (
                     <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
                         <select value={recipeItem.item} onChange={(e) => handleRecipeChange(index, 'item', e.target.value)} required>
                             <option value="">Select Ingredient</option>
-                            {inventory.map(invItem => <option key={invItem._id} value={invItem._id}>{invItem.itemName || invItem.name} ({invItem.unit})</option>)}
+                            {inventory && Array.isArray(inventory) ? inventory.map(invItem => <option key={invItem._id} value={invItem._id}>{invItem.itemName || invItem.name} ({invItem.unit})</option>) : null}
                         </select>
                         <input type="number" value={recipeItem.quantityRequired} onChange={(e) => handleRecipeChange(index, 'quantityRequired', e.target.value)} style={{width: '80px'}}/>
                         <button type="button" onClick={() => removeRecipeItem(index)} style={{backgroundColor: '#dc3545', width: 'auto'}}>X</button>
                     </div>
-                ))}
+                )) : null}
                 <button type="button" onClick={addRecipeItem} style={{backgroundColor: '#28a745'}}>Add Ingredient</button>
                 <hr />
 

@@ -13,8 +13,6 @@ const ownerAuth = async (req, res, next) => {
       return res.status(401).json({ msg: 'Token verification failed, authorization denied.' });
     }
 
-    // --- ADD THIS CHECK ---
-    // Check if the user's role is 'owner'
     if (verified.role !== 'owner') {
       return res.status(403).json({ msg: 'Access denied. Not an owner.' });
     }
