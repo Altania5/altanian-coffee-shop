@@ -567,6 +567,27 @@ app.post('/create-test-admin', async (req, res) => {
     }
 });
 
+// List existing users (for debugging/testing only)
+app.get('/debug/users', async (req, res) => {
+    try {
+        const users = await User.find({}, { password: 0 }).limit(10); // Exclude passwords and limit results
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            users: users.map(user => ({
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                id: user._id
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch users.' });
+    }
+});
+
 // Create test customer user (for development/testing only)
 app.post('/create-test-customer', async (req, res) => {
     try {
