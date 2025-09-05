@@ -58,6 +58,9 @@ async function connectDB() {
         const menuItemsCollection = db.collection('menuitems');
         await menuItemsCollection.createIndex({ name: 1 });
         console.log("Ensured indexes on menuitems collection.");
+        
+        // Seed some sample menu items if collection is empty
+        await seedMenuItems(menuItemsCollection);
 
     } catch (err) {
         console.error("Failed to connect to MongoDB:", err.message || err);
@@ -144,6 +147,79 @@ const orderSchema = new mongoose.Schema({
 });
 
 const Order = mongoose.model('Order', orderSchema);
+
+// --- Database Seeding Function ---
+async function seedMenuItems(menuItemsCollection) {
+    try {
+        const count = await menuItemsCollection.countDocuments();
+        if (count === 0) {
+            const sampleItems = [
+                {
+                    name: "Classic Americano",
+                    description: "Bold and smooth espresso with hot water. The perfect wake-up call.",
+                    price: 3.50,
+                    category: "Coffee",
+                    imageUrl: "americano.jpg",
+                    isAvailable: true,
+                    customizationConfig: {},
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: "Caramel Macchiato",
+                    description: "Espresso with steamed milk and vanilla syrup, topped with caramel drizzle.",
+                    price: 4.75,
+                    category: "Coffee",
+                    imageUrl: "macchiato.jpg",
+                    isAvailable: true,
+                    customizationConfig: {},
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: "Vanilla Latte",
+                    description: "Rich espresso with steamed milk and vanilla syrup. Comfort in a cup.",
+                    price: 4.25,
+                    category: "Coffee",
+                    imageUrl: "latte.jpg",
+                    isAvailable: true,
+                    customizationConfig: {},
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: "Chocolate Croissant",
+                    description: "Buttery, flaky pastry filled with rich dark chocolate.",
+                    price: 3.25,
+                    category: "Pastry",
+                    imageUrl: "croissant.jpg",
+                    isAvailable: true,
+                    customizationConfig: {},
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    name: "Iced Cold Brew",
+                    description: "Smooth, slow-steeped coffee served over ice. Refreshingly bold.",
+                    price: 3.75,
+                    category: "Cold Coffee",
+                    imageUrl: "coldbrew.jpg",
+                    isAvailable: true,
+                    customizationConfig: {},
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }
+            ];
+            
+            await menuItemsCollection.insertMany(sampleItems);
+            console.log(`Seeded ${sampleItems.length} sample menu items.`);
+        } else {
+            console.log(`Menu items collection already has ${count} items, skipping seeding.`);
+        }
+    } catch (error) {
+        console.error('Error seeding menu items:', error);
+    }
+}
 
 app.get('/api/inventory/customizations', async (req, res) => {
     console.log("====== SERVER: Reached /api/inventory/customizations ======");
@@ -297,7 +373,8 @@ app.post('/register', async (req, res) => {
                 id: newUser._id, 
                 username: newUser.username, 
                 email: newUser.email,
-                role: newUser.role 
+                role: newUser.role,
+                firstName: newUser.profile?.firstName || newUser.username.split('@')[0] || 'User'
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -354,7 +431,8 @@ app.post('/login', async (req, res) => {
                 id: user._id, 
                 username: user.username, 
                 email: user.email,
-                role: user.role 
+                role: user.role,
+                firstName: user.profile?.firstName || user.username.split('@')[0] || 'User'
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
