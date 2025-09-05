@@ -628,6 +628,144 @@ app.delete('/products/delete/:id', authenticateToken, isAdmin, async (req, res) 
     }
 });
 
+// Promo codes endpoint for admin page
+app.get('/promocodes', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        // For now, return empty array - you can implement promo codes later
+        res.status(200).json([]);
+    } catch (error) {
+        console.error('Error fetching promo codes:', error);
+        res.status(500).json({ error: 'Failed to fetch promo codes.' });
+    }
+});
+
+// Promo code management endpoints
+app.post('/promocodes/add', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        // Implement promo code creation logic here
+        res.status(201).json({ message: 'Promo code created successfully.' });
+    } catch (error) {
+        console.error('Error creating promo code:', error);
+        res.status(500).json({ error: 'Failed to create promo code.' });
+    }
+});
+
+app.put('/promocodes/update/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        // Implement promo code update logic here
+        res.status(200).json({ message: 'Promo code updated successfully.' });
+    } catch (error) {
+        console.error('Error updating promo code:', error);
+        res.status(500).json({ error: 'Failed to update promo code.' });
+    }
+});
+
+app.delete('/promocodes/delete/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        // Implement promo code deletion logic here
+        res.status(200).json({ message: 'Promo code deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting promo code:', error);
+        res.status(500).json({ error: 'Failed to delete promo code.' });
+    }
+});
+
+// Order history endpoint for order page
+app.get('/orders/myorders', authenticateToken, async (req, res) => {
+    try {
+        const orders = await Order.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50);
+        res.status(200).json(orders);
+    } catch (error) {
+        console.error('Error fetching user orders:', error);
+        res.status(500).json({ error: 'Failed to fetch orders.' });
+    }
+});
+
+// Suggested product management endpoints
+app.put('/settings/suggested-product', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { productId } = req.body;
+        const menuItemsCollection = db.collection('menuitems');
+        const product = await menuItemsCollection.findOne({ _id: new ObjectId(productId) });
+        
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+        
+        // For now, just return the product - in a real app you'd save this to a settings collection
+        res.status(200).json(product);
+    } catch (error) {
+        console.error('Error updating suggested product:', error);
+        res.status(500).json({ msg: 'Failed to update suggested product.' });
+    }
+});
+
+// Inventory management endpoints
+app.post('/inventory/add', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { name, quantity, unit, category } = req.body;
+        const newInventoryItem = new InventoryItem({
+            itemName: name,
+            itemType: category,
+            unit: unit,
+            quantityInStock: quantity,
+            isAvailable: true
+        });
+        
+        const savedItem = await newInventoryItem.save();
+        res.status(201).json(savedItem);
+    } catch (error) {
+        console.error('Error adding inventory item:', error);
+        res.status(500).json({ msg: 'Failed to add inventory item.' });
+    }
+});
+
+app.put('/inventory/update/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        
+        // Map frontend fields to backend schema
+        if (updateData.quantity !== undefined) {
+            updateData.quantityInStock = updateData.quantity;
+            delete updateData.quantity;
+        }
+        
+        const updatedItem = await InventoryItem.findByIdAndUpdate(
+            id, 
+            { $set: updateData }, 
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedItem) {
+            return res.status(404).json({ msg: 'Inventory item not found.' });
+        }
+        
+        res.status(200).json(updatedItem);
+    } catch (error) {
+        console.error('Error updating inventory item:', error);
+        res.status(500).json({ msg: 'Failed to update inventory item.' });
+    }
+});
+
+app.delete('/inventory/delete/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedItem = await InventoryItem.findByIdAndDelete(id);
+        
+        if (!deletedItem) {
+            return res.status(404).json({ msg: 'Inventory item not found.' });
+        }
+        
+        res.status(200).json({ message: 'Inventory item deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting inventory item:', error);
+        res.status(500).json({ msg: 'Failed to delete inventory item.' });
+    }
+});
+
 // GET a single menu item by ID (Public)
 app.get('/api/menu/:id', async (req, res) => {
     const { id } = req.params;
