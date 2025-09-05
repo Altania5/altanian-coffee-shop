@@ -25,7 +25,7 @@ function SuggestedItemManager({ token }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [headers]);
 
   useEffect(() => {
     fetchData();

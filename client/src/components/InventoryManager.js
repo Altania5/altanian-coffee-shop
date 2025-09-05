@@ -22,7 +22,7 @@ function InventoryManager({ token }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [headers]);
 
   useEffect(() => {
     fetchItems();

@@ -24,7 +24,7 @@ function ProductManager({ token }) {
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [headers]);
 
     useEffect(() => {
         fetchData();

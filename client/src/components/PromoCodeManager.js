@@ -18,7 +18,7 @@ function PromoCodeManager({ token }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [headers]);
 
   useEffect(() => {
     fetchCodes();
