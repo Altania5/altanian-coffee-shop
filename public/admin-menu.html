@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Coffee Shop</title> <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Admin Page Specific Styles */
+        body {
+            display: block; /* Override flex for admin page layout */
+            min-height: 0;
+            align-items: normal;
+            justify-content: normal;
+        }
+        .admin-container { padding: 20px; max-width: 1000px; margin: 20px auto; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        .admin-nav { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .admin-nav a, .admin-nav button { margin-right: 10px; padding: 8px 12px; text-decoration: none; background-color: #5cb85c; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .admin-nav a:hover, .admin-nav button:hover { background-color: #4cae4c; }
+        .admin-nav button#logoutButton { float: right; background-color: #d9534f; }
+        .admin-nav button#logoutButton:hover { background-color: #c9302c; }
+
+        .content-section { display: none; /* Hidden by default, shown by JS */ }
+        .content-section.active { display: block; }
+        
+        .list-table table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .list-table th, .list-table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+        .list-table th { background-color: #f2f2f2; }
+        .list-table button { margin-right: 5px; padding: 5px 8px; font-size: 0.85em; }
+        
+        .form-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;}
+        .form-section h2, .list-table h2 { margin-top: 0; color: #337ab7; }
+        
+        .message { margin-top:10px; padding:10px; border-radius:4px; text-align: center; }
+        .message.success { background-color:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .message.error { background-color:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .auth-message { text-align: center; font-size: 1.2em; color: red; padding: 20px; }
+        .action-buttons button { font-size: 0.8em; }
+        
+        /* Make form groups more compact */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { margin-bottom: 3px; font-weight: bold; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="url"], /* For imageUrl */
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 16px); /* Account for padding */
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
+        textarea { min-height: 60px; }
+        .config-fieldset {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+        .config-fieldset legend {
+            font-weight: bold;
+            color: #337ab7;
+            padding: 0 5px;
+        }
+        .config-fieldset .form-group {
+            display: flex; /* For aligning label and input */
+            align-items: center;
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        .config-fieldset .form-group label {
+            flex-basis: 200px; /* Fixed width for labels */
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+        .config-fieldset .form-group input[type="checkbox"] {
+            flex-basis: auto;
+            margin-right: 5px;
+        }
+         .config-fieldset .form-group input[type="number"],
+         .config-fieldset .form-group input[type="text"],
+         .config-fieldset .form-group select {
+            flex-grow: 1; /* Input takes remaining space */
+            font-size: 0.9em;
+            padding: 6px;
+        }
+        .sub-options { margin-left: 25px; border-left: 2px solid #eee; padding-left: 10px; font-size:0.9em;}
+        .sub-options .form-group label { flex-basis: 150px;} /* Adjust sub-option label width */
+        .info-text { font-size: 0.8em; color: #777; margin-left: 10px;}
+    body {
+            display: block; /* Override flex for admin page layout */
+            min-height: 0;
+            align-items: normal;
+            justify-content: normal;
+        }
+        .admin-container { padding: 20px; max-width: 1000px; margin: 20px auto; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        .admin-nav { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .admin-nav a, .admin-nav button { margin-right: 10px; padding: 8px 12px; text-decoration: none; background-color: #5cb85c; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .admin-nav a:hover, .admin-nav button:hover { background-color: #4cae4c; }
+        .admin-nav button#logoutButton { float: right; background-color: #d9534f; }
+        .admin-nav button#logoutButton:hover { background-color: #c9302c; }
+
+        .content-section { display: none; /* Hidden by default, shown by JS */ }
+        .content-section.active { display: block; }
+        
+        .list-table table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .list-table th, .list-table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+        .list-table th { background-color: #f2f2f2; }
+        .list-table button { margin-right: 5px; padding: 5px 8px; font-size: 0.85em; }
+        
+        .form-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;}
+        .form-section h2, .list-table h2 { margin-top: 0; color: #337ab7; }
+        
+        .message { margin-top:10px; padding:10px; border-radius:4px; text-align: center; }
+        .message.success { background-color:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .message.error { background-color:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .auth-message { text-align: center; font-size: 1.2em; color: red; padding: 20px; }
+        .action-buttons button { font-size: 0.8em; }
+        
+        /* Make form groups more compact */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { margin-bottom: 3px; font-weight: bold; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="url"], /* For imageUrl */
+        .form-group textarea,
+        .form-group select {
+            width: calc(100% - 16px); /* Account for padding */
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
+        textarea { min-height: 60px; }
+        .config-fieldset {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+        .config-fieldset legend {
+            font-weight: bold;
+            color: #337ab7;
+            padding: 0 5px;
+        }
+        .config-fieldset .form-group {
+            display: flex; /* For aligning label and input */
+            align-items: center;
+            margin-bottom: 8px; /* Reduced margin */
+        }
+        .config-fieldset .form-group label {
+            flex-basis: 200px; /* Fixed width for labels */
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+        .config-fieldset .form-group input[type="checkbox"] {
+            flex-basis: auto;
+            margin-right: 5px;
+        }
+         .config-fieldset .form-group input[type="number"],
+         .config-fieldset .form-group input[type="text"],
+         .config-fieldset .form-group select {
+            flex-grow: 1; /* Input takes remaining space */
+            font-size: 0.9em;
+            padding: 6px;
+        }
+        .sub-options { margin-left: 25px; border-left: 2px solid #eee; padding-left: 10px; font-size:0.9em;}
+        .sub-options .form-group label { flex-basis: 150px;} /* Adjust sub-option label width */
+        .info-text { font-size: 0.8em; color: #777; margin-left: 10px;}
+    </style>
+</head>
+<body>
+<div class="admin-container">
+    <h1>Admin Dashboard</h1>
+    <nav class="admin-nav">
+        <a href="#" id="navMenuManagement">Manage Menu</a>
+        <a href="#" id="navInventoryManagement">Manage Inventory</a>
+        <a href="/" target="_blank">View Public Site</a>
+        <button id="logoutButton">Logout</button>
+    </nav> 
+
+    <div id="authMessageContainer" class="auth-message" style="display:none;">Access Denied.</div>
+    
+    <div id="adminContent" style="display:none;">
+        <div id="menuManagementSection" class="content-section">
+            <h2>Menu Management</h2>
+            <div class="form-section">
+                <h3>Add New Menu Item</h3>
+                <form id="addMenuItemForm">
+                    <div class="form-group"><label for="addName">Name:</label><input type="text" id="addName" required></div>
+                    <div class="form-group"><label for="addDescription">Description:</label><textarea id="addDescription"></textarea></div>
+                    <div class="form-group"><label for="addPrice">Base Price:</label><input type="number" id="addPrice" step="0.01" required></div>
+                    <div class="form-group"><label for="addCategory">Category:</label><input type="text" id="addCategory"></div>
+                    <div class="form-group"><label for="addImageUrl">Image URL:</label><input type="url" id="addImageUrl"></div>
+                    <div class="form-group"><label for="addIsAvailable">Item Available:</label><input type="checkbox" id="addIsAvailable" checked></div>
+
+                    <fieldset class="config-fieldset">
+                        <legend>Customization Configuration</legend>
+                        
+                        <div class="form-group">
+                            <input type="checkbox" id="addCfgAllowQuantity">
+                            <label for="addCfgAllowQuantity">Allow Quantity Selection</label>
+                        </div>
+                        <div class="sub-options" id="addCfgQuantityOptions" style="display:none;">
+                            <div class="form-group"><label for="addCfgMinQuantity">Min Quantity:</label><input type="number" id="addCfgMinQuantity" value="1" step="1"></div>
+                            <div class="form-group"><label for="addCfgMaxQuantity">Max Quantity:</label><input type="number" id="addCfgMaxQuantity" value="1" step="1"></div>
+                            <div class="form-group"><label for="addCfgPricePerUnit">Price per Unit (if quantity selectable):</label><input type="number" id="addCfgPricePerUnit" step="0.01"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="checkbox" id="addCfgAllowSizes" checked>
+                            <label for="addCfgAllowSizes">Allow Size Selection</label>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="checkbox" id="addCfgAllowEspresso" checked>
+                            <label for="addCfgAllowEspresso">Allow Extra Espresso Shots</label>
+                        </div>
+                        <div class="sub-options" id="addCfgEspressoOptions" style="display:block;">
+                            <div class="form-group"><label for="addCfgMaxEspresso">Max Extra Shots:</label><input type="number" id="addCfgMaxEspresso" value="3" step="1"></div>
+                            <div class="form-group"><label for="addCfgEspressoPrice">Price per Extra Shot:</label><input type="number" id="addCfgEspressoPrice" value="1.00" step="0.01"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="addCfgAllowedSyrupTypes">Allowed Syrup Values (Types/Names/IDs):</label>
+                            <input type="text" id="addCfgAllowedSyrupTypes" placeholder="Syrup,Sauce OR Vanilla Syrup OR id1,id2">
+                        </div>
+                        <div class="form-group">
+                            <label for="addCfgSyrupMode">Syrup Selection Mode:</label>
+                            <select id="addCfgSyrupMode">
+                                <option value="by_type">By Type (e.g., 'Syrup')</option>
+                                <option value="by_name">By Specific Names (comma-sep)</option>
+                                <option value="by_id">By Specific IDs (comma-sep)</option>
+                                <option value="none" selected>None (No Syrups)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                             <label for="addCfgAllowedToppingTypes">Allowed Topping Values (Types/Names/IDs):</label>
+                             <input type="text" id="addCfgAllowedToppingTypes" placeholder="Topping OR Whipped Cream OR id3,id4">
+                        </div>
+                        <div class="form-group">
+                            <label for="addCfgToppingMode">Topping Selection Mode:</label>
+                            <select id="addCfgToppingMode">
+                                <option value="by_type">By Type</option>
+                                <option value="by_name">By Specific Names</option>
+                                <option value="by_id">By Specific IDs</option>
+                                <option value="none" selected>None (No Toppings)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="addCfgAllowedMilkValues">Allowed Milk Values (Types/Names/IDs):</label>
+                            <input type="text" id="addCfgAllowedMilkValues" placeholder="Milk OR Almond Milk,Oat Milk OR milkId1">
+                        </div>
+                        <div class="form-group">
+                            <label for="addCfgMilkMode">Milk Selection Mode:</label>
+                            <select id="addCfgMilkMode">
+                                <option value="by_type" selected>By Type (e.g., 'Milk')</option>
+                                <option value="by_name">By Specific Names</option>
+                                <option value="by_id">By Specific IDs</option>
+                                <option value="none">None (No Milk Options)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="addCfgDefaultMilk">Default Milk (Name or ID from Allowed Values):</label>
+                            <input type="text" id="addCfgDefaultMilk" placeholder="e.g., Whole Milk or actual inventory ID">
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" id="addCfgAllowColdFoam">
+                            <label for="addCfgAllowColdFoam">Allow Cold Foam</label>
+                        </div>
+                        <div class="sub-options" id="addCfgColdFoamOptions" style="display:none;">
+                            <div class="form-group"><label for="addCfgColdFoamPrice">Price for Cold Foam:</label><input type="number" id="addCfgColdFoamPrice" value="0.75" step="0.01"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="checkbox" id="addCfgIsHotDrink">
+                            <label for="addCfgIsHotDrink">Is a Hot Drink (influences Cold Foam availability)</label>
+                        </div>
+                         <div class="form-group">
+                            <input type="checkbox" id="addCfgAllowColdFoamIfHot">
+                            <label for="addCfgAllowColdFoamIfHot">Allow Cold Foam on this Hot Drink (override)</label>
+                        </div>
+                    </fieldset>
+                    <button type="submit">Add Menu Item</button>
+                </form>
+                <div id="addMenuMessage" class="message"></div>
+            </div>
+
+            <div class="form-section" id="editMenuItemFormSection" style="display:none;">
+                <h3>Edit Menu Item</h3>
+                <form id="editMenuItemForm">
+                    <input type="hidden" id="editMenuItemId">
+                     <div class="form-group"><label for="editName">Name:</label><input type="text" id="editName" required></div>
+                    <div class="form-group"><label for="editDescription">Description:</label><textarea id="editDescription"></textarea></div>
+                    <div class="form-group"><label for="editPrice">Base Price:</label><input type="number" id="editPrice" step="0.01" required></div>
+                    <div class="form-group"><label for="editCategory">Category:</label><input type="text" id="editCategory"></div>
+                    <div class="form-group"><label for="editImageUrl">Image URL:</label><input type="url" id="editImageUrl"></div>
+                    <div class="form-group"><label for="editIsAvailable">Item Available:</label><input type="checkbox" id="editIsAvailable"></div>
+
+                    <fieldset class="config-fieldset">
+                        <legend>Customization Configuration</legend>
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgAllowQuantity">
+                            <label for="editCfgAllowQuantity">Allow Quantity Selection</label>
+                        </div>
+                        <div class="sub-options" id="editCfgQuantityOptions" style="display:none;">
+                            <div class="form-group"><label for="editCfgMinQuantity">Min Quantity:</label><input type="number" id="editCfgMinQuantity" step="1"></div>
+                            <div class="form-group"><label for="editCfgMaxQuantity">Max Quantity:</label><input type="number" id="editCfgMaxQuantity" step="1"></div>
+                            <div class="form-group"><label for="editCfgPricePerUnit">Price per Unit:</label><input type="number" id="editCfgPricePerUnit" step="0.01"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgAllowSizes">
+                            <label for="editCfgAllowSizes">Allow Size Selection</label>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgAllowEspresso">
+                            <label for="editCfgAllowEspresso">Allow Extra Espresso Shots</label>
+                        </div>
+                         <div class="sub-options" id="editCfgEspressoOptions" style="display:none;">
+                            <div class="form-group"><label for="editCfgMaxEspresso">Max Extra Shots:</label><input type="number" id="editCfgMaxEspresso" step="1"></div>
+                            <div class="form-group"><label for="editCfgEspressoPrice">Price per Extra Shot:</label><input type="number" id="editCfgEspressoPrice" step="0.01"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editCfgAllowedSyrupTypes">Allowed Syrup Values (Types/Names/IDs):</label>
+                            <input type="text" id="editCfgAllowedSyrupTypes">
+                        </div>
+                         <div class="form-group">
+                            <label for="editCfgSyrupMode">Syrup Selection Mode:</label>
+                            <select id="editCfgSyrupMode">
+                                <option value="by_type">By Type</option>
+                                <option value="by_name">By Specific Names</option>
+                                <option value="by_id">By Specific IDs</option>
+                                <option value="none" selected>None</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCfgAllowedToppingTypes">Allowed Topping Values (Types/Names/IDs):</label>
+                            <input type="text" id="editCfgAllowedToppingTypes">
+                        </div>
+                        <div class="form-group">
+                            <label for="editCfgToppingMode">Topping Selection Mode:</label>
+                            <select id="editCfgToppingMode">
+                                <option value="by_type">By Type</option>
+                                <option value="by_name">By Specific Names</option>
+                                <option value="by_id">By Specific IDs</option>
+                                <option value="none" selected>None</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCfgAllowedMilkValues">Allowed Milk Values (Types/Names/IDs):</label>
+                            <input type="text" id="editCfgAllowedMilkValues">
+                        </div>
+                        <div class="form-group">
+                            <label for="editCfgMilkMode">Milk Selection Mode:</label>
+                            <select id="editCfgMilkMode">
+                                <option value="by_type" selected>By Type</option>
+                                <option value="by_name">By Specific Names</option>
+                                <option value="by_id">By Specific IDs</option>
+                                <option value="none">None (No Milk Options)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCfgDefaultMilk">Default Milk (Name or ID):</label>
+                            <input type="text" id="editCfgDefaultMilk">
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgAllowColdFoam">
+                            <label for="editCfgAllowColdFoam">Allow Cold Foam</label>
+                        </div>
+                        <div class="sub-options" id="editCfgColdFoamOptions" style="display:none;">
+                            <div class="form-group"><label for="editCfgColdFoamPrice">Price for Cold Foam:</label><input type="number" id="editCfgColdFoamPrice" step="0.01"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgIsHotDrink">
+                            <label for="editCfgIsHotDrink">Is a Hot Drink</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" id="editCfgAllowColdFoamIfHot">
+                            <label for="editCfgAllowColdFoamIfHot">Allow Cold Foam on this Hot Drink (override)</label>
+                        </div>
+                    </fieldset>
+                    <button type="submit">Save Menu Changes</button>
+                    <button type="button" id="cancelEditMenuItem">Cancel</button>
+                </form>
+                <div id="editMenuMessage" class="message"></div>
+            </div>
+
+            <div class="list-table">
+                <h3>Current Menu Items</h3>
+                <table id="menuItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Category</th>
+                            <th>Available</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuItemsTableBody"></tbody>
+                </table>
+                <div id="listMenuMessage" class="message"></div>
+            </div>
+        </div> <div id="inventoryManagementSection" class="content-section">
+             <h2>Inventory Management</h2>
+             <div class="form-section">
+                <h3>Add New Inventory Item</h3>
+                <form id="addInventoryItemForm">
+                    <div class="form-group"><label for="invItemName">Item Name:</label><input type="text" id="invItemName" required></div>
+                    <div class="form-group">
+                        <label for="invItemType">Item Type:</label>
+                        <select id="invItemType" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="Syrup">Syrup</option>
+                            <option value="Coffee Beans">Coffee Beans</option>
+                            <option value="Sauce">Sauce</option>
+                            <option value="Powder">Powder</option>
+                            <option value="Milk">Milk</option>
+                            <option value="Topping">Topping</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label for="invUnit">Unit (e.g., ml, grams, pump):</label><input type="text" id="invUnit" required></div>
+                    <div class="form-group"><label for="invQuantity">Quantity in Stock:</label><input type="number" id="invQuantity" step="any" required min="0"></div>
+                    <div class="form-group"><label for="invCostPerUnit">Cost Per Unit (optional):</label><input type="number" id="invCostPerUnit" step="0.01" min="0"></div>
+                    <div class="form-group"><label for="invPricePerUnitCharge">Price Per Unit Charge (for add-ons, optional):</label><input type="number" id="invPricePerUnitCharge" step="0.01" min="0" value="0"></div>
+                    <div class="form-group"><label for="invIsAvailable">Available for Use:</label><input type="checkbox" id="invIsAvailable" checked></div>
+                    <div class="form-group"><label for="invSupplierInfo">Supplier Info (optional):</label><input type="text" id="invSupplierInfo"></div>
+                    <div class="form-group"><label for="invNotes">Notes (optional):</label><textarea id="invNotes"></textarea></div>
+                    <button type="submit">Add Inventory Item</button>
+                </form>
+                <div id="addInventoryMessage" class="message"></div>
+            </div>
+
+            <div class="form-section" id="editInventoryItemFormSection" style="display:none;">
+                <h3>Edit Inventory Item</h3>
+                <form id="editInventoryItemForm">
+                    <input type="hidden" id="editInventoryItemId">
+                    <div class="form-group"><label for="editInvItemName">Item Name:</label><input type="text" id="editInvItemName" required></div>
+                    <div class="form-group">
+                        <label for="editInvItemType">Item Type:</label>
+                        <select id="editInvItemType" required>
+                             <option value="">-- Select Type --</option>
+                             <option value="Syrup">Syrup</option>
+                             <option value="Coffee Beans">Coffee Beans</option>
+                             <option value="Sauce">Sauce</option>
+                             <option value="Powder">Powder</option>
+                             <option value="Milk">Milk</option>
+                             <option value="Topping">Topping</option>
+                             <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label for="editInvUnit">Unit:</label><input type="text" id="editInvUnit" required></div>
+                    <div class="form-group"><label for="editInvQuantity">Quantity in Stock:</label><input type="number" id="editInvQuantity" step="any" required min="0"></div>
+                    <div class="form-group"><label for="editInvCostPerUnit">Cost Per Unit:</label><input type="number" id="editInvCostPerUnit" step="0.01" min="0"></div>
+                    <div class="form-group"><label for="editInvPricePerUnitCharge">Price Per Unit Charge:</label><input type="number" id="editInvPricePerUnitCharge" step="0.01" min="0"></div>
+                    <div class="form-group"><label for="editInvIsAvailable">Available for Use:</label><input type="checkbox" id="editInvIsAvailable"></div>
+                    <div class="form-group"><label for="editInvSupplierInfo">Supplier Info:</label><input type="text" id="editInvSupplierInfo"></div>
+                    <div class="form-group"><label for="editInvNotes">Notes:</label><textarea id="editInvNotes"></textarea></div>
+                    <button type="submit">Save Inventory Changes</button>
+                    <button type="button" id="cancelEditInventoryItem">Cancel</button>
+                </form>
+                <div id="editInventoryMessage" class="message"></div>
+            </div>
+
+            <div class="list-table">
+                <h3>Current Inventory Items</h3>
+                <table id="inventoryItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Unit</th>
+                            <th>Qty in Stock</th>
+                            <th>Price/Unit (Add-on)</th>
+                            <th>Available</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryItemsTableBody"></tbody>
+                </table>
+                <div id="listInventoryMessage" class="message"></div>
+            </div>
+        </div> </div> </div> <script src="/js/admin-menu.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Brew Tycoon</title>
+    <link rel="stylesheet" href="/css/style.css"> <style>
+        .game-container { padding: 20px; max-width: 900px; margin: auto; background-color: #e8f5e9; border-radius: 8px; }
+        .player-stats, .farms-section, .cafes-section, .inventory-section, .actions-section {
+            margin-bottom: 20px; padding: 15px; background-color: #fff; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .farm-card, .cafe-card, .inventory-item { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .farm-options button { margin: 5px; }
+        nav { margin-bottom: 20px; text-align: center; }
+        nav a, nav button { margin: 0 10px; padding: 8px 12px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        nav button:hover, nav a:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>Global Brew Tycoon</h1>
+            <nav>
+                <a href="/welcome.html">Home/Login</a>
+                <a href="/menu">Public Menu</a>
+                <button id="logoutButtonGame">Logout</button>
+            </nav>
+        </header>
+
+        <div id="authMessageContainer" style="display:none; color: red; text-align: center; padding: 10px; background-color: #ffdddd; border: 1px solid red; margin-bottom:15px;">
+            Please log in to play.
+        </div>
+
+        <div id="gameContent" style="display:none;">
+            <section class="player-stats">
+                <h2>Your Empire</h2>
+                <p>Money: $<span id="playerMoney">0</span></p>
+            </section>
+
+            <section class="inventory-section">
+                <h3>Inventory</h3>
+                <div id="inventoryList">
+                    <p>No items yet.</p>
+                </div>
+            </section>
+
+            <section class="farms-section">
+                <h3>Your Farms</h3>
+                <div id="ownedFarmsList">
+                    <p>No farms yet. Invest in one!</p>
+                </div>
+                <h4>Invest in New Farmlands:</h4>
+                <div id="farmOptionsList" class="farm-options">
+                    </div>
+            </section>
+
+            <section class="cafes-section">
+                <h3>Your Cafes</h3>
+                <div id="ownedCafesList">
+                    <p>No cafes yet.</p>
+                </div>
+                </section>
+            
+            <section class="actions-section">
+                <h3>Game Actions</h3>
+                <button id="refreshStateButton">Refresh Game State (Process Tick)</button>
+            </section>
+        </div>
+        <div id="gameMessages" style="margin-top: 15px; padding: 10px; border-radius: 4px;"></div>
+
+    </div>
+
+    <script src="/js/tycoon.js"></script>
+</body>
+</html>
