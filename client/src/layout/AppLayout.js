@@ -176,6 +176,7 @@ function AppLayout({ user, onLogout }) {
             );
         }
       case 'admin':
+        // Only allow users with 'owner' role to access admin page
         return user.role === 'owner' ? <AdminPage user={user} /> : <HomePage user={user} />;
       case 'log':
         return <CoffeeLogPage user={user} />;

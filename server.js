@@ -963,6 +963,34 @@ app.delete('/promocodes/delete/:id', authenticateToken, isAdmin, async (req, res
     }
 });
 
+// Temporary endpoint to make Alexander owner (remove after use)
+app.post('/api/make-alexander-owner', authenticateToken, async (req, res) => {
+    try {
+        // Only allow Alexander to use this endpoint
+        if (req.user.firstName !== 'Alexander') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const result = await User.updateOne(
+            { _id: req.user.id, firstName: 'Alexander' },
+            { role: 'owner' }
+        );
+        
+        if (result.modifiedCount > 0) {
+            res.status(200).json({ 
+                success: true, 
+                message: 'Alexander is now owner!',
+                user: await User.findById(req.user.id).select('firstName lastName role')
+            });
+        } else {
+            res.status(200).json({ message: 'Already owner or no changes needed' });
+        }
+    } catch (error) {
+        console.error('Error updating user role:', error);
+        res.status(500).json({ error: 'Failed to update role' });
+    }
+});
+
 // Order history endpoint for order page
 app.get('/orders/myorders', authenticateToken, async (req, res) => {
     try {

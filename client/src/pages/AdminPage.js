@@ -23,8 +23,14 @@ function AdminPage({ user }) {
     lowStockItems: 0
   });
 
-  // Check if user has admin privileges
-  const isAdmin = user && (user.role === 'admin' || user.role === 'manager' || user.firstName === 'Admin');
+  // Check if user has admin privileges - only 'owner' role has admin access
+  const isAdmin = user && user.role === 'owner';
+  
+  // Debug logging to help troubleshoot access issues
+  console.log('AdminPage - User object:', user);
+  console.log('AdminPage - User role:', user?.role);
+  console.log('AdminPage - User firstName:', user?.firstName);
+  console.log('AdminPage - Is admin?', isAdmin);
 
   useEffect(() => {
     if (isAdmin) {

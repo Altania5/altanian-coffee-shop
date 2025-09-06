@@ -20,6 +20,7 @@ const NavLinks = ({ setActiveTab }) => (
 );
 
 const AdminLink = ({ setActiveTab, user }) => {
+  // Only show admin link for users with 'owner' role
   if (user.role !== 'owner') return null;
   return (
     <button onClick={() => setActiveTab('admin')}>
