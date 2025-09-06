@@ -582,6 +582,4 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, 
   );
 }
 
-}
-
 export default CustomizationModal;
