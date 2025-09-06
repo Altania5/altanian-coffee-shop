@@ -8,17 +8,19 @@ import {
 } from '@stripe/react-stripe-js';
 import axios from 'axios';
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+// Initialize Stripe with error handling
+const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 // Card styling
 const cardStyle = {
   style: {
     base: {
       color: '#2C1810',
-      fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
       fontSmoothing: 'antialiased',
       fontSize: '16px',
+      lineHeight: '24px',
       '::placeholder': {
         color: '#8B6F4D',
       },
@@ -27,7 +29,11 @@ const cardStyle = {
       color: '#CD5C5C',
       iconColor: '#CD5C5C',
     },
+    complete: {
+      color: '#28a745',
+    },
   },
+  hidePostalCode: true,
 };
 
 function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
@@ -329,7 +335,14 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
           <div className="checkout-section">
             <h3 className="section-title">💳 Card Details</h3>
             <div className="card-element-container">
-              <CardElement options={cardStyle} />
+              {stripePromise ? (
+                <CardElement options={cardStyle} />
+              ) : (
+                <div className="stripe-error">
+                  <p>⚠️ Card payment is temporarily unavailable.</p>
+                  <p>Please select "Pay with Cash" to continue with your order.</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -368,18 +381,20 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         <button
           type="submit"
           className="place-order-btn"
-          disabled={!stripe || loading}
+          disabled={(paymentMethod === 'card' && !stripe) || loading}
         >
           {loading ? (
-            <span>
+            <span className="loading-content">
               <span className="loading-spinner"></span>
-              Processing...
+              <span>Processing...</span>
             </span>
           ) : (
-            <span>
-              {paymentMethod === 'card' 
-                ? `Pay $${total.toFixed(2)}` 
-                : `Place Order - Pay $${total.toFixed(2)} in Store`}
+            <span className="button-content">
+              <span className="button-text">
+                {paymentMethod === 'card' 
+                  ? `Pay $${total.toFixed(2)} 💳` 
+                  : `Place Order - Pay $${total.toFixed(2)} in Store`}
+              </span>
               <span className="submit-icon">🚀</span>
             </span>
           )}

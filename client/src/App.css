@@ -4435,3 +4435,122 @@ button:disabled {
     max-width: none;
   }
 }
+
+
+/* ==========================================================================
+   Checkout & Payment Fixes
+   ========================================================================== */
+
+/* Fix checkout button text wrapping */
+.checkout-btn {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.checkout-btn span {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--spacing-xs) !important;
+}
+
+/* Stripe Card Element Styling */
+.card-element-container {
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--warm-white);
+  transition: all var(--transition-smooth);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.card-element-container:hover {
+  border-color: var(--secondary-coffee);
+}
+
+.card-element-container:focus-within {
+  border-color: var(--secondary-coffee);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+/* Stripe error styling */
+.stripe-error {
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--text-muted);
+}
+
+.stripe-error p {
+  margin: var(--spacing-xs) 0;
+  font-size: 0.9rem;
+}
+
+/* Place order button fixes */
+.place-order-btn {
+  background: linear-gradient(135deg, var(--success-color) 0%, #228B22 100%) !important;
+  color: var(--warm-white) !important;
+  border: none !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-lg) var(--spacing-xl) !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  font-family: var(--font-primary) !important;
+  cursor: pointer;
+  transition: all var(--transition-smooth) !important;
+  width: 100% !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: var(--spacing-lg) !important;
+}
+
+.place-order-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #228B22 0%, var(--success-color) 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(34, 139, 34, 0.3) !important;
+}
+
+.place-order-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Button content layout */
+.button-content,
+.loading-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--spacing-sm) !important;
+  width: 100%;
+}
+
+.button-text {
+  flex: 1;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 20px !important;
+  height: 20px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid var(--warm-white) !important;
+  border-radius: 50% !important;
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.submit-icon {
+  font-size: 1.2rem;
+  transition: transform var(--transition-fast);
+}
+
+.place-order-btn:hover .submit-icon {
+  transform: translateX(3px) scale(1.1);
+}
+
