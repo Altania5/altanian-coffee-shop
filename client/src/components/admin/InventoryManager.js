@@ -153,7 +153,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
     
     try {
       const baseURL = process.env.REACT_APP_API_BASE_URL || '';
