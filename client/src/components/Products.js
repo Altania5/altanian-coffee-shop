@@ -71,6 +71,7 @@ function Products({ token, addToCart }) {
           inventory={allInventory}
           onAddToCart={handleAddToCart}
           onCancel={() => setCustomizingProduct(null)}
+          token={token}
         />
       )}
 
@@ -152,12 +153,6 @@ function Products({ token, addToCart }) {
                     </div>
                   </div>
                 </div>
-                
-                {inStock && (
-                  <div className="product-hover-effect">
-                    <div className="hover-text">Click to add!</div>
-                  </div>
-                )}
               </div>
             );
           })}

@@ -1,0 +1,408 @@
+import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements
+} from '@stripe/react-stripe-js';
+import axios from 'axios';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+
+// Card styling
+const cardStyle = {
+  style: {
+    base: {
+      color: '#2C1810',
+      fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
+      fontSmoothing: 'antialiased',
+      fontSize: '16px',
+      '::placeholder': {
+        color: '#8B6F4D',
+      },
+    },
+    invalid: {
+      color: '#CD5C5C',
+      iconColor: '#CD5C5C',
+    },
+  },
+};
+
+function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  
+  const [loading, setLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' or 'cash'
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [tip, setTip] = useState(0);
+  const [tipOption, setTipOption] = useState('custom'); // 'none', '15', '18', '20', 'custom'
+  
+  // Calculate totals
+  const subtotal = cart.reduce((acc, item) => acc + (item.estimatedPrice || item.price) * item.quantity, 0);
+  const tax = Math.round(subtotal * 0.0875 * 100) / 100; // 8.75% tax
+  const total = subtotal + tax + tip;
+
+  // Handle tip selection
+  const handleTipChange = (option) => {
+    setTipOption(option);
+    switch (option) {
+      case 'none':
+        setTip(0);
+        break;
+      case '15':
+        setTip(Math.round(subtotal * 0.15 * 100) / 100);
+        break;
+      case '18':
+        setTip(Math.round(subtotal * 0.18 * 100) / 100);
+        break;
+      case '20':
+        setTip(Math.round(subtotal * 0.20 * 100) / 100);
+        break;
+      case 'custom':
+        // Keep current tip value
+        break;
+      default:
+        setTip(0);
+    }
+  };
+
+  // Handle custom tip input
+  const handleCustomTipChange = (value) => {
+    const tipValue = Math.max(0, parseFloat(value) || 0);
+    setTip(Math.round(tipValue * 100) / 100);
+    setTipOption('custom');
+  };
+
+  // Submit payment
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setLoading(true);
+    setPaymentError(null);
+
+    try {
+      // Prepare order data
+      const orderData = {
+        items: cart,
+        customer: customerInfo,
+        tip: tip,
+        notes: specialInstructions.trim() || undefined,
+        source: 'website'
+      };
+
+      if (paymentMethod === 'card') {
+        // Create payment method
+        const cardElement = elements.getElement(CardElement);
+        const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
+          type: 'card',
+          card: cardElement,
+          billing_details: {
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Send order to backend with payment method
+        const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+        const headers = token ? { 'x-auth-token': token } : {};
+        
+        const response = await axios.post(`${baseURL}/api/orders`, {
+          ...orderData,
+          paymentMethodId: stripePaymentMethod.id
+        }, { headers });
+
+        if (response.data.success) {
+          // Handle successful payment
+          if (response.data.paymentIntent) {
+            const { error: confirmError } = await stripe.confirmCardPayment(
+              response.data.paymentIntent.client_secret
+            );
+
+            if (confirmError) {
+              throw new Error(confirmError.message);
+            }
+          }
+
+          // Payment successful
+          onPaymentSuccess({
+            order: response.data.order,
+            paymentIntent: response.data.paymentIntent,
+            lowStockAlert: response.data.lowStockAlert
+          });
+        } else {
+          throw new Error(response.data.message || 'Order creation failed');
+        }
+
+      } else {
+        // Cash payment - create order without payment method
+        const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+        const headers = token ? { 'x-auth-token': token } : {};
+        
+        const response = await axios.post(`${baseURL}/api/orders`, orderData, { headers });
+
+        if (response.data.success) {
+          onPaymentSuccess({
+            order: response.data.order,
+            lowStockAlert: response.data.lowStockAlert,
+            paymentMethod: 'cash'
+          });
+        } else {
+          throw new Error(response.data.message || 'Order creation failed');
+        }
+      }
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentError(error.message);
+      onPaymentError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="checkout-container">
+      <div className="checkout-header">
+        <button className="back-btn" onClick={onBack} disabled={loading}>
+          ← Back to Cart
+        </button>
+        <h2 className="checkout-title">Checkout</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="checkout-form">
+        {/* Order Summary */}
+        <div className="checkout-section">
+          <h3 className="section-title">📋 Order Summary</h3>
+          <div className="order-summary">
+            {cart.map((item, index) => {
+              const itemPrice = item.estimatedPrice || item.price || 0;
+              return (
+                <div key={item.id || index} className="order-item">
+                  <div className="order-item-info">
+                    <span className="item-name">{item.name || `Item ${index + 1}`}</span>
+                    <span className="item-quantity">×{item.quantity}</span>
+                  </div>
+                  <span className="item-total">${(itemPrice * item.quantity).toFixed(2)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Customer Information */}
+        <div className="checkout-section">
+          <h3 className="section-title">👤 Customer Information</h3>
+          <div className="customer-info">
+            <p><strong>Name:</strong> {customerInfo.name}</p>
+            <p><strong>Email:</strong> {customerInfo.email}</p>
+            {customerInfo.phone && <p><strong>Phone:</strong> {customerInfo.phone}</p>}
+          </div>
+        </div>
+
+        {/* Tip Selection */}
+        <div className="checkout-section">
+          <h3 className="section-title">💰 Add Tip</h3>
+          <div className="tip-options">
+            <label className={`tip-option ${tipOption === 'none' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="tip"
+                value="none"
+                checked={tipOption === 'none'}
+                onChange={() => handleTipChange('none')}
+              />
+              <span>No Tip</span>
+            </label>
+            <label className={`tip-option ${tipOption === '15' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="tip"
+                value="15"
+                checked={tipOption === '15'}
+                onChange={() => handleTipChange('15')}
+              />
+              <span>15% (${Math.round(subtotal * 0.15 * 100) / 100})</span>
+            </label>
+            <label className={`tip-option ${tipOption === '18' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="tip"
+                value="18"
+                checked={tipOption === '18'}
+                onChange={() => handleTipChange('18')}
+              />
+              <span>18% (${Math.round(subtotal * 0.18 * 100) / 100})</span>
+            </label>
+            <label className={`tip-option ${tipOption === '20' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="tip"
+                value="20"
+                checked={tipOption === '20'}
+                onChange={() => handleTipChange('20')}
+              />
+              <span>20% (${Math.round(subtotal * 0.20 * 100) / 100})</span>
+            </label>
+          </div>
+          <div className="custom-tip">
+            <label htmlFor="custom-tip-input">Custom Tip Amount:</label>
+            <div className="tip-input-group">
+              <span className="currency-symbol">$</span>
+              <input
+                id="custom-tip-input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={tipOption === 'custom' ? tip : ''}
+                onChange={(e) => handleCustomTipChange(e.target.value)}
+                placeholder="0.00"
+                className="tip-input"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Special Instructions */}
+        <div className="checkout-section">
+          <h3 className="section-title">📝 Special Instructions</h3>
+          <textarea
+            className="special-instructions-input"
+            placeholder="Any special requests for your order? (e.g., pickup time, allergies, etc.)"
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            maxLength={300}
+            rows={3}
+          />
+          <div className="char-count">
+            {specialInstructions.length}/300
+          </div>
+        </div>
+
+        {/* Payment Method */}
+        <div className="checkout-section">
+          <h3 className="section-title">💳 Payment Method</h3>
+          <div className="payment-method-options">
+            <label className={`payment-option ${paymentMethod === 'card' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="card"
+                checked={paymentMethod === 'card'}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              <span className="payment-option-content">
+                <span className="payment-icon">💳</span>
+                <span>Credit/Debit Card</span>
+              </span>
+            </label>
+            <label className={`payment-option ${paymentMethod === 'cash' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="cash"
+                checked={paymentMethod === 'cash'}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              <span className="payment-option-content">
+                <span className="payment-icon">💵</span>
+                <span>Pay with Cash (In-Store)</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Card Details (only show if card payment selected) */}
+        {paymentMethod === 'card' && (
+          <div className="checkout-section">
+            <h3 className="section-title">💳 Card Details</h3>
+            <div className="card-element-container">
+              <CardElement options={cardStyle} />
+            </div>
+          </div>
+        )}
+
+        {/* Payment Error */}
+        {paymentError && (
+          <div className="payment-error">
+            <span className="error-icon">⚠️</span>
+            {paymentError}
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="checkout-total">
+          <div className="total-row">
+            <span>Subtotal:</span>
+            <span>${subtotal.toFixed(2)}</span>
+          </div>
+          <div className="total-row">
+            <span>Tax (8.75%):</span>
+            <span>${tax.toFixed(2)}</span>
+          </div>
+          {tip > 0 && (
+            <div className="total-row">
+              <span>Tip:</span>
+              <span>${tip.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="total-row final-total">
+            <span>Total:</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          className="place-order-btn"
+          disabled={!stripe || loading}
+        >
+          {loading ? (
+            <span>
+              <span className="loading-spinner"></span>
+              Processing...
+            </span>
+          ) : (
+            <span>
+              {paymentMethod === 'card' 
+                ? `Pay $${total.toFixed(2)}` 
+                : `Place Order - Pay $${total.toFixed(2)} in Store`}
+              <span className="submit-icon">🚀</span>
+            </span>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// Main Checkout component with Stripe wrapper
+function Checkout({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm
+        cart={cart}
+        customerInfo={customerInfo}
+        onPaymentSuccess={onPaymentSuccess}
+        onPaymentError={onPaymentError}
+        onBack={onBack}
+        token={token}
+      />
+    </Elements>
+  );
+}
+
+export default Checkout;

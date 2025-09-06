@@ -1,182 +1,587 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-const SYRUP_PRICE = 0.80;
-const REFRESHER_PRICE = 1.00;
-const SHOT_PRICE = 1.00;
-
-function CustomizationModal({ product, inventory, onAddToCart, onCancel }) {
-  const [customizations, setCustomizations] = useState({});
-  const [extraSyrups, setExtraSyrups] = useState([]);
-  const [extraRefreshers, setExtraRefreshers] = useState([]);
-  
-  const [baseShots, setBaseShots] = useState(0);
-  const [extraShots, setExtraShots] = useState(0);
-
-  const [temperature, setTemperature] = useState(150);
-  const [totalPrice, setTotalPrice] = useState(product.price);
-
-  useEffect(() => {
-    const initialCustomizations = {};
-    let initialShots = 2;
-    
-    // Handle products with recipe (new format) and without recipe (legacy format)
-    if (product.recipe && Array.isArray(product.recipe)) {
-      product.recipe.forEach(ingredient => {
-        if (ingredient.item) {
-          initialCustomizations[ingredient.item.category] = {
-            id: ingredient.item._id,
-            name: ingredient.item.name
-          };
-          if (ingredient.item.category === 'Beans') {
-            initialShots = ingredient.quantityRequired;
-          }
-        }
-      });
+function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, initialCustomizations = null, initialQuantity = 1, isEditing = false }) {
+  // Main customization state - initialize with existing values if editing
+  const [customizations, setCustomizations] = useState(() => {
+    if (initialCustomizations) {
+      return {
+        size: initialCustomizations.size || 'medium',
+        milk: initialCustomizations.milk?.inventoryId || null,
+        extraShots: initialCustomizations.extraShots?.quantity || 0,
+        syrups: initialCustomizations.syrups?.map(s => s.inventoryId) || [],
+        toppings: initialCustomizations.toppings?.map(t => t.inventoryId) || [],
+        temperature: initialCustomizations.temperature || 'hot',
+        coldFoam: initialCustomizations.coldFoam?.added || false,
+        specialInstructions: initialCustomizations.specialInstructions || ''
+      };
     }
     
-    setCustomizations(initialCustomizations);
-    setBaseShots(initialShots);
-  }, [product]);
-
-
-  useEffect(() => {
-    let newPrice = product.price;
-    newPrice += extraSyrups.length * SYRUP_PRICE;
-    newPrice += extraRefreshers.length * REFRESHER_PRICE;
-    newPrice += extraShots * SHOT_PRICE; // Add extra shot cost
-    setTotalPrice(newPrice);
-  }, [extraSyrups, extraRefreshers, extraShots, product.price]);
-
-  // --- POINT 1: Fix customization change handler ---
-  const handleCustomizationChange = (category, itemId) => {
-    const item = inventory.find(i => i._id === itemId);
-    setCustomizations({ 
-        ...customizations, 
-        [category]: { id: itemId, name: item ? (item.name || item.itemName) : '' }
-    });
-  };
-
-  const addExtra = (type) => {
-    if (type === 'Syrup') setExtraSyrups([...extraSyrups, { id: '', name: '' }]);
-    if (type === 'Refresher') setExtraRefreshers([...extraRefreshers, { id: '', name: '' }]);
-  };
-  
-  const handleExtraChange = (index, value, type) => {
-    const item = inventory.find(i => i._id === value);
-    const newItem = { id: value, name: item ? (item.name || item.itemName) : '' };
-
-    if (type === 'Syrup') {
-        const newSyrups = [...extraSyrups];
-        newSyrups[index] = newItem;
-        setExtraSyrups(newSyrups);
-    }
-    if (type === 'Refresher') {
-        const newRefreshers = [...extraRefreshers];
-        newRefreshers[index] = newItem;
-        setExtraRefreshers(newRefreshers);
-    }
-  };
-
-
-  const handleAddToCartClick = () => {
-    // --- POINT 3: Build a more descriptive customization object ---
-    const finalCustomizations = {};
-    for (const category in customizations) {
-        if (customizations[category]) {
-            finalCustomizations[category] = customizations[category].name;
-        }
-    }
-
-    const customizedProduct = {
-      ...product,
-      name: `${product.name} (Customized)`,
-      price: totalPrice,
-      customizations: {
-        ...finalCustomizations,
-        'Extra Shots': extraShots > 0 ? extraShots : undefined,
-        Temperature: product.category === 'Hot Beverage' ? `${temperature}°F` : undefined,
-        'Added Syrups': extraSyrups.filter(s => s.id).map(s => s.name),
-        'Added Refreshers': extraRefreshers.filter(r => r.id).map(r => r.name),
-      },
-      _id: product._id + JSON.stringify(customizations) + Date.now()
+    return {
+      size: 'medium', // Default size
+      milk: null,
+      extraShots: 0,
+      syrups: [],
+      toppings: [],
+      temperature: 'hot',
+      coldFoam: false,
+      specialInstructions: ''
     };
-    onAddToCart(customizedProduct);
+  });
+  
+  const [quantity, setQuantity] = useState(initialQuantity);
+  const [totalPrice, setTotalPrice] = useState(product.price);
+  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  
+  // Available options from inventory
+  const [availableOptions, setAvailableOptions] = useState({
+    milks: [],
+    syrups: [],
+    toppings: [],
+    sizes: [
+      { id: 'small', name: 'Small (8oz)', price: -0.50 },
+      { id: 'medium', name: 'Medium (12oz)', price: 0 },
+      { id: 'large', name: 'Large (16oz)', price: 0.75 },
+      { id: 'extra-large', name: 'Extra Large (20oz)', price: 1.25 }
+    ]
+  });
+
+  // Pricing constants - could be moved to config
+  const PRICING = {
+    extraShot: 0.75,
+    syrup: 0.60,
+    premiumMilk: 0.65, // oat, almond, etc.
+    topping: 0.50,
+    coldFoam: 0.55
+  };
+
+  // Initialize available options from inventory
+  useEffect(() => {
+    if (inventory && inventory.length > 0) {
+      const options = {
+        milks: inventory.filter(item => 
+          item.itemType === 'Milk' && 
+          item.isAvailable && 
+          item.quantityInStock > 0
+        ).map(item => ({
+          id: item._id,
+          name: item.itemName,
+          price: item.itemName.toLowerCase().includes('oat') || 
+                 item.itemName.toLowerCase().includes('almond') ||
+                 item.itemName.toLowerCase().includes('soy') ? PRICING.premiumMilk : 0
+        })),
+        
+        syrups: inventory.filter(item => 
+          item.itemType === 'Syrup' && 
+          item.isAvailable && 
+          item.quantityInStock > 0
+        ).map(item => ({
+          id: item._id,
+          name: item.itemName,
+          price: PRICING.syrup
+        })),
+        
+        toppings: inventory.filter(item => 
+          item.itemType === 'Topping' && 
+          item.isAvailable && 
+          item.quantityInStock > 0
+        ).map(item => ({
+          id: item._id,
+          name: item.itemName,
+          price: PRICING.topping
+        })),
+        
+        sizes: availableOptions.sizes // Keep static sizes
+      };
+      
+      setAvailableOptions(options);
+    }
+  }, [inventory]);
+
+
+  // Calculate total price based on customizations
+  const calculatePrice = useCallback(() => {
+    let price = product.price;
+    
+    // Size adjustment
+    const selectedSize = availableOptions.sizes.find(s => s.id === customizations.size);
+    if (selectedSize) {
+      price += selectedSize.price;
+    }
+    
+    // Milk adjustment
+    if (customizations.milk) {
+      const selectedMilk = availableOptions.milks.find(m => m.id === customizations.milk);
+      if (selectedMilk) {
+        price += selectedMilk.price;
+      }
+    }
+    
+    // Extra shots
+    price += customizations.extraShots * PRICING.extraShot;
+    
+    // Syrups
+    price += customizations.syrups.length * PRICING.syrup;
+    
+    // Toppings
+    price += customizations.toppings.length * PRICING.topping;
+    
+    // Cold foam
+    if (customizations.coldFoam) {
+      price += PRICING.coldFoam;
+    }
+    
+    return price * quantity;
+  }, [product.price, customizations, quantity, availableOptions]);
+  
+  // Update price when customizations change
+  useEffect(() => {
+    setTotalPrice(calculatePrice());
+  }, [calculatePrice]);
+
+  // Customization handlers
+  const updateCustomization = (field, value) => {
+    setCustomizations(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setValidationErrors([]); // Clear errors when user makes changes
   };
   
-const getInventoryByCategory = (category) => {
-  // Handle both 'category' and 'itemType' properties from inventory
-  return inventory.filter(item => 
-    item.category === category || 
-    item.itemType === category ||
-    // Handle common mapping between display names and actual categories
-    (category === 'Beans' && (item.itemType === 'Coffee Beans' || item.category === 'Coffee Beans')) ||
-    (category === 'Milk' && (item.itemType === 'Milk' || item.category === 'Milk')) ||
-    (category === 'Syrup' && (item.itemType === 'Syrup' || item.category === 'Syrup'))
-  );
-};
+  const addSyrup = (syrupId) => {
+    if (customizations.syrups.length >= 4) {
+      setValidationErrors(['Maximum 4 syrups allowed']);
+      return;
+    }
+    if (!customizations.syrups.includes(syrupId)) {
+      updateCustomization('syrups', [...customizations.syrups, syrupId]);
+    }
+  };
+  
+  const removeSyrup = (syrupId) => {
+    updateCustomization('syrups', customizations.syrups.filter(id => id !== syrupId));
+  };
+  
+  const addTopping = (toppingId) => {
+    if (customizations.toppings.length >= 3) {
+      setValidationErrors(['Maximum 3 toppings allowed']);
+      return;
+    }
+    if (!customizations.toppings.includes(toppingId)) {
+      updateCustomization('toppings', [...customizations.toppings, toppingId]);
+    }
+  };
+  
+  const removeTopping = (toppingId) => {
+    updateCustomization('toppings', customizations.toppings.filter(id => id !== toppingId));
+  };
+  
+  // Validate customizations
+  const validateCustomizations = () => {
+    const errors = [];
+    
+    if (customizations.extraShots > 4) {
+      errors.push('Maximum 4 extra shots allowed');
+    }
+    
+    if (customizations.syrups.length > 4) {
+      errors.push('Maximum 4 syrups allowed');
+    }
+    
+    if (customizations.toppings.length > 3) {
+      errors.push('Maximum 3 toppings allowed');
+    }
+    
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+
+  const handleAddToCart = async () => {
+    if (!validateCustomizations()) {
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      // Build customizations for API
+      const processedCustomizations = {
+        size: customizations.size,
+        milk: customizations.milk ? {
+          inventoryId: customizations.milk,
+          name: availableOptions.milks.find(m => m.id === customizations.milk)?.name || 'Unknown',
+          price: availableOptions.milks.find(m => m.id === customizations.milk)?.price || 0
+        } : null,
+        extraShots: customizations.extraShots > 0 ? {
+          quantity: customizations.extraShots,
+          pricePerShot: PRICING.extraShot
+        } : null,
+        syrups: customizations.syrups.map(syrupId => {
+          const syrup = availableOptions.syrups.find(s => s.id === syrupId);
+          return {
+            inventoryId: syrupId,
+            name: syrup?.name || 'Unknown Syrup',
+            price: syrup?.price || PRICING.syrup
+          };
+        }),
+        toppings: customizations.toppings.map(toppingId => {
+          const topping = availableOptions.toppings.find(t => t.id === toppingId);
+          return {
+            inventoryId: toppingId,
+            name: topping?.name || 'Unknown Topping',
+            price: topping?.price || PRICING.topping
+          };
+        }),
+        coldFoam: customizations.coldFoam ? {
+          added: true,
+          price: PRICING.coldFoam
+        } : null,
+        temperature: customizations.temperature,
+        specialInstructions: customizations.specialInstructions.trim() || null
+      };
+      
+      // Build the cart item
+      const cartItem = {
+        productId: product._id,
+        quantity: quantity,
+        customizations: processedCustomizations,
+        estimatedPrice: totalPrice // This will be recalculated by the backend
+      };
+      
+      // Add to cart with customizations
+      onAddToCart(cartItem);
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setValidationErrors(['Failed to add item to cart. Please try again.']);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Get display names for selected items
+  const getSelectedItemName = (itemId, itemArray) => {
+    return itemArray.find(item => item.id === itemId)?.name || 'Unknown';
+  };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h3>Customize {product.name}</h3>
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="customization-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{isEditing ? 'Edit' : 'Customize Your'} {product.name}</h2>
+          <button className="close-btn" onClick={onCancel} aria-label="Close">×</button>
+        </div>
 
-        {['Iced Beverage', 'Hot Beverage', 'Shaken Beverage'].includes(product.category) && (
-          <>
-            <CustomizationOption label="Milk" items={getInventoryByCategory('Milk')} category="Milk" value={customizations.Milk?.id} onChange={handleCustomizationChange} />
-            <CustomizationOption label="Syrup" items={getInventoryByCategory('Syrup')} category="Syrup" value={customizations.Syrup?.id} onChange={handleCustomizationChange} />
-            <CustomizationOption label="Bean" items={getInventoryByCategory('Beans')} category="Beans" value={customizations.Beans?.id} onChange={handleCustomizationChange} />
-            
-            <div>
-              {/* --- POINT 2: Update Label --- */}
-              <label>Extra Shots of Espresso (base: {baseShots}):</label>
-              <button onClick={() => setExtraShots(s => Math.max(0, s - 1))}>-</button>
-              <span> {extraShots} </span>
-              <button onClick={() => setExtraShots(s => s + 1)}>+</button>
+        <div className="modal-body">
+          {validationErrors.length > 0 && (
+            <div className="validation-errors">
+              {validationErrors.map((error, index) => (
+                <div key={index} className="error-message">⚠️ {error}</div>
+              ))}
             </div>
-            
-            {extraSyrups.map((_, index) => (
-                <CustomizationOption key={index} label={`Extra Syrup ${index + 1}`} items={getInventoryByCategory('Syrup')} onChange={(cat, val) => handleExtraChange(index, val, 'Syrup')} />
-            ))}
-            <button onClick={() => addExtra('Syrup')}>Add Syrup (${SYRUP_PRICE.toFixed(2)})</button>
-          </>
-        )}
+          )}
 
-        {/* --- Hot Beverage Only --- */}
-        {product.category === 'Hot Beverage' && (
-          <div>
-            <label>Temperature:</label>
-            <input type="range" min="120" max="180" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
-            <span> {temperature}°F</span>
+          {/* Size Selection */}
+          <div className="customization-section">
+            <h3 className="section-title">🍵 Size</h3>
+            <div className="options-grid">
+              {availableOptions.sizes.map(size => (
+                <label key={size.id} className={`option-card ${customizations.size === size.id ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="size"
+                    value={size.id}
+                    checked={customizations.size === size.id}
+                    onChange={(e) => updateCustomization('size', e.target.value)}
+                  />
+                  <div className="option-content">
+                    <span className="option-name">{size.name}</span>
+                    {size.price !== 0 && (
+                      <span className="option-price">
+                        {size.price > 0 ? '+' : ''}${size.price.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
-        )}
 
-        {/* --- Refresher Only --- */}
-        {product.category === 'Refresher' && (
-          <>
-             {extraRefreshers.map((refresher, index) => (
-                <CustomizationOption key={index} label={`Add Refresher ${index + 1}`} items={getInventoryByCategory('Refresher')} value={refresher} onChange={(val) => handleExtraChange(index, val, 'Refresher')} />
-            ))}
-            <button onClick={() => addExtra('Refresher')}>Add Refresher (${REFRESHER_PRICE.toFixed(2)})</button>
-          </>
-        )}
+          {/* Milk Selection */}
+          {availableOptions.milks.length > 0 && (
+            <div className="customization-section">
+              <h3 className="section-title">🥛 Milk</h3>
+              <div className="options-grid">
+                <label className={`option-card ${!customizations.milk ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="milk"
+                    value=""
+                    checked={!customizations.milk}
+                    onChange={() => updateCustomization('milk', null)}
+                  />
+                  <div className="option-content">
+                    <span className="option-name">Default</span>
+                  </div>
+                </label>
+                {availableOptions.milks.map(milk => (
+                  <label key={milk.id} className={`option-card ${customizations.milk === milk.id ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="milk"
+                      value={milk.id}
+                      checked={customizations.milk === milk.id}
+                      onChange={(e) => updateCustomization('milk', e.target.value)}
+                    />
+                    <div className="option-content">
+                      <span className="option-name">{milk.name}</span>
+                      {milk.price > 0 && (
+                        <span className="option-price">+${milk.price.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
-        <hr />
-        <h4>Total: ${totalPrice.toFixed(2)}</h4>
-        <button onClick={handleAddToCartClick}>Add to Cart</button>
-        <button onClick={onCancel} style={{backgroundColor: '#6c757d'}}>Cancel</button>
+          {/* Extra Shots */}
+          <div className="customization-section">
+            <h3 className="section-title">☕ Extra Shots</h3>
+            <div className="quantity-control">
+              <button 
+                type="button"
+                className="qty-btn"
+                onClick={() => updateCustomization('extraShots', Math.max(0, customizations.extraShots - 1))}
+                disabled={customizations.extraShots === 0}
+              >
+                -
+              </button>
+              <span className="qty-display">
+                {customizations.extraShots} shots
+                {customizations.extraShots > 0 && (
+                  <span className="qty-price"> (+${(customizations.extraShots * PRICING.extraShot).toFixed(2)})</span>
+                )}
+              </span>
+              <button 
+                type="button"
+                className="qty-btn"
+                onClick={() => updateCustomization('extraShots', Math.min(4, customizations.extraShots + 1))}
+                disabled={customizations.extraShots >= 4}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Syrups */}
+          {availableOptions.syrups.length > 0 && (
+            <div className="customization-section">
+              <h3 className="section-title">🍯 Syrups</h3>
+              <div className="selected-items">
+                {customizations.syrups.map(syrupId => {
+                  const syrup = availableOptions.syrups.find(s => s.id === syrupId);
+                  return (
+                    <div key={syrupId} className="selected-item">
+                      <span>{syrup?.name || 'Unknown'}</span>
+                      <button 
+                        type="button" 
+                        className="remove-btn"
+                        onClick={() => removeSyrup(syrupId)}
+                        aria-label={`Remove ${syrup?.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="add-options">
+                <select 
+                  className="add-select"
+                  value="" 
+                  onChange={(e) => e.target.value && addSyrup(e.target.value)}
+                  disabled={customizations.syrups.length >= 4}
+                >
+                  <option value="">Add syrup (+${PRICING.syrup.toFixed(2)})</option>
+                  {availableOptions.syrups
+                    .filter(syrup => !customizations.syrups.includes(syrup.id))
+                    .map(syrup => (
+                      <option key={syrup.id} value={syrup.id}>{syrup.name}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Toppings */}
+          {availableOptions.toppings.length > 0 && (
+            <div className="customization-section">
+              <h3 className="section-title">🍰 Toppings</h3>
+              <div className="selected-items">
+                {customizations.toppings.map(toppingId => {
+                  const topping = availableOptions.toppings.find(t => t.id === toppingId);
+                  return (
+                    <div key={toppingId} className="selected-item">
+                      <span>{topping?.name || 'Unknown'}</span>
+                      <button 
+                        type="button" 
+                        className="remove-btn"
+                        onClick={() => removeTopping(toppingId)}
+                        aria-label={`Remove ${topping?.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="add-options">
+                <select 
+                  className="add-select"
+                  value="" 
+                  onChange={(e) => e.target.value && addTopping(e.target.value)}
+                  disabled={customizations.toppings.length >= 3}
+                >
+                  <option value="">Add topping (+${PRICING.topping.toFixed(2)})</option>
+                  {availableOptions.toppings
+                    .filter(topping => !customizations.toppings.includes(topping.id))
+                    .map(topping => (
+                      <option key={topping.id} value={topping.id}>{topping.name}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Temperature */}
+          <div className="customization-section">
+            <h3 className="section-title">🌡️ Temperature</h3>
+            <div className="options-grid">
+              <label className={`option-card ${customizations.temperature === 'hot' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="temperature"
+                  value="hot"
+                  checked={customizations.temperature === 'hot'}
+                  onChange={(e) => updateCustomization('temperature', e.target.value)}
+                />
+                <div className="option-content">
+                  <span className="option-name">Hot</span>
+                </div>
+              </label>
+              <label className={`option-card ${customizations.temperature === 'iced' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="temperature"
+                  value="iced"
+                  checked={customizations.temperature === 'iced'}
+                  onChange={(e) => updateCustomization('temperature', e.target.value)}
+                />
+                <div className="option-content">
+                  <span className="option-name">Iced</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Cold Foam (for iced drinks) */}
+          {customizations.temperature === 'iced' && (
+            <div className="customization-section">
+              <h3 className="section-title">☁️ Cold Foam</h3>
+              <label className="checkbox-option">
+                <input
+                  type="checkbox"
+                  checked={customizations.coldFoam}
+                  onChange={(e) => updateCustomization('coldFoam', e.target.checked)}
+                />
+                <span className="checkmark"></span>
+                <span className="option-content">
+                  <span className="option-name">Add Cold Foam</span>
+                  <span className="option-price">+${PRICING.coldFoam.toFixed(2)}</span>
+                </span>
+              </label>
+            </div>
+          )}
+
+          {/* Special Instructions */}
+          <div className="customization-section">
+            <h3 className="section-title">📝 Special Instructions</h3>
+            <textarea
+              className="special-instructions"
+              placeholder="Any special requests? (e.g., extra hot, light ice, etc.)"
+              value={customizations.specialInstructions}
+              onChange={(e) => updateCustomization('specialInstructions', e.target.value)}
+              maxLength={200}
+              rows={3}
+            />
+            <div className="char-count">
+              {customizations.specialInstructions.length}/200
+            </div>
+          </div>
+
+          {/* Quantity */}
+          <div className="customization-section">
+            <h3 className="section-title">🔢 Quantity</h3>
+            <div className="quantity-control">
+              <button 
+                type="button"
+                className="qty-btn"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity === 1}
+              >
+                -
+              </button>
+              <span className="qty-display">{quantity}</span>
+              <button 
+                type="button"
+                className="qty-btn"
+                onClick={() => setQuantity(Math.min(10, quantity + 1))}
+                disabled={quantity >= 10}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <div className="total-section">
+            <div className="total-price">
+              Total: ${totalPrice.toFixed(2)}
+              {quantity > 1 && (
+                <span className="quantity-note"> (${(totalPrice/quantity).toFixed(2)} each)</span>
+              )}
+            </div>
+          </div>
+          <div className="action-buttons">
+            <button 
+              type="button"
+              className="btn btn-secondary"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button"
+              className="btn btn-primary"
+              onClick={handleAddToCart}
+              disabled={loading}
+            >
+              {loading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? `Update Item - $${totalPrice.toFixed(2)}` : `Add to Cart - $${totalPrice.toFixed(2)}`)}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-const CustomizationOption = ({ label, items, category, value, onChange }) => (
-    <div>
-      <label>{label}:</label>
-      <select value={value || ''} onChange={(e) => onChange(category, e.target.value)}>
-        <option value="">Select {label}</option>
-        {items.map(item => <option key={item._id} value={item._id}>{item.name || item.itemName}</option>)}
-      </select>
-    </div>
-  );
+}
 
 export default CustomizationModal;
