@@ -36,7 +36,7 @@ function CustomerForm({ onNext, onBack, existingCustomer = null, user = null }) 
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (customerInfo.phone && !/^[\d\s\-\(\)\+\.]+$/.test(customerInfo.phone)) {
+    if (customerInfo.phone && !/^[\d\s\-()+.]+$/.test(customerInfo.phone)) {
       newErrors.phone = 'Please enter a valid phone number';
     }
 

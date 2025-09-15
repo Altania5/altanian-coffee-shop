@@ -7,6 +7,7 @@ import CoffeeLogPage from '../pages/CoffeeLogPage';
 import CustomerForm from '../components/CustomerForm';
 import Checkout from '../components/Checkout';
 import OrderSuccess from '../components/OrderSuccess';
+import NotificationCenter from '../components/NotificationCenter';
 
 function AppLayout({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('home');
@@ -197,6 +198,7 @@ function AppLayout({ user, onLogout }) {
       <main>
         {renderContent()}
       </main>
+      <NotificationCenter />
     </div>
   );
 }

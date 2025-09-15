@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import AppLayout from './layout/AppLayout';
 import LoginPage from './pages/LoginPage';
+import { SocketProvider } from './context/SocketContext';
 
 import './App.css';
 
@@ -14,7 +15,9 @@ function App() {
     if (token) {
       try {
         const decodedUser = jwtDecode(token);
-        setUser({ ...decodedUser, token }); // Store decoded user info and token
+        const userData = { ...decodedUser, token };
+        console.log('🔑 App startup - User data:', userData);
+        setUser(userData); // Store decoded user info and token
       } catch (error) {
         // If token is invalid, remove it
         localStorage.removeItem('token');
@@ -25,7 +28,9 @@ function App() {
   const handleLogin = (token) => {
     localStorage.setItem('token', token);
     const decodedUser = jwtDecode(token);
-    setUser({ ...decodedUser, token });
+    const userData = { ...decodedUser, token };
+    console.log('🔑 Login - User data:', userData);
+    setUser(userData);
   };
 
   const handleLogout = () => {
@@ -33,9 +38,14 @@ function App() {
     setUser(null);
   };
 
+  // Memoize user object to prevent unnecessary re-renders
+  const stableUser = useMemo(() => user, [user?.id, user?.role, user?.token]);
+
   // If there's no user, show the LoginPage. Otherwise, show the main app.
-  return user ? (
-    <AppLayout user={user} onLogout={handleLogout} />
+  return stableUser ? (
+    <SocketProvider user={stableUser}>
+      <AppLayout user={stableUser} onLogout={handleLogout} />
+    </SocketProvider>
   ) : (
     <LoginPage onLogin={handleLogin} />
   );

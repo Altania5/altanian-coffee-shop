@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import getBaseURL from '../utils/api';
 
 const PRODUCT_CATEGORIES = ['Iced Beverage', 'Hot Beverage', 'Shaken Beverage', 'Refresher'];
 
@@ -15,7 +16,7 @@ function ProductManager({ token }) {
             return;
         }
         try {
-            const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+            const baseURL = getBaseURL();
             const authHeaders = { 'x-auth-token': token };
             const [productsRes, inventoryRes] = await Promise.all([
                 axios.get(`${baseURL}/products`),
@@ -44,7 +45,7 @@ function ProductManager({ token }) {
         const productData = { ...productToSave, recipe: finalRecipe };
 
         try {
-            const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+            const baseURL = getBaseURL();
             if (productData._id) {
                 await axios.put(`${baseURL}/products/update/${productData._id}`, productData, { headers: { 'x-auth-token': token } });
             } else {
@@ -60,7 +61,7 @@ function ProductManager({ token }) {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+                const baseURL = getBaseURL();
                 await axios.delete(`${baseURL}/products/delete/${id}`, { headers: { 'x-auth-token': token } });
                 fetchData();
             } catch (err) {

@@ -12,7 +12,7 @@ function OrderSuccess({
   token 
 }) {
   const [estimatedReadyTime, setEstimatedReadyTime] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // const [loading] = useState(false);
 
   // Calculate estimated ready time (15-25 minutes from now)
   useEffect(() => {

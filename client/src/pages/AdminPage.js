@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import api from '../utils/api';
+import { useSocket } from '../context/SocketContext';
 import '../styles/admin.css';
-import InventoryManager from '../components/InventoryManager';
+// import InventoryManager from '../components/InventoryManager';
 import AdminInventoryManager from '../components/admin/InventoryManager';
 import ProductManager from '../components/ProductManager';
 import SuggestedItemManager from '../components/SuggestedItemManager';
@@ -9,13 +11,13 @@ import PromoCodeManager from '../components/PromoCodeManager';
 import OrderQueue from '../components/admin/OrderQueue';
 
 function AdminPage({ user }) {
+  const { addNotification, socket } = useSocket();
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [lowStockAlerts, setLowStockAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [socket, setSocket] = useState(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -32,20 +34,7 @@ function AdminPage({ user }) {
   console.log('AdminPage - User firstName:', user?.firstName);
   console.log('AdminPage - Is admin?', isAdmin);
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchInitialData();
-      setupWebSocket();
-    }
-
-    return () => {
-      if (socket) {
-        socket.close();
-      }
-    };
-  }, [user, isAdmin]);
-
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -55,18 +44,16 @@ function AdminPage({ user }) {
         const ordersData = ordersRes.data.orders || [];
         setOrders(ordersData);
 
-        // Calculate stats
-        const totalOrders = ordersData.length;
-        const pendingOrders = ordersData.filter(order => 
-          ['pending', 'confirmed', 'preparing'].includes(order.status)
-        ).length;
-        const readyOrders = ordersData.filter(order => order.status === 'ready').length;
-
+        // Use dashboard stats
+        const dashboardData = ordersRes.data.dashboard;
         setStats(prev => ({
           ...prev,
-          totalOrders,
-          pendingOrders,
-          readyOrders
+          totalOrders: dashboardData.todaysOrders.total,
+          pendingOrders: dashboardData.todaysOrders.byStatus.pending + 
+                       dashboardData.todaysOrders.byStatus.confirmed + 
+                       dashboardData.todaysOrders.byStatus.preparing,
+          readyOrders: dashboardData.todaysOrders.byStatus.ready,
+          lowStockItems: dashboardData.lowStockItems.length
         }));
       } catch (ordersError) {
         console.log('Orders endpoint not available, using mock data');
@@ -96,7 +83,7 @@ function AdminPage({ user }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const generateMockOrders = () => {
     return [
@@ -140,14 +127,44 @@ function AdminPage({ user }) {
     ];
   };
 
-  const setupWebSocket = () => {
-    // Mock WebSocket for development
-    console.log('WebSocket setup (mock for development)');
-    setSocket({ connected: true });
-  };
+  const showNotification = useCallback((title, message, type = 'info') => {
+    console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+    addNotification({
+      id: Date.now(),
+      title,
+      message,
+      type,
+      timestamp: new Date()
+    });
+  }, [addNotification]);
+
+  // Setup WebSocket event listeners when socket is available
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('low-stock-alert', (data) => {
+      console.log('🚨 Received low stock alert:', data);
+      setLowStockAlerts(prev => [data, ...prev.slice(0, 9)]);
+      showNotification('Low Stock Alert', data.message, 'warning');
+    });
+
+    return () => {
+      socket.off('low-stock-alert');
+    };
+  }, [socket, showNotification]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchInitialData();
+    }
+  }, [user, isAdmin, fetchInitialData]);
 
   const handleOrderStatusUpdate = async (orderId, newStatus) => {
     try {
+      // Find the order to get user info
+      const order = orders.find(o => o._id === orderId);
+      const oldStatus = order ? order.status : 'unknown';
+
       try {
         await api.put(`/orders/${orderId}/status`, { status: newStatus });
       } catch (error) {
@@ -161,6 +178,16 @@ function AdminPage({ user }) {
           : order
       ));
 
+      // Emit WebSocket notification to customer
+      if (socket && socket.connected && order && order.user) {
+        socket.emit('order-status-update', {
+          orderId: orderId,
+          userId: order.user,
+          status: newStatus,
+          oldStatus: oldStatus
+        });
+      }
+
       updateOrderStats();
       showNotification('Order Updated', `Order status changed to ${newStatus}`, 'success');
 
@@ -172,24 +199,43 @@ function AdminPage({ user }) {
 
   const handleInventoryUpdate = async (itemId, newQuantity) => {
     try {
+      // Find the current item to preserve all its properties
+      const currentItem = inventory.find(item => item._id === itemId);
+      if (!currentItem) {
+        console.error('Item not found in inventory:', itemId);
+        return;
+      }
+
+      console.log('🔄 Updating inventory item:', {
+        itemId,
+        itemName: currentItem.itemName,
+        currentQuantity: currentItem.quantityInStock,
+        newQuantity
+      });
+
+      // Create updated item with all original properties plus new quantity
+      const updatedItem = {
+        ...currentItem,
+        quantityInStock: newQuantity,
+        currentQuantity: newQuantity
+      };
+
       try {
         await api.patch(`/inventory/${itemId}`, { currentQuantity: newQuantity });
       } catch (error) {
-        console.log('Inventory API endpoint not available, updating locally only');
+        console.log('⚠️ Inventory API endpoint not available, updating locally only:', error.message);
       }
 
       // Update local inventory state
       setInventory(prev => prev.map(item =>
-        item._id === itemId
-          ? { ...item, currentQuantity: newQuantity }
-          : item
+        item._id === itemId ? updatedItem : item
       ));
 
       showNotification('Inventory Updated', 'Stock quantity updated successfully', 'success');
 
     } catch (error) {
-      console.error('Error updating inventory:', error);
-      setError('Failed to update inventory');
+      console.error('❌ Error updating inventory:', error);
+      showNotification('Error', `Failed to update inventory for ${itemId}`, 'error');
     }
   };
 
@@ -208,10 +254,6 @@ function AdminPage({ user }) {
     }));
   };
 
-  const showNotification = (title, message, type = 'info') => {
-    console.log(`${type.toUpperCase()}: ${title} - ${message}`);
-    // You could integrate with a toast library here
-  };
 
   if (!isAdmin) {
     return (

@@ -13,6 +13,14 @@
   max-width: 100%;
 }
 
+/* Notification Center Positioning */
+.notification-center {
+  position: fixed;
+  top: 20px;
+  right: 5px;
+  z-index: 1000;
+}
+
 /* Mobile-first base styles - 320px and up */
 :root {
   /* Coffee Shop Color Palette */

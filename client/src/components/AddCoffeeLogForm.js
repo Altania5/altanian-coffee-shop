@@ -9,6 +9,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
   const [formData, setFormData] = useState({
     // Basic Parameters
     bean: '',
+    bag: '',
     machine: 'Meraki',
     grindSize: '',
     extractionTime: '',
@@ -50,6 +51,9 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [bags, setBags] = useState([]);
+  const [bagForm, setBagForm] = useState({ bagSizeGrams: 250 });
+  const [bagWarning, setBagWarning] = useState('');
 
   // Real-time calculations
   useEffect(() => {
@@ -68,6 +72,32 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     setCalculatedValues(calculated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.inWeight, formData.outWeight, formData.extractionTime]);
+
+  // Fetch bags when bean changes
+  useEffect(() => {
+    const fetchBags = async () => {
+      if (!formData.bean) { setBags([]); return; }
+      try {
+        const headers = { 'x-auth-token': token };
+        const resp = await axios.get(`/beanbags?bean=${formData.bean}`, { headers });
+        setBags(resp.data || []);
+      } catch (e) {
+        setBags([]);
+      }
+    };
+    fetchBags();
+  }, [formData.bean, token]);
+
+  // Predict low bag warning
+  useEffect(() => {
+    const selectedBag = bags.find(b => b._id === formData.bag);
+    if (selectedBag && formData.inWeight) {
+      const remainingAfter = (selectedBag.remainingGrams || 0) - (formData.inWeight || 0);
+      setBagWarning(remainingAfter <= 0 ? '⚠️ This bag will be empty after this shot.' : (remainingAfter <= 20 ? '⚠️ Running low. Consider preparing a new bag soon.' : ''));
+    } else {
+      setBagWarning('');
+    }
+  }, [bags, formData.bag, formData.inWeight]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -95,6 +125,8 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
           newFormData.roastLevel = selectedBean.roastLevel || '';
           newFormData.processMethod = selectedBean.processMethod || '';
         }
+        // Reset selected bag when bean changes
+        newFormData.bag = '';
       }
       
       setFormData(newFormData);
@@ -129,6 +161,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
       // Reset form to defaults
       setFormData({
         bean: '',
+        bag: '',
         machine: 'Meraki',
         grindSize: '',
         extractionTime: '',
@@ -164,6 +197,8 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         tasteMetExpectations: true,
         notes: ''
       });
+      setBags([]);
+      setBagForm({ bagSizeGrams: 250 });
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
@@ -234,6 +269,24 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
               </select>
             </div>
           </div>
+
+          {/* Bag selection for the chosen bean */}
+          {formData.bean && (
+            <div className="form-row">
+              <div className="form-group">
+                <label>Bag</label>
+                <select name="bag" value={formData.bag || ''} onChange={handleChange}>
+                  <option value="">Select bag (optional)</option>
+                  {bags.map(b => (
+                    <option key={b._id} value={b._id}>
+                      {b.bagSizeGrams}g bag • {Math.max(0, b.remainingGrams)}g left {b.isEmpty ? '(empty)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {bagWarning && <div className="input-hint" style={{ color: '#c67c00' }}>{bagWarning}</div>}
+              </div>
+            </div>
+          )}
           
           {/* Bean Characteristics (auto-populated) */}
           {(formData.roastLevel || formData.processMethod) && (
@@ -409,6 +462,61 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
             </div>
           )}
         </div>
+
+        {/* Bag Management */}
+        {formData.bean && (
+          <div className="form-section">
+            <h3 className="section-title">Bean Bag</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>New Bag Size (g)</label>
+                <input
+                  type="number"
+                  min="100"
+                  step="10"
+                  value={bagForm.bagSizeGrams}
+                  onChange={(e) => setBagForm({ bagSizeGrams: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="form-group">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const headers = { 'x-auth-token': token };
+                      const resp = await axios.post('/beanbags', { bean: formData.bean, bagSizeGrams: bagForm.bagSizeGrams }, { headers });
+                      setBags([resp.data, ...bags]);
+                      setFormData({ ...formData, bag: resp.data._id });
+                    } catch (e) {
+                      setError(e.response?.data?.msg || 'Failed to create bag');
+                    }
+                  }}
+                >
+                  ➕ Create New Bag
+                </button>
+              </div>
+            </div>
+            {formData.bag && (
+              <div className="form-group">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const headers = { 'x-auth-token': token };
+                      await axios.patch(`/beanbags/${formData.bag}/empty`, {}, { headers });
+                      const updated = bags.map(b => b._id === formData.bag ? { ...b, remainingGrams: 0, isEmpty: true } : b);
+                      setBags(updated);
+                    } catch (e) {
+                      setError(e.response?.data?.msg || 'Failed to mark bag empty');
+                    }
+                  }}
+                >
+                  🗑️ Mark Bag Empty
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Shot Quality & Taste */}
         <div className="form-section">

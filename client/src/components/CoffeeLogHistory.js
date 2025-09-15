@@ -11,6 +11,9 @@ function CoffeeLogHistory({ logs }) {
           {logs.map(log => (
             <li key={log._id} className="order-item">
               <p><strong>Bean:</strong> {log.bean?.name} ({log.bean?.roaster})</p>
+              {log.bag && (
+                <p><strong>Bag:</strong> {log.bag.bagSizeGrams}g • {Math.max(0, log.bag.remainingGrams)}g left {log.bag.isEmpty ? '(empty)' : ''}</p>
+              )}
               <p><strong>Date:</strong> {new Date(log.createdAt).toLocaleString()}</p>
               <p>
                 <strong>Parameters:</strong> {log.inWeight}g in, {log.outWeight}g out,

@@ -15,7 +15,7 @@ router.post('/add', auth, async (req, res) => {
       name,
       roaster,
       origin,
-      user: req.user
+      user: req.user.id
     });
     const savedBean = await newBean.save();
     res.json(savedBean);
@@ -29,7 +29,7 @@ router.post('/add', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const beans = await Bean.find({ user: req.user });
+    const beans = await Bean.find({ user: req.user.id });
     res.json(beans);
   } catch (err) {
     res.status(500).json({ error: err.message });

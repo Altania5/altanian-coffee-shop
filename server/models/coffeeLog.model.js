@@ -4,6 +4,8 @@ const Schema = mongoose.Schema;
 const coffeeLogSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   bean: { type: Schema.Types.ObjectId, ref: 'Bean', required: true },
+  // Optional bag reference to track bean consumption
+  bag: { type: Schema.Types.ObjectId, ref: 'BeanBag' },
   machine: {
     type: String,
     enum: ['Meraki', 'Breville', 'La Marzocco', 'Rancilio', 'Gaggia', 'Other'],

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import images from '../assets/images';
 import TipJar from '../components/TipJar';
+// eslint-disable-next-line no-unused-vars
+import getBaseURL from '../utils/api';
 
 function HomePage({ user }) {
   const [usualOrder, setUsualOrder] = useState(null);
@@ -17,7 +19,7 @@ function HomePage({ user }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const baseURL = process.env.REACT_APP_API_BASE_URL || '';
+        const baseURL = getBaseURL();
         const headers = { 'x-auth-token': user.token };
         const [usualResponse, suggestedResponse] = await Promise.all([
           axios.get(`${baseURL}/orders/usual`, { headers }),
