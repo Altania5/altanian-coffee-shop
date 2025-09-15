@@ -150,7 +150,7 @@ const orderSchema = new Schema({
 });
 
 // Indexes for performance
-orderSchema.index({ orderNumber: 1 });
+// orderNumber index is already created by unique: true
 orderSchema.index({ 'customer.email': 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });

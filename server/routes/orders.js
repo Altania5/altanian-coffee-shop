@@ -165,6 +165,61 @@ router.get('/', auth, async (req, res) => {
 });
 
 /**
+ * @route   GET /orders/usual
+ * @desc    Get user's most ordered product (legacy endpoint)
+ * @access  Private
+ */
+router.get('/usual', auth, async (req, res) => {
+  try {
+    const result = await Order.aggregate([
+      { $match: { 'customer.user': new mongoose.Types.ObjectId(req.user.id) } },
+      { $unwind: '$items' },
+      { $group: {
+        _id: '$items.product',
+        totalOrdered: { $sum: '$items.quantity' }
+      }},
+      { $sort: { totalOrdered: -1 } },
+      { $limit: 1 },
+      { $lookup: {
+        from: 'products',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'productDetails'
+      }},
+      { $unwind: '$productDetails' },
+      { $project: {
+        _id: 0,
+        product: '$productDetails'
+      }}
+    ]);
+
+    if (result.length > 0) {
+      res.json(result[0].product);
+    } else {
+      res.json(null); // No orders found for this user
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * @route   GET /orders/myorders
+ * @desc    Get user's orders (legacy endpoint)
+ * @access  Private
+ */
+router.get('/myorders', auth, async (req, res) => {
+  try {
+    const orders = await Order.find({ 'customer.user': req.user.id })
+      .populate('items.product', 'name price')
+      .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * @route   GET /orders/:id
  * @desc    Get single order by ID
  * @access  Private
@@ -409,61 +464,6 @@ router.get('/admin/dashboard', auth, async (req, res) => {
       success: false,
       message: 'Failed to fetch dashboard data'
     });
-  }
-});
-
-/**
- * @route   GET /orders/usual
- * @desc    Get user's most ordered product (legacy endpoint)
- * @access  Private
- */
-router.get('/usual', auth, async (req, res) => {
-  try {
-    const result = await Order.aggregate([
-      { $match: { 'customer.user': new mongoose.Types.ObjectId(req.user.id) } },
-      { $unwind: '$items' },
-      { $group: {
-        _id: '$items.product',
-        totalOrdered: { $sum: '$items.quantity' }
-      }},
-      { $sort: { totalOrdered: -1 } },
-      { $limit: 1 },
-      { $lookup: {
-        from: 'products',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'productDetails'
-      }},
-      { $unwind: '$productDetails' },
-      { $project: {
-        _id: 0,
-        product: '$productDetails'
-      }}
-    ]);
-
-    if (result.length > 0) {
-      res.json(result[0].product);
-    } else {
-      res.json(null); // No orders found for this user
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * @route   GET /orders/myorders
- * @desc    Get user's orders (legacy endpoint)
- * @access  Private
- */
-router.get('/myorders', auth, async (req, res) => {
-  try {
-    const orders = await Order.find({ 'customer.user': req.user.id })
-      .populate('items.product', 'name price')
-      .sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 

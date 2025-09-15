@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 
 function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, initialCustomizations = null, initialQuantity = 1, isEditing = false }) {
   // Main customization state - initialize with existing values if editing
@@ -97,7 +96,7 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, 
       
       setAvailableOptions(options);
     }
-  }, [inventory]);
+  }, [inventory]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Calculate total price based on customizations
@@ -133,7 +132,7 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, 
     }
     
     return price * quantity;
-  }, [product.price, customizations, quantity, availableOptions]);
+  }, [product.price, customizations, quantity, availableOptions]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Update price when customizations change
   useEffect(() => {
@@ -261,10 +260,10 @@ function CustomizationModal({ product, inventory, onAddToCart, onCancel, token, 
     }
   };
   
-  // Get display names for selected items
-  const getSelectedItemName = (itemId, itemArray) => {
-    return itemArray.find(item => item.id === itemId)?.name || 'Unknown';
-  };
+  // Get display names for selected items (currently unused but may be needed later)
+  // const getSelectedItemName = (itemId, itemArray) => {
+  //   return itemArray.find(item => item.id === itemId)?.name || 'Unknown';
+  // };
 
   return (
     <div className="modal-overlay" onClick={onCancel}>

@@ -16,7 +16,7 @@ const findActivePromoCode = async (promoCode) => {
 router.post('/create-checkout-session', auth, async (req, res) => {
   try {
     const { cart, promoCode } = req.body;
-    const user = await User.findById(req.user);
+    const user = await User.findById(req.user.id);
 
     if (!cart || cart.length === 0) {
       return res.status(400).json({ error: { message: "Cannot create a payment for an empty cart." }});
@@ -59,7 +59,7 @@ router.post('/create-checkout-session', auth, async (req, res) => {
 router.post('/create-tip-session', auth, async (req, res) => {
   try {
     const { amount } = req.body;
-    const user = await User.findById(req.user);
+    const user = await User.findById(req.user.id);
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: { message: 'A tip amount is required.' } });

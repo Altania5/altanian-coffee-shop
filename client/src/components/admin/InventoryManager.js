@@ -11,7 +11,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
   const [newItem, setNewItem] = useState({
     itemName: '',
     itemType: 'Beans',
-    currentQuantity: 0,
+    quantityInStock: 0,
     lowStockThreshold: 10,
     unit: 'lbs',
     isAvailable: true
@@ -48,15 +48,18 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
     // Low stock filter
     if (showLowStockOnly) {
       filtered = filtered.filter(item => 
-        item.currentQuantity <= (item.lowStockThreshold || 10)
+        (item.quantityInStock || item.currentQuantity || 0) <= (item.lowStockThreshold || 10)
       );
     }
 
     // Sort
     filtered.sort((a, b) => {
+      const aQuantity = a.quantityInStock || a.currentQuantity || 0;
+      const bQuantity = b.quantityInStock || b.currentQuantity || 0;
+      
       switch (sortBy) {
         case 'stock-high':
-          return b.currentQuantity - a.currentQuantity;
+          return bQuantity - aQuantity;
         case 'name':
           return (a.itemName || '').localeCompare(b.itemName || '');
         case 'category':
@@ -64,7 +67,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
         case 'threshold':
           return (a.lowStockThreshold || 0) - (b.lowStockThreshold || 0);
         default: // stock-level
-          return a.currentQuantity - b.currentQuantity;
+          return aQuantity - bQuantity;
       }
     });
 
@@ -72,7 +75,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
   };
 
   const getStockStatus = (item) => {
-    const current = item.currentQuantity || 0;
+    const current = item.quantityInStock || item.currentQuantity || 0;
     const threshold = item.lowStockThreshold || 10;
     
     if (current <= 0) return { status: 'out', color: '#dc3545', label: 'Out of Stock' };
@@ -85,7 +88,8 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
     const item = items.find(i => i._id === itemId);
     if (!item) return;
     
-    const newQuantity = Math.max(0, (item.currentQuantity || 0) + adjustment);
+    const currentQuantity = item.quantityInStock || item.currentQuantity || 0;
+    const newQuantity = Math.max(0, currentQuantity + adjustment);
     handleInventoryUpdate(itemId, newQuantity);
   };
 
@@ -93,7 +97,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
     // Update local state immediately
     setItems(prev => prev.map(item =>
       item._id === itemId
-        ? { ...item, currentQuantity: newQuantity }
+        ? { ...item, quantityInStock: newQuantity, currentQuantity: newQuantity }
         : item
     ));
     
@@ -115,7 +119,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
       const token = localStorage.getItem('token'); // Get from storage or context
       const headers = { 'x-auth-token': token };
 
-      await axios.patch(`${baseURL}/admin/inventory/${editingItem._id}`, editingItem, { headers });
+      await axios.put(`${baseURL}/inventory/update/${editingItem._id}`, editingItem, { headers });
       
       // Update local state
       setItems(prev => prev.map(item =>
@@ -135,20 +139,24 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
       const token = localStorage.getItem('token');
       const headers = { 'x-auth-token': token };
 
+      console.log('➕ Adding new inventory item:', newItem);
+
       const response = await axios.post(`${baseURL}/inventory/add`, newItem, { headers });
+      
+      console.log('✅ Item added successfully:', response.data);
       
       setItems(prev => [...prev, response.data]);
       setNewItem({
         itemName: '',
         itemType: 'Beans',
-        currentQuantity: 0,
+        quantityInStock: 0,
         lowStockThreshold: 10,
         unit: 'lbs',
         isAvailable: true
       });
     } catch (error) {
-      console.error('Error adding item:', error);
-      alert('Failed to add item');
+      console.error('❌ Error adding item:', error);
+      alert('Failed to add item: ' + (error.response?.data?.msg || error.message));
     }
   };
 
@@ -172,9 +180,9 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
   const filteredItems = getFilteredItems();
   const totalItems = items.length;
   const lowStockCount = items.filter(item => 
-    item.currentQuantity <= (item.lowStockThreshold || 10)
+    (item.quantityInStock || item.currentQuantity || 0) <= (item.lowStockThreshold || 10)
   ).length;
-  const outOfStockCount = items.filter(item => item.currentQuantity <= 0).length;
+  const outOfStockCount = items.filter(item => (item.quantityInStock || item.currentQuantity || 0) <= 0).length;
 
   return (
     <div className="admin-inventory">
@@ -281,14 +289,14 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
           <input
             type="number"
             placeholder="Current quantity"
-            value={newItem.currentQuantity}
-            onChange={(e) => setNewItem({...newItem, currentQuantity: parseInt(e.target.value)})}
+            value={newItem.quantityInStock || ''}
+            onChange={(e) => setNewItem({...newItem, quantityInStock: parseInt(e.target.value) || 0})}
           />
           <input
             type="number"
             placeholder="Low stock threshold"
-            value={newItem.lowStockThreshold}
-            onChange={(e) => setNewItem({...newItem, lowStockThreshold: parseInt(e.target.value)})}
+            value={newItem.lowStockThreshold || ''}
+            onChange={(e) => setNewItem({...newItem, lowStockThreshold: parseInt(e.target.value) || 10})}
           />
           <select
             value={newItem.unit}
@@ -361,7 +369,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
                   <div className="item-stock">
                     <div className="stock-level">
                       <span className="stock-number">
-                        {item.currentQuantity || 0}
+                        {item.quantityInStock || item.currentQuantity || 0}
                       </span>
                       <span className="stock-unit">{item.unit}</span>
                     </div>
@@ -395,14 +403,14 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
                         <button 
                           onClick={() => handleQuickAdjustment(item._id, -1)}
                           className="adjust-btn minus"
-                          disabled={item.currentQuantity <= 0}
+                          disabled={(item.quantityInStock || item.currentQuantity || 0) <= 0}
                         >
                           -1
                         </button>
                         <button 
                           onClick={() => handleQuickAdjustment(item._id, -10)}
                           className="adjust-btn minus"
-                          disabled={item.currentQuantity <= 0}
+                          disabled={(item.quantityInStock || item.currentQuantity || 0) <= 0}
                         >
                           -10
                         </button>

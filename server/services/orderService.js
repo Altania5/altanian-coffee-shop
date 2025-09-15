@@ -422,21 +422,40 @@ class OrderService {
   }
   
   /**
-   * Emit low stock alert (to be implemented with WebSocket)
+   * Emit low stock alert via WebSocket to admin users
    */
   static emitLowStockAlert(lowStockItems) {
-    // TODO: Implement WebSocket notification to admin
     console.log('🚨 LOW STOCK ALERT:', lowStockItems.map(item => 
       `${item.itemName}: ${item.quantityInStock}${item.unit} remaining`
     ));
+    
+    // Send real-time notification to admin room
+    if (global.io) {
+      global.io.to('admin-room').emit('low-stock-alert', {
+        items: lowStockItems,
+        timestamp: new Date(),
+        message: `Low stock alert: ${lowStockItems.length} items need restocking`
+      });
+    }
   }
   
   /**
-   * Emit order status change (to be implemented with WebSocket)
+   * Emit order status change via WebSocket to customer
    */
   static emitOrderStatusChange(order, oldStatus, newStatus) {
-    // TODO: Implement WebSocket notification to customer
     console.log(`📱 ORDER STATUS CHANGE - Order ${order.orderNumber}: ${oldStatus} → ${newStatus}`);
+    
+    // Send real-time notification to customer
+    if (global.io && order.user) {
+      global.io.to(`user-${order.user}`).emit('order-status-changed', {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        oldStatus,
+        newStatus,
+        timestamp: new Date(),
+        message: `Your order #${order.orderNumber} status has been updated to: ${newStatus}`
+      });
+    }
   }
   
   /**

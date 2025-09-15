@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import CustomizationModal from './CustomizationModal';
 
 function Cart({ cart, token, setCart, updateCartQuantity, removeFromCart, onCheckout, inventory, products }) {
   const [editingItem, setEditingItem] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   
   // Calculate cart totals
   const calculateTotals = () => {

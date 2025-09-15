@@ -4,8 +4,10 @@
   "description": "Altanian Coffee Shop - Full Stack React & Node.js Application",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "cd server && npm start",
+    "dev": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "dev:full": "concurrently \"npm run dev\" \"npm run client\"",
     "heroku-postbuild": "cd client && npm install && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,7 +18,13 @@
     "type": "git",
     "url": "git+https://github.com/Altania5/altanian-coffee-shop.git"
   },
-  "keywords": ["coffee", "shop", "nodejs", "express", "react"],
+  "keywords": [
+    "coffee",
+    "shop",
+    "nodejs",
+    "express",
+    "react"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -35,6 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.18",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.10"
   }
 }

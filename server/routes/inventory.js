@@ -13,11 +13,17 @@ router.get('/', async (req, res) => {
 
 router.post('/add', ownerAuth, async (req, res) => {
   try {
-    const { name, quantity, unit, category } = req.body;
-    if (!name || !unit || !category) {
-      return res.status(400).json({ msg: 'Please enter name, unit, and category.' });
+    const { itemName, itemType, quantityInStock, unit, lowStockThreshold } = req.body;
+    if (!itemName || !itemType || !unit) {
+      return res.status(400).json({ msg: 'Please enter item name, item type, and unit.' });
     }
-    const newItem = new InventoryItem({ name, quantity, unit, category });
+    const newItem = new InventoryItem({ 
+      itemName, 
+      itemType, 
+      quantityInStock: quantityInStock || 0, 
+      unit,
+      lowStockThreshold: lowStockThreshold || 10
+    });
     const savedItem = await newItem.save();
     res.json(savedItem);
   } catch (err) {
@@ -26,7 +32,7 @@ router.post('/add', ownerAuth, async (req, res) => {
       return res.status(400).json({ msg: messages[0] });
     }
     if (err.code === 11000) {
-      return res.status(400).json({ msg: `An inventory item named "${req.body.name}" already exists.` });
+      return res.status(400).json({ msg: `An inventory item named "${req.body.itemName}" already exists.` });
     }
     res.status(500).json({ error: 'Server error adding item: ' + err.message });
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -46,14 +46,14 @@ function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
     });
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString([], {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
+  // const formatDate = (dateString) => {
+  //   return new Date(dateString).toLocaleDateString([], {
+  //     month: 'short',
+  //     day: 'numeric',
+  //     hour: 'numeric',
+  //     minute: '2-digit'
+  //   });
+  // };
 
   const getStatusColor = (status) => {
     const colors = {

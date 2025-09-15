@@ -16,7 +16,7 @@ router.post('/add', auth, async (req, res) => {
     }
 
     const newLog = new CoffeeLog({
-      user: req.user,
+      user: req.user.id,
       bean,
       bag: bag || undefined,
       machine,
@@ -31,7 +31,7 @@ router.post('/add', auth, async (req, res) => {
 
     // If a bag is provided, decrement remaining grams and flag empty if needed
     if (bag) {
-      const bagDoc = await BeanBag.findOne({ _id: bag, user: req.user });
+      const bagDoc = await BeanBag.findOne({ _id: bag, user: req.user.id });
       if (!bagDoc) {
         return res.status(400).json({ msg: 'Selected bag not found.' });
       }
@@ -63,7 +63,7 @@ router.post('/add', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const logs = await CoffeeLog.find({ user: req.user })
+    const logs = await CoffeeLog.find({ user: req.user.id })
       .populate('bean', 'name roaster')
       .populate('bag', 'bagSizeGrams remainingGrams isEmpty')
       .sort({ createdAt: -1 });

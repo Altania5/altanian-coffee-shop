@@ -12,7 +12,7 @@ router.post('/', auth, async (req, res) => {
 			return res.status(400).json({ msg: 'bean and bagSizeGrams are required.' });
 		}
 		const bag = new BeanBag({
-			user: req.user,
+			user: req.user.id,
 			bean,
 			bagSizeGrams,
 			remainingGrams: bagSizeGrams
@@ -30,7 +30,7 @@ router.post('/', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
 	try {
 		const { bean, includeEmpty } = req.query;
-		const filter = { user: req.user };
+		const filter = { user: req.user.id };
 		if (bean) filter.bean = bean;
 		if (!includeEmpty || includeEmpty === 'false') filter.isEmpty = { $ne: true };
 		const bags = await BeanBag.find(filter).sort({ createdAt: -1 });
@@ -46,7 +46,7 @@ router.get('/', auth, async (req, res) => {
 router.patch('/:id/empty', auth, async (req, res) => {
 	try {
 		const { id } = req.params;
-		const bag = await BeanBag.findOne({ _id: id, user: req.user });
+		const bag = await BeanBag.findOne({ _id: id, user: req.user.id });
 		if (!bag) return res.status(404).json({ msg: 'Bag not found' });
 		bag.remainingGrams = 0;
 		bag.isEmpty = true;
@@ -68,7 +68,7 @@ router.patch('/:id/grams', auth, async (req, res) => {
 		if (typeof delta !== 'number') {
 			return res.status(400).json({ msg: 'delta must be a number.' });
 		}
-		const bag = await BeanBag.findOne({ _id: id, user: req.user });
+		const bag = await BeanBag.findOne({ _id: id, user: req.user.id });
 		if (!bag) return res.status(404).json({ msg: 'Bag not found' });
 		bag.remainingGrams = (bag.remainingGrams || 0) + delta;
 		if (bag.remainingGrams <= 0) {
