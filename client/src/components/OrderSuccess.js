@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import OrderTracking from './OrderTracking';
 
 function OrderSuccess({ 
   order, 
@@ -211,6 +212,17 @@ function OrderSuccess({
                   We'll send you an email when your order is ready for pickup!
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Real-Time Order Tracking */}
+          {order && token && (
+            <div className="tracking-section">
+              <OrderTracking 
+                orderId={order._id} 
+                token={token}
+                orderNumber={order.orderNumber}
+              />
             </div>
           )}
 

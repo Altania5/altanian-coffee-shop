@@ -81,6 +81,21 @@ router.post('/', async (req, res) => {
         
         await result.order.save();
         
+        // Broadcast new order creation via WebSocket
+        const orderTrackingWS = req.app.get('orderTrackingWS');
+        if (orderTrackingWS) {
+          orderTrackingWS.broadcastOrderUpdate(
+            result.order._id.toString(),
+            result.order.status,
+            {
+              orderNumber: result.order.orderNumber,
+              estimatedTime: calculateEstimatedTime(result.order.status),
+              isNewOrder: true,
+              customerName: customer.name
+            }
+          );
+        }
+        
         res.status(201).json({
           success: true,
           order: result.order,
@@ -283,6 +298,22 @@ router.put('/:id/status', auth, async (req, res) => {
     
     const order = await OrderService.updateOrderStatus(req.params.id, status, req.user.id);
     
+    // Broadcast real-time update via WebSocket
+    const orderTrackingWS = req.app.get('orderTrackingWS');
+    if (orderTrackingWS) {
+      const estimatedTime = calculateEstimatedTime(status);
+      orderTrackingWS.broadcastOrderUpdate(
+        order._id.toString(),
+        status,
+        {
+          orderNumber: order.orderNumber,
+          estimatedTime,
+          updatedBy: req.user.firstName,
+          statusDisplay: order.getStatusDisplay()
+        }
+      );
+    }
+    
     res.json({
       success: true,
       order,
@@ -297,6 +328,23 @@ router.put('/:id/status', auth, async (req, res) => {
     });
   }
 });
+
+// Helper function to calculate estimated completion time
+function calculateEstimatedTime(status) {
+  const now = new Date();
+  const timeEstimates = {
+    'pending': 15,      // 15 minutes
+    'confirmed': 12,    // 12 minutes
+    'preparing': 8,      // 8 minutes
+    'ready': 0,         // Ready now
+    'completed': 0,      // Already done
+    'cancelled': 0       // No time needed
+  };
+  
+  const minutes = timeEstimates[status] || 10;
+  const estimatedTime = new Date(now.getTime() + minutes * 60000);
+  return estimatedTime.toISOString();
+}
 
 /**
  * @route   POST /orders/:id/cancel

@@ -44,5 +44,6 @@
   },
   "devDependencies": {
     "patch-package": "^8.0.0"
-  }
+  },
+  "proxy": "http://localhost:5002"
 }

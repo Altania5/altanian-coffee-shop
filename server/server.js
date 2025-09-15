@@ -2,10 +2,14 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5003;
+
+// Create HTTP server for WebSocket integration
+const server = http.createServer(app);
 
 app.use(cors());
 app.use(express.json());
@@ -26,6 +30,7 @@ const inventoryRouter = require('./routes/inventory');
 const settingsRouter = require('./routes/settings');
 const promoCodesRouter = require('./routes/promoCodes');
 const paymentsRouter = require('./routes/payments');
+const loyaltyRouter = require('./routes/loyalty');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -36,6 +41,14 @@ app.use('/inventory', inventoryRouter);
 app.use('/settings', settingsRouter);
 app.use('/promocodes', promoCodesRouter);
 app.use('/payments', paymentsRouter);
+app.use('/loyalty', loyaltyRouter);
+
+// Initialize WebSocket server for real-time order tracking
+const OrderTrackingServer = require('./websocket/orderTracking');
+const orderTrackingWS = new OrderTrackingServer(server);
+
+// Make WebSocket server available to routes
+app.set('orderTrackingWS', orderTrackingWS);
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
@@ -45,6 +58,7 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
+server.listen(port, () => {
+    console.log(`🚀 Server is running on port: ${port}`);
+    console.log(`📡 WebSocket server ready for real-time order tracking`);
 });

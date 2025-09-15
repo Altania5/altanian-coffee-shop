@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import AddCoffeeLogForm from '../components/AddCoffeeLogForm';
 import CoffeeLogHistory from '../components/CoffeeLogHistory';
 import AICoach from '../components/AICoach';
@@ -14,10 +14,9 @@ function CoffeeLogPage({ user }) {
   // 2. Wrap the function in useCallback
   const fetchLogsAndBeans = useCallback(async () => {
     try {
-      const headers = { 'x-auth-token': user.token };
       const [logsResponse, beansResponse] = await Promise.all([
-        axios.get('/coffeelogs', { headers }),
-        axios.get('/beans', { headers })
+        api.get('/coffeelogs'),
+        api.get('/beans')
       ]);
       setLogs(logsResponse.data);
       setBeans(beansResponse.data);
@@ -26,7 +25,7 @@ function CoffeeLogPage({ user }) {
     } finally {
       setLoading(false);
     }
-  }, [user.token]); // 3. Add its own dependencies here
+  }, []); // Remove user.token dependency since api handles auth automatically
 
   useEffect(() => {
     if (user.token) {

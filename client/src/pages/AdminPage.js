@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import '../styles/admin.css';
 import InventoryManager from '../components/InventoryManager';
 import AdminInventoryManager from '../components/admin/InventoryManager';
@@ -48,13 +48,11 @@ function AdminPage({ user }) {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const headers = { 'x-auth-token': user.token };
 
       // Fetch orders data
       try {
-        const ordersRes = await axios.get(`${baseURL}/admin/orders`, { headers });
-        const ordersData = ordersRes.data || [];
+        const ordersRes = await api.get('/orders');
+        const ordersData = ordersRes.data.orders || [];
         setOrders(ordersData);
 
         // Calculate stats
@@ -85,7 +83,7 @@ function AdminPage({ user }) {
 
       // Fetch inventory and alerts
       try {
-        const inventoryRes = await axios.get(`${baseURL}/inventory`, { headers });
+        const inventoryRes = await api.get('/inventory');
         setInventory(inventoryRes.data || []);
       } catch (invError) {
         console.log('Using existing inventory data');
@@ -150,14 +148,8 @@ function AdminPage({ user }) {
 
   const handleOrderStatusUpdate = async (orderId, newStatus) => {
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const headers = { 'x-auth-token': user.token };
-
       try {
-        await axios.patch(`${baseURL}/admin/orders/${orderId}/status`, 
-          { status: newStatus },
-          { headers }
-        );
+        await api.put(`/orders/${orderId}/status`, { status: newStatus });
       } catch (error) {
         console.log('API endpoint not available, updating locally only');
       }
@@ -180,14 +172,8 @@ function AdminPage({ user }) {
 
   const handleInventoryUpdate = async (itemId, newQuantity) => {
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const headers = { 'x-auth-token': user.token };
-
       try {
-        await axios.patch(`${baseURL}/admin/inventory/${itemId}`, 
-          { currentQuantity: newQuantity },
-          { headers }
-        );
+        await api.patch(`/inventory/${itemId}`, { currentQuantity: newQuantity });
       } catch (error) {
         console.log('Inventory API endpoint not available, updating locally only');
       }

@@ -12,6 +12,10 @@ const NavLinks = ({ setActiveTab }) => (
       <span className="nav-icon">☕</span>
       <span className="nav-text">Order</span>
     </button>
+    <button onClick={() => setActiveTab('loyalty')}>
+      <span className="nav-icon">🎯</span>
+      <span className="nav-text">Loyalty</span>
+    </button>
     <button onClick={() => setActiveTab('log')}>
       <span className="nav-icon">📖</span>
       <span className="nav-text">Log</span>

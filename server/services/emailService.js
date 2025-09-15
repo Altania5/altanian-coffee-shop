@@ -8,7 +8,7 @@ class EmailService {
   createTransporter() {
     // Check if we're using SendGrid, Gmail, or other SMTP
     if (process.env.SENDGRID_API_KEY) {
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         service: 'SendGrid',
         auth: {
           user: 'apikey',
@@ -16,7 +16,7 @@ class EmailService {
         }
       });
     } else if (process.env.EMAIL_SERVICE === 'gmail') {
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
@@ -25,7 +25,7 @@ class EmailService {
       });
     } else {
       // Generic SMTP configuration
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: process.env.SMTP_PORT || 587,
         secure: process.env.SMTP_SECURE === 'true',
