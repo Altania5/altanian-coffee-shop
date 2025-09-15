@@ -18,9 +18,6 @@ const io = new Server(server, {
 });
 const port = process.env.PORT || 5003;
 
-// Create HTTP server for WebSocket integration
-const server = http.createServer(app);
-
 app.use(cors());
 app.use(express.json());
 
@@ -95,7 +92,6 @@ io.on('connection', (socket) => {
 
 // Make io available globally for other modules
 global.io = io;
->>>>>>> 83790a08f4b74119b94a383356887d1ffb58d053
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
@@ -107,9 +103,6 @@ if (process.env.NODE_ENV === 'production') {
 
 server.listen(port, () => {
     console.log(`🚀 Server is running on port: ${port}`);
-<<<<<<< HEAD
     console.log(`📡 WebSocket server ready for real-time order tracking`);
-=======
     console.log(`🔌 Socket.IO server is ready for real-time connections`);
->>>>>>> 83790a08f4b74119b94a383356887d1ffb58d053
 });
