@@ -26,6 +26,7 @@ const inventoryRouter = require('./routes/inventory');
 const settingsRouter = require('./routes/settings');
 const promoCodesRouter = require('./routes/promoCodes');
 const paymentsRouter = require('./routes/payments');
+const beanBagsRouter = require('./routes/beanBags');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -36,6 +37,7 @@ app.use('/inventory', inventoryRouter);
 app.use('/settings', settingsRouter);
 app.use('/promocodes', promoCodesRouter);
 app.use('/payments', paymentsRouter);
+app.use('/beanbags', beanBagsRouter);
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
