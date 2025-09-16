@@ -188,7 +188,7 @@ loyaltyAccountSchema.statics.getTopCustomers = function(limit = 10) {
 };
 
 // Indexes for performance
-loyaltyAccountSchema.index({ userId: 1 });
+// userId index is already created by unique: true
 loyaltyAccountSchema.index({ tier: 1 });
 loyaltyAccountSchema.index({ totalSpent: -1 });
 loyaltyAccountSchema.index({ points: -1 });

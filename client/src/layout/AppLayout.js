@@ -7,6 +7,7 @@ import CoffeeLogPage from '../pages/CoffeeLogPage';
 import CustomerForm from '../components/CustomerForm';
 import Checkout from '../components/Checkout';
 import OrderSuccess from '../components/OrderSuccess';
+import LoyaltyDashboard from '../components/LoyaltyDashboard';
 import NotificationCenter from '../components/NotificationCenter';
 
 function AppLayout({ user, onLogout }) {
@@ -20,10 +21,17 @@ function AppLayout({ user, onLogout }) {
   const addToCart = (cartItem) => {
     setCart(currentCart => {
       // Generate unique ID for customized items
-      const itemId = cartItem.id || `${cartItem.productId}-${Date.now()}-${Math.random()}`;
+      const itemId = cartItem.id || `${cartItem.productId || cartItem._id}-${Date.now()}-${Math.random()}`;
+      
+      // Ensure the item has the proper structure
       const newItem = {
         ...cartItem,
-        id: itemId
+        id: itemId,
+        // If it's a direct product add (no customizations), ensure it has the right fields
+        productId: cartItem.productId || cartItem._id,
+        quantity: cartItem.quantity || 1,
+        price: cartItem.price || 0, // Ensure price is set
+        estimatedPrice: cartItem.estimatedPrice || cartItem.price || 0
       };
       
       return [...currentCart, newItem];
@@ -181,6 +189,8 @@ function AppLayout({ user, onLogout }) {
         return user.role === 'owner' ? <AdminPage user={user} /> : <HomePage user={user} />;
       case 'log':
         return <CoffeeLogPage user={user} />;
+      case 'loyalty':
+        return <LoyaltyDashboard user={user} token={user.token} />;
       case 'home':
       default:
         return <HomePage user={user} />;

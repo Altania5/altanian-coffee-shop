@@ -39,62 +39,86 @@ export const SocketProvider = ({ children, user }) => {
       socketRef.current.close();
     }
 
-    console.log('🔄 Creating new socket for user:', user.id, user.role);
-    userRef.current = user;
+    // Add a small delay to ensure server is ready
+    const connectionTimeout = setTimeout(() => {
+      console.log('🔄 Creating new socket for user:', user.id, user.role);
+      userRef.current = user;
 
-    // Create socket connection
-    const socketUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com'
-      : 'http://localhost:5003';
-    
-    const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling']
-    });
-
-    // Connection event handlers
-    newSocket.on('connect', () => {
-      console.log('🔌 Connected to server');
-      setIsConnected(true);
+      // Create socket connection
+      const socketUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com'
+        : 'http://localhost:5003';
       
-      // Join appropriate room based on user role
-      newSocket.emit('join-room', user.role, user.id);
-    });
-
-    newSocket.on('disconnect', () => {
-      console.log('🔌 Disconnected from server');
-      setIsConnected(false);
-    });
-
-    // Order status change notifications
-    newSocket.on('order-status-changed', (data) => {
-      console.log('📱 Order status changed:', data);
-      addNotification({
-        type: 'order-status',
-        title: 'Order Status Update',
-        message: data.message,
-        data: data,
-        timestamp: new Date()
+      const newSocket = io(socketUrl, {
+        transports: ['polling', 'websocket'], // Try polling first, then websocket
+        timeout: 20000,
+        forceNew: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        maxReconnectionAttempts: 5
       });
-    });
 
-    // Low stock alerts (for admin users)
-    newSocket.on('low-stock-alert', (data) => {
-      console.log('🚨 Low stock alert:', data);
-      addNotification({
-        type: 'low-stock',
-        title: 'Low Stock Alert',
-        message: data.message,
-        data: data,
-        timestamp: new Date()
+      // Connection event handlers
+      newSocket.on('connect', () => {
+        console.log('🔌 Connected to server');
+        setIsConnected(true);
+        
+        // Join appropriate room based on user role
+        newSocket.emit('join-room', user.role, user.id);
       });
-    });
 
-    socketRef.current = newSocket;
-    setSocket(newSocket);
+      newSocket.on('disconnect', (reason) => {
+        console.log('🔌 Disconnected from server:', reason);
+        setIsConnected(false);
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('🔌 Connection error:', error.message);
+        setIsConnected(false);
+      });
+
+      newSocket.on('reconnect_error', (error) => {
+        console.error('🔌 Reconnection error:', error.message);
+      });
+
+      newSocket.on('reconnect_failed', () => {
+        console.error('🔌 Reconnection failed after maximum attempts');
+        setIsConnected(false);
+      });
+
+      // Order status change notifications
+      newSocket.on('order-status-changed', (data) => {
+        console.log('📱 Order status changed:', data);
+        addNotification({
+          type: 'order-status',
+          title: 'Order Status Update',
+          message: data.message,
+          data: data,
+          timestamp: new Date()
+        });
+      });
+
+      // Low stock alerts (for admin users)
+      newSocket.on('low-stock-alert', (data) => {
+        console.log('🚨 Low stock alert:', data);
+        addNotification({
+          type: 'low-stock',
+          title: 'Low Stock Alert',
+          message: data.message,
+          data: data,
+          timestamp: new Date()
+        });
+      });
+
+      socketRef.current = newSocket;
+      setSocket(newSocket);
+    }, 1000);
 
     // Cleanup on unmount
     return () => {
       console.log('🧹 SocketContext cleanup for user:', user.id);
+      clearTimeout(connectionTimeout);
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;

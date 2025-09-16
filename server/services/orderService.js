@@ -3,6 +3,7 @@ const Order = require('../models/order.model');
 const Product = require('../models/product.model');
 const InventoryItem = require('../models/inventory.model');
 const emailService = require('./emailService');
+const loyaltyService = require('./loyaltyService');
 
 class OrderService {
   
@@ -35,7 +36,7 @@ class OrderService {
       
       // 3. Calculate totals
       const subtotal = processedItems.reduce((sum, item) => sum + item.itemTotalPrice, 0);
-      const tax = Math.round(subtotal * 0.0875 * 100) / 100; // 8.75% tax
+      const tax = Math.round((subtotal - (orderData.discount || 0)) * 0.0875 * 100) / 100; // 8.75% tax
       const totalAmount = subtotal + tax + (orderData.tip || 0) - (orderData.discount || 0);
       
       // 4. Create the order
@@ -92,7 +93,42 @@ class OrderService {
       // 9. Populate order for response
       await order.populate('items.product customer.user');
       
-      // 10. Send order confirmation email
+      // 10. Process reward redemption if applicable
+      if (orderData.rewardId && order.customer.user) {
+        process.nextTick(async () => {
+          try {
+            const redemptionResult = await loyaltyService.redeemReward(
+              order.customer.user, 
+              orderData.rewardId, 
+              order._id
+            );
+            console.log(`🎁 Reward redeemed: ${redemptionResult.reward.name} for ${redemptionResult.pointsUsed} points`);
+          } catch (redemptionError) {
+            console.error('❌ Failed to redeem reward:', redemptionError.message);
+          }
+        });
+      }
+
+      // 11. Award loyalty points if user is authenticated
+      if (order.customer.user) {
+        process.nextTick(async () => {
+          try {
+            const loyaltyResult = await loyaltyService.awardPoints(order.customer.user, {
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              totalAmount: order.totalAmount
+            });
+            console.log(`✅ Awarded ${loyaltyResult.pointsEarned} loyalty points to user ${order.customer.user}`);
+            if (loyaltyResult.tierUpgraded) {
+              console.log(`🎉 User tier upgraded to ${loyaltyResult.newTier}!`);
+            }
+          } catch (loyaltyError) {
+            console.error('❌ Failed to award loyalty points:', loyaltyError.message);
+          }
+        });
+      }
+
+      // 12. Send order confirmation email
       process.nextTick(async () => {
         try {
           await emailService.sendOrderConfirmation(order);

@@ -13,7 +13,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
  */
 router.post('/', async (req, res) => {
   try {
-    const { items, customer, tip, notes, specialInstructions, paymentMethodId } = req.body;
+    const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount } = req.body;
     
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -40,6 +40,8 @@ router.post('/', async (req, res) => {
       items,
       customer,
       tip: tip || 0,
+      discount: discount || 0,
+      rewardId: rewardId || undefined,
       notes,
       specialInstructions,
       source: 'website'

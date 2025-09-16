@@ -8,11 +8,12 @@ function Cart({ cart, token, setCart, updateCartQuantity, removeFromCart, onChec
   // Calculate cart totals
   const calculateTotals = () => {
     const subtotal = cart.reduce((acc, item) => {
-      return acc + (item.estimatedPrice || item.price) * item.quantity;
+      const price = item.estimatedPrice || item.price || 0;
+      return acc + (Number(price) || 0) * (item.quantity || 1);
     }, 0);
     const tax = Math.round(subtotal * 0.0875 * 100) / 100; // 8.75% tax
     const total = subtotal + tax;
-    const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+    const itemCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
     
     return { subtotal, tax, total, itemCount };
   };
@@ -156,7 +157,7 @@ function Cart({ cart, token, setCart, updateCartQuantity, removeFromCart, onChec
         {cart.map((item, index) => {
           const displayName = getItemDisplayName(item);
           const customizationSummary = getCustomizationSummary(item);
-          const itemPrice = item.estimatedPrice || item.price || 0;
+          const itemPrice = Number(item.estimatedPrice || item.price || 0);
           
           return (
             <div 

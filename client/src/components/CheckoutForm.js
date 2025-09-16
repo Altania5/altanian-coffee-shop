@@ -39,7 +39,7 @@ export default function CheckoutForm({ cart, user, total, onSuccessfulCheckout }
     try {
       const orderData = { cart, total: parseFloat(total.toFixed(2)) };
       const headers = { 'x-auth-token': user.token };
-      await axios.post('/orders/add', orderData, { headers });
+      await axios.post('/orders', orderData, { headers });
       
       onSuccessfulCheckout(); 
 

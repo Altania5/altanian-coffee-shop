@@ -9,6 +9,7 @@ import ProductManager from '../components/ProductManager';
 import SuggestedItemManager from '../components/SuggestedItemManager';
 import PromoCodeManager from '../components/PromoCodeManager';
 import OrderQueue from '../components/admin/OrderQueue';
+import LoyaltyManager from '../components/admin/LoyaltyManager';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -38,14 +39,12 @@ function AdminPage({ user }) {
     try {
       setLoading(true);
 
-      // Fetch orders data
+      // Fetch dashboard data first
       try {
-        const ordersRes = await api.get('/orders');
-        const ordersData = ordersRes.data.orders || [];
-        setOrders(ordersData);
-
-        // Use dashboard stats
-        const dashboardData = ordersRes.data.dashboard;
+        const dashboardRes = await api.get('/orders/admin/dashboard');
+        const dashboardData = dashboardRes.data.dashboard;
+        
+        // Set stats from dashboard data
         setStats(prev => ({
           ...prev,
           totalOrders: dashboardData.todaysOrders.total,
@@ -55,17 +54,46 @@ function AdminPage({ user }) {
           readyOrders: dashboardData.todaysOrders.byStatus.ready,
           lowStockItems: dashboardData.lowStockItems.length
         }));
-      } catch (ordersError) {
-        console.log('Orders endpoint not available, using mock data');
-        // Use mock data for development
-        const mockOrders = generateMockOrders();
-        setOrders(mockOrders);
-        setStats({
-          totalOrders: mockOrders.length,
-          pendingOrders: mockOrders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status)).length,
-          readyOrders: mockOrders.filter(o => o.status === 'ready').length,
-          lowStockItems: 2
-        });
+        
+        // Set active orders from dashboard
+        setOrders(dashboardData.activeOrders || []);
+        
+      } catch (dashboardError) {
+        console.log('Dashboard endpoint not available, trying orders endpoint');
+        
+        // Fallback to regular orders endpoint
+        try {
+          const ordersRes = await api.get('/orders');
+          const ordersData = ordersRes.data.orders || [];
+          setOrders(ordersData);
+          
+          // Calculate stats from orders data
+          const totalOrders = ordersData.length;
+          const pendingOrders = ordersData.filter(order => 
+            ['pending', 'confirmed', 'preparing'].includes(order.status)
+          ).length;
+          const readyOrders = ordersData.filter(order => order.status === 'ready').length;
+          
+          setStats(prev => ({
+            ...prev,
+            totalOrders,
+            pendingOrders,
+            readyOrders,
+            lowStockItems: 0 // We don't have this data from regular orders endpoint
+          }));
+          
+        } catch (ordersError) {
+          console.log('Orders endpoint not available, using mock data');
+          // Use mock data for development
+          const mockOrders = generateMockOrders();
+          setOrders(mockOrders);
+          setStats({
+            totalOrders: mockOrders.length,
+            pendingOrders: mockOrders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status)).length,
+            readyOrders: mockOrders.filter(o => o.status === 'ready').length,
+            lowStockItems: 2
+          });
+        }
       }
 
       // Fetch inventory and alerts
@@ -341,6 +369,13 @@ function AdminPage({ user }) {
           <span className="tab-icon">🎟️</span>
           Promos
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'loyalty' ? 'active' : ''}`}
+          onClick={() => setActiveTab('loyalty')}
+        >
+          <span className="tab-icon">🎯</span>
+          Loyalty
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -371,6 +406,9 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'promos' && (
           <PromoCodeManager token={user.token} />
+        )}
+        {activeTab === 'loyalty' && (
+          <LoyaltyManager token={user.token} />
         )}
       </div>
     </div>
