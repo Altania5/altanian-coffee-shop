@@ -28,11 +28,13 @@ function CoffeeLogPage({ user }) {
   }, []); // Remove user.token dependency since api handles auth automatically
 
   useEffect(() => {
-    if (user.token) {
+    if (user && user.token) {
       fetchLogsAndBeans();
+    } else {
+      setLoading(false);
     }
     // 4. Add the memoized function to the dependency array
-  }, [user.token, fetchLogsAndBeans]);
+  }, [user, fetchLogsAndBeans]);
 
   const handleLogAdded = (newLog) => {
     // Add the new log to the top of the list

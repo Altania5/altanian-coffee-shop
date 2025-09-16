@@ -30,10 +30,12 @@ function HomePage({ user }) {
       }
     };
 
-    if (user.token) {
+    if (user && user.token) {
       fetchData();
+    } else {
+      setLoading(false);
     }
-  }, [user.token]);
+  }, [user]);
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
@@ -56,7 +58,7 @@ function HomePage({ user }) {
       <div className="hero-section">
         <div className="hero-content">
           <div className="hero-greeting">
-            <h1 className="hero-title">{getGreeting()}, {user.firstName}!</h1>
+            <h1 className="hero-title">{getGreeting()}{user?.firstName ? `, ${user.firstName}` : ''}!</h1>
             <p className="hero-subtitle">{getTimeBasedRecommendation()}</p>
           </div>
           <div className="hero-time">
