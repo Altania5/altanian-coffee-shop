@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import getBaseURL from '../utils/api';
+import api from '../utils/api';
 
 function Register() {
   // 1. Add state for the new fields
@@ -22,8 +21,7 @@ function Register() {
     e.preventDefault();
     try {
       // 3. Send the full formData object
-      const baseURL = getBaseURL();
-      await axios.post(`${baseURL}/users/register`, formData);
+      await api.post('/users/register', formData);
       setMessage('Registration successful! You can now log in.');
       // Clear the form
       setFormData({ firstName: '', lastName: '', birthday: '', username: '', password: '' });

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import getBaseURL from '../utils/api';
+import api from '../utils/api';
 
 const PRODUCT_CATEGORIES = ['Iced Beverage', 'Hot Beverage', 'Shaken Beverage', 'Refresher'];
 
@@ -16,11 +15,9 @@ function ProductManager({ token }) {
             return;
         }
         try {
-            const baseURL = getBaseURL();
-            const authHeaders = { 'x-auth-token': token };
             const [productsRes, inventoryRes] = await Promise.all([
-                axios.get(`${baseURL}/products`),
-                axios.get(`${baseURL}/inventory`, { headers: authHeaders })
+                api.get('/products'),
+                api.get('/inventory')
             ]);
             setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
             setInventory(Array.isArray(inventoryRes.data) ? inventoryRes.data : []);
@@ -45,11 +42,10 @@ function ProductManager({ token }) {
         const productData = { ...productToSave, recipe: finalRecipe };
 
         try {
-            const baseURL = getBaseURL();
             if (productData._id) {
-                await axios.put(`${baseURL}/products/update/${productData._id}`, productData, { headers: { 'x-auth-token': token } });
+                await api.put(`/products/update/${productData._id}`, productData);
             } else {
-                await axios.post(`${baseURL}/products/add`, productData, { headers: { 'x-auth-token': token } });
+                await api.post('/products/add', productData);
             }
             setEditingProduct(null);
             fetchData();
@@ -61,8 +57,7 @@ function ProductManager({ token }) {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                const baseURL = getBaseURL();
-                await axios.delete(`${baseURL}/products/delete/${id}`, { headers: { 'x-auth-token': token } });
+                await api.delete(`/products/delete/${id}`);
                 fetchData();
             } catch (err) {
                 alert('Error deleting product: ' + (err.response?.data?.msg || err.message));

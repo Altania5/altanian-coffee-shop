@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import getBaseURL from '../utils/api';
+import api from '../utils/api';
 
 // The 'setToken' prop will be a function passed down from App.js
 function Login({ onLogin  }) {
@@ -11,8 +10,7 @@ function Login({ onLogin  }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const baseURL = getBaseURL();
-      const response = await axios.post(`${baseURL}/users/login`, { username, password });
+      const response = await api.post('/users/login', { username, password });
       // On successful login, call the function passed from App.js
       // to update the global token state.
       onLogin(response.data.token);
