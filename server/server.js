@@ -12,9 +12,11 @@ const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
       ? "https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com"
-      : "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+      : ["http://localhost:3000", "http://localhost:3001"],
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
 });
 const port = process.env.PORT || 5003;
 
