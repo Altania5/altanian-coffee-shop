@@ -41,14 +41,14 @@ function OrderHistory({ token }) {
                 <strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}
               </div>
               <div>
-                <strong>Total:</strong> ${order.total.toFixed(2)}
+                <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
               </div>
               <div>
                 <strong>Items:</strong>
                 <ul>
                   {order.items.map(item => (
-                    <li key={item.product._id}>
-                      {item.product.name} - {item.quantity} x ${item.price.toFixed(2)}
+                    <li key={item._id}>
+                      {item.productName} - {item.quantity} x ${item.productPrice.toFixed(2)}
                     </li>
                   ))}
                 </ul>

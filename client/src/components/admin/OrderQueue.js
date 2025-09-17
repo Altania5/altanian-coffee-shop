@@ -272,7 +272,7 @@ function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
                         </div>
                         
                         <div className="order-amount">
-                          <span className="amount-value">${order.total?.toFixed(2) || '0.00'}</span>
+                          <span className="amount-value">${order.totalAmount?.toFixed(2) || '0.00'}</span>
                         </div>
                       </div>
                       
@@ -300,7 +300,7 @@ function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
                         <div className="items-summary">
                           {order.items.slice(0, 2).map((item, i) => (
                             <span key={i} className="item-preview">
-                              {item.quantity}× {item.name}
+                              {item.quantity}× {item.productName}
                             </span>
                           ))}
                           {order.items.length > 2 && (
@@ -334,11 +334,11 @@ function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
                             {order.items?.map((item, i) => (
                               <div key={i} className="order-item-detail">
                                 <div className="item-info">
-                                  <span className="item-name">{item.name}</span>
+                                  <span className="item-name">{item.productName}</span>
                                   <span className="item-qty">×{item.quantity}</span>
                                 </div>
                                 <div className="item-price">
-                                  ${(item.price * item.quantity).toFixed(2)}
+                                  ${(item.productPrice * item.quantity).toFixed(2)}
                                 </div>
                               </div>
                             ))}
