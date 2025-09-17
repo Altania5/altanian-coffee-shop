@@ -31,14 +31,18 @@ const AITrainingDashboard = () => {
       const ai = getAdvancedEspressoAI();
       const dataService = getAIDataCollectionService();
       
-      const [modelInfo, stats] = await Promise.all([
+      const [modelInfo, stats, aiStatus] = await Promise.all([
         ai.getModelInfo(),
-        dataService.getCollectionStats()
+        dataService.getCollectionStats(),
+        ai.getAIStatus()
       ]);
       
-      setAiInfo(modelInfo);
+      setAiInfo({ ...modelInfo, ...aiStatus });
       setCollectionStats(stats);
       setLoading(false);
+      
+      // Log AI status for debugging
+      console.log('🤖 AI Status Check:', aiStatus);
     } catch (error) {
       console.error('Error loading AI data:', error);
       setLoading(false);
@@ -169,11 +173,25 @@ const AITrainingDashboard = () => {
           </div>
           
           <div className="status-card">
-            <div className="status-icon">✅</div>
+            <div className="status-icon">
+              {aiInfo?.status === 'trained' ? '🤖' : 
+               aiInfo?.status === 'fallback' ? '📝' : 
+               aiInfo?.status === 'training' ? '🔄' : '❓'}
+            </div>
             <div className="status-content">
-              <div className="status-label">Status</div>
-              <div className="status-value">
-                {aiInfo?.isReady ? 'Ready' : 'Not Ready'}
+              <div className="status-label">AI Status</div>
+              <div className="status-value" style={{ 
+                color: aiInfo?.status === 'trained' ? '#00aa00' : 
+                       aiInfo?.status === 'fallback' ? '#ff8800' : 
+                       aiInfo?.status === 'training' ? '#0066cc' : '#666'
+              }}>
+                {aiInfo?.status === 'trained' ? 'Trained Model' : 
+                 aiInfo?.status === 'fallback' ? 'Rule-Based Fallback' : 
+                 aiInfo?.status === 'training' ? 'Training...' : 
+                 aiInfo?.isReady ? 'Ready' : 'Not Ready'}
+              </div>
+              <div className="status-message" style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
+                {aiInfo?.message || 'Unknown status'}
               </div>
             </div>
           </div>
@@ -380,6 +398,36 @@ const AITrainingDashboard = () => {
               </button>
               <p className="setting-description">
                 Manually process any pending shot data for AI training
+              </p>
+            </div>
+
+            <div className="setting-group">
+              <button 
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const ai = getAdvancedEspressoAI();
+                    const result = await ai.trainWithExistingLogs();
+                    
+                    if (result.success) {
+                      alert(`✅ ${result.message}\n\nTotal logs: ${result.totalLogs}\nValid for training: ${result.validLogs}`);
+                    } else {
+                      alert(`❌ ${result.message}`);
+                    }
+                    
+                    await loadAIData();
+                  } catch (error) {
+                    console.error('Error training with existing logs:', error);
+                    alert('❌ Error training with existing logs');
+                    setLoading(false);
+                  }
+                }}
+              >
+                🚀 Train with All Existing Logs
+              </button>
+              <p className="setting-description">
+                Train the AI model using all existing coffee logs that have AI training data
               </p>
             </div>
           </div>

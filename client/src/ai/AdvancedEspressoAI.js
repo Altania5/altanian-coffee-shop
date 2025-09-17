@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { IDEAL_PARAMETERS, TROUBLESHOOTING_RULES } from '../data/espressoKnowledge';
+import api from '../utils/api';
 
 class AdvancedEspressoAI {
   // Status management methods
@@ -107,8 +108,11 @@ class AdvancedEspressoAI {
       }
     } catch (error) {
       console.error('❌ Error initializing Advanced AI:', error);
+      console.log('🔄 Falling back to rule-based system');
       // Fallback to rule-based system
       this.isReady = true;
+      this.model = null; // Ensure no model is set
+      this.updateStatus({ phase: 'ready', progress: 100, message: 'Using rule-based fallback system' });
     }
   }
 
@@ -655,19 +659,41 @@ class AdvancedEspressoAI {
 
   // Enhanced analysis method
   async analyzeShot(shotData) {
-    if (!this.isReady) {
+    console.log('🔍 AI Analysis Debug:', {
+      isReady: this.isReady,
+      hasModel: !!this.model,
+      modelVersion: this.modelVersion,
+      userDataCount: this.userDataHistory.length
+    });
+
+    if (!this.isReady || !this.model) {
+      console.log('⚠️ Using fallback analysis - AI not ready or no model');
+      console.log('📊 Fallback Analysis Details:', {
+        isReady: this.isReady,
+        hasModel: !!this.model,
+        userDataCount: this.userDataHistory.length,
+        reason: !this.isReady ? 'AI not ready' : 'No trained model available'
+      });
       return this.fallbackAnalysis(shotData);
     }
 
     try {
       // Extract features
       const features = this.extractAdvancedFeatures(shotData);
+      console.log('📊 Extracted features:', features.slice(0, 10)); // Log first 10 features
+      
       const normalizedFeatures = this.robustNormalizeFeatures(tf.tensor2d([features]));
       
       // Predict quality
       const prediction = this.model.predict(normalizedFeatures);
       const predictedQuality = await prediction.data();
       const qualityScore = Math.round((predictedQuality[0] * 9) + 1);
+      
+      console.log('🎯 Model prediction:', {
+        rawPrediction: predictedQuality[0],
+        qualityScore: qualityScore,
+        currentQuality: shotData.shotQuality
+      });
       
       // Generate intelligent recommendations
       const recommendations = await this.generateIntelligentRecommendations(shotData, qualityScore);
@@ -707,14 +733,29 @@ class AdvancedEspressoAI {
     const ratio = shotData.outWeight / shotData.inWeight;
     const flowRate = shotData.outWeight / shotData.extractionTime;
     
+    console.log('🎯 Generating recommendations for:', {
+      extractionTime: shotData.extractionTime,
+      ratio: ratio.toFixed(2),
+      flowRate: flowRate.toFixed(2),
+      predictedQuality
+    });
+    
     // Use machine learning insights combined with domain knowledge
     const issues = this.identifyIssues(shotData, ratio, flowRate, predictedQuality);
     
-    // Prioritize recommendations based on impact and feasibility
-    const prioritizedIssues = issues.sort((a, b) => b.impact * b.feasibility - a.impact * a.feasibility);
+    // Add some randomness to prevent identical recommendations
+    const shuffledIssues = issues.sort(() => Math.random() - 0.5);
     
-    // Generate contextual recommendations
-    prioritizedIssues.slice(0, 4).forEach(issue => {
+    // Prioritize recommendations based on impact and feasibility, but add some randomness
+    const prioritizedIssues = shuffledIssues.sort((a, b) => {
+      const scoreA = (b.impact * b.feasibility) + (Math.random() * 0.2); // Add randomness
+      const scoreB = (a.impact * a.feasibility) + (Math.random() * 0.2);
+      return scoreB - scoreA;
+    });
+    
+    // Generate contextual recommendations (limit to 2-3 to avoid overwhelming)
+    const maxRecommendations = Math.min(3, prioritizedIssues.length);
+    prioritizedIssues.slice(0, maxRecommendations).forEach(issue => {
       recommendations.push({
         type: issue.type,
         action: issue.recommendation,
@@ -725,6 +766,7 @@ class AdvancedEspressoAI {
       });
     });
     
+    console.log(`📋 Generated ${recommendations.length} recommendations`);
     return recommendations;
   }
 
@@ -830,15 +872,15 @@ class AdvancedEspressoAI {
   }
 
   calculateAdvancedConfidence(shotData, features) {
-    let confidence = 0.6; // Base confidence
+    let confidence = 0.3; // Lower base confidence
     
     // Increase confidence based on data completeness
     const completenessFactors = [
-      { field: 'temperature', weight: 0.1 },
-      { field: 'daysPastRoast', weight: 0.1 },
-      { field: 'tasteProfile', weight: 0.15 },
-      { field: 'usedPreInfusion', weight: 0.05 },
-      { field: 'humidity', weight: 0.05 }
+      { field: 'temperature', weight: 0.05 },
+      { field: 'daysPastRoast', weight: 0.05 },
+      { field: 'tasteProfile', weight: 0.08 },
+      { field: 'usedPreInfusion', weight: 0.03 },
+      { field: 'humidity', weight: 0.03 }
     ];
     
     completenessFactors.forEach(factor => {
@@ -847,15 +889,134 @@ class AdvancedEspressoAI {
       }
     });
     
-    // Adjust confidence based on parameter ranges
-    if (shotData.extractionTime >= 20 && shotData.extractionTime <= 40) confidence += 0.05;
-    if (shotData.grindSize >= 8 && shotData.grindSize <= 25) confidence += 0.05;
+    // Adjust confidence based on parameter ranges (smaller increments)
+    if (shotData.extractionTime >= 20 && shotData.extractionTime <= 40) confidence += 0.02;
+    if (shotData.grindSize >= 8 && shotData.grindSize <= 25) confidence += 0.02;
     
-    // Adjust based on model performance
-    if (this.performanceMetrics.accuracy > 0.8) confidence += 0.1;
-    else if (this.performanceMetrics.accuracy < 0.6) confidence -= 0.1;
+    // Adjust based on model performance and training data
+    if (this.userDataHistory.length > 50) confidence += 0.1;
+    else if (this.userDataHistory.length > 20) confidence += 0.05;
+    else if (this.userDataHistory.length < 5) confidence -= 0.1;
     
-    return Math.min(confidence, 0.95);
+    if (this.performanceMetrics.accuracy > 0.8) confidence += 0.05;
+    else if (this.performanceMetrics.accuracy < 0.6) confidence -= 0.05;
+    
+    // Add some randomness to prevent identical confidence scores
+    const randomFactor = (Math.random() - 0.5) * 0.1; // ±5% variation
+    confidence += randomFactor;
+    
+    return Math.max(0.1, Math.min(confidence, 0.9)); // Cap between 10% and 90%
+  }
+
+  // Bulk training with existing coffee logs
+  async trainWithExistingLogs() {
+    try {
+      console.log('🔄 Starting bulk training with existing coffee logs...');
+      this.updateStatus({ phase: 'training', progress: 0, message: 'Fetching existing coffee logs...' });
+
+      // Fetch all coffee logs from the server using the API utility
+      const response = await api.get('/coffeelogs');
+      const allLogs = response.data;
+      console.log(`📊 Found ${allLogs.length} coffee logs`);
+      
+      if (!Array.isArray(allLogs)) {
+        throw new Error('Invalid response format from server');
+      }
+
+      // Filter logs that have AI training fields
+      const validLogs = allLogs.filter(log => this.validateLogForTraining(log));
+      console.log(`✅ ${validLogs.length} logs have valid AI training data`);
+
+      if (validLogs.length === 0) {
+        this.updateStatus({ phase: 'ready', progress: 100, message: 'No valid logs found for training' });
+        return { success: false, message: 'No valid logs found for training' };
+      }
+
+      // Convert logs to training format
+      this.updateStatus({ progress: 25, message: 'Converting logs to training format...' });
+      const trainingData = validLogs.map(log => this.convertLogToTrainingData(log));
+
+      // Add to user data history
+      this.updateStatus({ progress: 50, message: 'Adding logs to training data...' });
+      this.userDataHistory = [...this.userDataHistory, ...trainingData];
+
+      // Retrain the model with all data
+      this.updateStatus({ progress: 75, message: 'Retraining model with all data...' });
+      await this.createAndTrainAdvancedModel();
+
+      this.updateStatus({ phase: 'ready', progress: 100, message: `Model trained with ${validLogs.length} existing logs!` });
+      
+      return { 
+        success: true, 
+        message: `Successfully trained with ${validLogs.length} existing coffee logs`,
+        totalLogs: allLogs.length,
+        validLogs: validLogs.length
+      };
+
+    } catch (error) {
+      console.error('Error training with existing logs:', error);
+      this.updateStatus({ phase: 'error', message: `Error: ${error.message}` });
+      return { success: false, message: error.message };
+    }
+  }
+
+  // Validate if a coffee log has the required AI training fields
+  validateLogForTraining(log) {
+    const requiredFields = [
+      'grindSize', 'inWeight', 'outWeight', 'extractionTime', 
+      'shotQuality', 'tasteProfile', 'roastLevel', 'processMethod'
+    ];
+
+    return requiredFields.every(field => {
+      const value = log[field];
+      return value !== undefined && value !== null && value !== '';
+    });
+  }
+
+  // Convert coffee log to training data format
+  convertLogToTrainingData(log) {
+    return {
+      // Core parameters
+      grindSize: log.grindSize,
+      inWeight: log.inWeight,
+      outWeight: log.outWeight,
+      extractionTime: log.extractionTime,
+      temperature: log.temperature || 94,
+      
+      // Bean characteristics
+      roastLevel: log.roastLevel,
+      processMethod: log.processMethod,
+      
+      // Technique parameters
+      usedPuckScreen: log.usedPuckScreen || false,
+      usedWDT: log.usedWDT || false,
+      distributionTechnique: log.distributionTechnique || 'none',
+      usedPreInfusion: log.usedPreInfusion || false,
+      preInfusionTime: log.preInfusionTime || 0,
+      preInfusionPressure: log.preInfusionPressure || 0,
+      
+      // Quality and taste
+      shotQuality: log.shotQuality,
+      tasteProfile: log.tasteProfile,
+      
+      // Environmental factors
+      humidity: log.humidity || 50,
+      pressure: log.pressure || 9,
+      
+      // Calculated values
+      ratio: log.ratio || (log.outWeight / log.inWeight),
+      extractionYield: log.extractionYield || ((log.outWeight * 0.12) / log.inWeight * 100),
+      flowRate: log.flowRate || (log.outWeight / log.extractionTime),
+      
+      // User satisfaction
+      tasteMetExpectations: log.tasteMetExpectations,
+      targetProfile: log.targetProfile || 'balanced',
+      
+      // Metadata
+      timestamp: log.createdAt || new Date().toISOString(),
+      userId: log.user,
+      logId: log._id
+    };
   }
 
   // Data collection methods
@@ -1180,7 +1341,39 @@ class AdvancedEspressoAI {
       modelVersion: this.modelVersion,
       userDataCount: this.userDataHistory.length,
       performanceMetrics: this.performanceMetrics,
-      trainingHistory: this.trainingHistory
+      trainingHistory: this.trainingHistory,
+      isUsingFallback: this.isReady && !this.model
+    };
+  }
+
+  // Method to check AI status and provide training options
+  getAIStatus() {
+    const info = this.getModelInfo();
+    let status = 'unknown';
+    let message = '';
+    let canTrain = false;
+
+    if (info.isTraining) {
+      status = 'training';
+      message = 'AI is currently training...';
+    } else if (info.hasModel && info.userDataCount > 0) {
+      status = 'trained';
+      message = `AI model ready with ${info.userDataCount} data points`;
+    } else if (info.isUsingFallback) {
+      status = 'fallback';
+      message = 'Using rule-based fallback (no trained model)';
+      canTrain = true;
+    } else {
+      status = 'not-ready';
+      message = 'AI not initialized';
+      canTrain = true;
+    }
+
+    return {
+      status,
+      message,
+      canTrain,
+      ...info
     };
   }
 

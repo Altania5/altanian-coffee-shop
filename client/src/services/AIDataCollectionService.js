@@ -4,13 +4,58 @@ class AIDataCollectionService {
   constructor() {
     this.collectionEnabled = true;
     this.batchSize = 10;
-    this.pendingData = [];
-    this.collectionStats = {
-      totalCollected: 0,
-      lastCollection: null,
-      averageQuality: 0,
-      mostCommonIssues: []
-    };
+    this.pendingData = this.loadPendingData();
+    this.collectionStats = this.loadCollectionStats();
+  }
+
+  // Load pending data from localStorage
+  loadPendingData() {
+    try {
+      const saved = localStorage.getItem('ai-pending-data');
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error('Error loading pending data:', error);
+      return [];
+    }
+  }
+
+  // Save pending data to localStorage
+  savePendingData() {
+    try {
+      localStorage.setItem('ai-pending-data', JSON.stringify(this.pendingData));
+    } catch (error) {
+      console.error('Error saving pending data:', error);
+    }
+  }
+
+  // Load collection stats from localStorage
+  loadCollectionStats() {
+    try {
+      const saved = localStorage.getItem('ai-collection-stats');
+      return saved ? JSON.parse(saved) : {
+        totalCollected: 0,
+        lastCollection: null,
+        averageQuality: 0,
+        mostCommonIssues: []
+      };
+    } catch (error) {
+      console.error('Error loading collection stats:', error);
+      return {
+        totalCollected: 0,
+        lastCollection: null,
+        averageQuality: 0,
+        mostCommonIssues: []
+      };
+    }
+  }
+
+  // Save collection stats to localStorage
+  saveCollectionStats() {
+    try {
+      localStorage.setItem('ai-collection-stats', JSON.stringify(this.collectionStats));
+    } catch (error) {
+      console.error('Error saving collection stats:', error);
+    }
   }
 
   // Collect data from a coffee log entry
@@ -46,6 +91,7 @@ class AIDataCollectionService {
       
       // Add to pending batch
       this.pendingData.push(enrichedData);
+      this.savePendingData(); // Save to localStorage
       
       console.log(`✅ Shot data validated and enriched. Pending: ${this.pendingData.length}/${this.batchSize}`);
       
@@ -129,9 +175,11 @@ class AIDataCollectionService {
       // Update collection stats
       const batchSize = this.pendingData.length;
       this.updateCollectionStats(this.pendingData);
+      this.saveCollectionStats(); // Save stats to localStorage
       
       // Clear pending data
       this.pendingData = [];
+      this.savePendingData(); // Save empty array to localStorage
       
       console.log(`✅ Processed batch of ${batchSize} shot data points`);
       
