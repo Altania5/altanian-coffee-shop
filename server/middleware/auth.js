@@ -19,7 +19,7 @@ const auth = (req, res, next) => {
     };
     next();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(401).json({ msg: 'Token verification failed, authorization denied.' });
   }
 };
 
