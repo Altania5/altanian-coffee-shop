@@ -8,19 +8,21 @@ router.route('/register').post(async (req, res) => {
   try {
     console.log('Registration request body:', req.body);
     // 1. Destructure the new fields from the request body
-    const { firstName, lastName, birthday, username, password } = req.body;
+    const { firstName, lastName, birthday, email, username, password } = req.body;
 
     // 2. Update validation to check for the new fields
-    if (!firstName || !lastName || !birthday || !username || !password) {
+    if (!firstName || !lastName || !birthday || !email || !username || !password) {
       return res.status(400).json({ msg: 'Please enter all fields.' });
     }
     if (password.length < 6) {
       return res.status(400).json({ msg: 'Password must be at least 6 characters.' });
     }
 
-    const existingUser = await User.findOne({ username: username });
+    const existingUser = await User.findOne({ 
+      $or: [{ username: username }, { email: email }] 
+    });
     if (existingUser) {
-      return res.status(400).json({ msg: 'An account with this username already exists.' });
+      return res.status(400).json({ msg: 'An account with this username or email already exists.' });
     }
 
     const salt = await bcrypt.genSalt();
@@ -31,6 +33,7 @@ router.route('/register').post(async (req, res) => {
       firstName,
       lastName,
       birthday,
+      email,
       username,
       password: passwordHash,
     });

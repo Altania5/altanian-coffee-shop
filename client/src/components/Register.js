@@ -7,6 +7,7 @@ function Register() {
     firstName: '',
     lastName: '',
     birthday: '',
+    email: '',
     username: '',
     password: ''
   });
@@ -24,7 +25,7 @@ function Register() {
       await api.post('/users/register', formData);
       setMessage('Registration successful! You can now log in.');
       // Clear the form
-      setFormData({ firstName: '', lastName: '', birthday: '', username: '', password: '' });
+      setFormData({ firstName: '', lastName: '', birthday: '', email: '', username: '', password: '' });
     } catch (err) {
       setMessage(err.response?.data?.message || 'An error occurred during registration.');
     }
@@ -40,6 +41,7 @@ function Register() {
         <input type="text" name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
         <label htmlFor="birthday">Birthday</label>
         <input type="date" name="birthday" id="birthday" value={formData.birthday} onChange={handleChange} required style={{ width: 'calc(100% - 24px)' }}/>
+        <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
         <input type="text" name="username" placeholder="Username" value={formData.username} onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
         <button type="submit">Register</button>
