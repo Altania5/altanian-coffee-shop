@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Altanian Coffee",
+  "name": "Altanian Coffee Shop",
+  "description": "Premium coffee shop with loyalty rewards and real-time order tracking",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +21,10 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#8B4513",
+  "background_color": "#F5F5DC",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["food", "lifestyle", "shopping"],
+  "lang": "en-US"
 }
