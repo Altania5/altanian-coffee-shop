@@ -140,8 +140,6 @@ if (process.env.NODE_ENV === 'production') {
 
     // Handle React routing - return index.html for all non-API routes
     app.get('*', (req, res) => {
-        console.log('Request for:', req.path);
-        
         // Don't serve index.html for API routes
         if (req.path.startsWith('/api/') || 
             req.path.startsWith('/users/') ||
@@ -156,21 +154,16 @@ if (process.env.NODE_ENV === 'production') {
             req.path.startsWith('/loyalty/') ||
             req.path.startsWith('/beanbags/') ||
             req.path.startsWith('/socket.io/')) {
-            console.log('API route, returning 404');
             return res.status(404).json({ error: 'Not found' });
         }
         
         // Check if the requested file exists
         const filePath = path.join(buildPath, req.path);
-        console.log('Checking file:', filePath);
-        
         if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            console.log('Serving file:', filePath);
             return res.sendFile(filePath);
         }
         
         // Serve index.html for React routes
-        console.log('Serving index.html for route:', req.path);
         res.sendFile(path.join(buildPath, 'index.html'));
     });
 }
