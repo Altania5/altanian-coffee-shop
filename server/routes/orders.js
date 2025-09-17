@@ -496,7 +496,7 @@ router.get('/admin/dashboard', auth, async (req, res) => {
           byStatus: ordersByStatus
         },
         activeOrders: todaysOrders.filter(o => 
-          ['confirmed', 'preparing', 'ready'].includes(o.status)
+          ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)
         ),
         lowStockItems: lowStockItems.map(item => ({
           id: item._id,
