@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
@@ -120,16 +121,27 @@ io.on('connection', (socket) => {
 global.io = io;
 
 if (process.env.NODE_ENV === 'production') {
+    const buildPath = path.join(__dirname, '..', 'client', 'build');
+    
     // Serve static files from the React app build directory
-    app.use(express.static(path.join(__dirname, '..', 'client', 'build'), {
-        maxAge: '1d', // Cache static files for 1 day
+    app.use('/static', express.static(path.join(buildPath, 'static'), {
+        maxAge: '1d',
+        etag: true,
+        lastModified: true
+    }));
+    
+    // Serve other static files (favicon, manifest, etc.)
+    app.use(express.static(buildPath, {
+        maxAge: '1d',
         etag: true,
         lastModified: true,
-        index: false // Don't serve index.html for directory requests
+        index: false
     }));
 
     // Handle React routing - return index.html for all non-API routes
     app.get('*', (req, res) => {
+        console.log('Request for:', req.path);
+        
         // Don't serve index.html for API routes
         if (req.path.startsWith('/api/') || 
             req.path.startsWith('/users/') ||
@@ -144,10 +156,22 @@ if (process.env.NODE_ENV === 'production') {
             req.path.startsWith('/loyalty/') ||
             req.path.startsWith('/beanbags/') ||
             req.path.startsWith('/socket.io/')) {
+            console.log('API route, returning 404');
             return res.status(404).json({ error: 'Not found' });
         }
         
-        res.sendFile(path.resolve(__dirname, '..', 'client', 'build', 'index.html'));
+        // Check if the requested file exists
+        const filePath = path.join(buildPath, req.path);
+        console.log('Checking file:', filePath);
+        
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            console.log('Serving file:', filePath);
+            return res.sendFile(filePath);
+        }
+        
+        // Serve index.html for React routes
+        console.log('Serving index.html for route:', req.path);
+        res.sendFile(path.join(buildPath, 'index.html'));
     });
 }
 
