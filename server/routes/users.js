@@ -6,6 +6,7 @@ let User = require('../models/user.model');
 // --- REGISTRATION ---
 router.route('/register').post(async (req, res) => {
   try {
+    console.log('Registration request body:', req.body);
     // 1. Destructure the new fields from the request body
     const { firstName, lastName, birthday, username, password } = req.body;
 
@@ -38,6 +39,7 @@ router.route('/register').post(async (req, res) => {
     res.json(savedUser);
 
   } catch (err) {
+    console.error('Registration error:', err);
     res.status(500).json({ error: err.message });
   }
 });
