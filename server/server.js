@@ -25,7 +25,15 @@ const io = new Server(server, {
 });
 const port = process.env.PORT || 5003;
 
-app.use(cors());
+// Enhanced CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ["https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com", "https://www.altaniancoffee.com", "https://altaniancoffee.com"]
+    : ["http://localhost:3000", "http://localhost:3001"],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+}));
 app.use(express.json());
 
 // Add headers to prevent caching issues
@@ -116,15 +124,26 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'build'), {
         maxAge: '1d', // Cache static files for 1 day
         etag: true,
-        lastModified: true
+        lastModified: true,
+        index: false // Don't serve index.html for directory requests
     }));
 
     // Handle React routing - return index.html for all non-API routes
     app.get('*', (req, res) => {
-        // Don't serve index.html for API routes or static files
+        // Don't serve index.html for API routes
         if (req.path.startsWith('/api/') || 
-            req.path.startsWith('/static/') || 
-            req.path.includes('.')) {
+            req.path.startsWith('/users/') ||
+            req.path.startsWith('/products/') ||
+            req.path.startsWith('/orders/') ||
+            req.path.startsWith('/beans/') ||
+            req.path.startsWith('/coffeelogs/') ||
+            req.path.startsWith('/inventory/') ||
+            req.path.startsWith('/settings/') ||
+            req.path.startsWith('/promocodes/') ||
+            req.path.startsWith('/payments/') ||
+            req.path.startsWith('/loyalty/') ||
+            req.path.startsWith('/beanbags/') ||
+            req.path.startsWith('/socket.io/')) {
             return res.status(404).json({ error: 'Not found' });
         }
         
