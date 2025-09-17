@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 function OrderHistory({ token }) {
   const [orders, setOrders] = useState([]);
@@ -8,11 +8,7 @@ function OrderHistory({ token }) {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      // --- FIX THIS LINE ---
-      const res = await axios.get(`${baseURL}/orders/myorders`, { 
-        headers: { 'x-auth-token': token } 
-      });
+      const res = await api.get('/orders/myorders');
       setOrders(res.data);
     } catch (err) {
       console.error("Error fetching order history:", err);

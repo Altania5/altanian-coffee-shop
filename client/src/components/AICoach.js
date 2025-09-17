@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getEspressoAI } from '../ai/EspressoAI';
+import { getAdvancedEspressoAI } from '../ai/AdvancedEspressoAI';
 
 const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [analysis, setAnalysis] = useState(null);
@@ -10,7 +10,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
 
   const performAnalysis = useCallback(async () => {
     try {
-      const ai = getEspressoAI();
+      const ai = getAdvancedEspressoAI();
       const result = await ai.analyzeShot(shotData);
       setAnalysis(result);
       setAiStatus('ready');
@@ -27,7 +27,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
     setAiStatus('analyzing');
     
     try {
-      const ai = getEspressoAI();
+      const ai = getAdvancedEspressoAI();
       const modelInfo = ai.getModelInfo();
       
       if (modelInfo.isTraining) {
@@ -56,7 +56,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   useEffect(() => {
     // First, try to load persisted AI response
     const loadPersistedResponse = async () => {
-      const ai = getEspressoAI();
+      const ai = getAdvancedEspressoAI();
       const lastResponse = ai.getLastAIResponse();
       
       if (lastResponse && !shotData) {

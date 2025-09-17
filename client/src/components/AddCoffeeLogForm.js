@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import AddBeanForm from './AddBeanForm';
+import { getAIDataCollectionService } from '../services/AIDataCollectionService';
 
 function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
   const [showBeanForm, setShowBeanForm] = useState(false);
@@ -78,8 +79,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     const fetchBags = async () => {
       if (!formData.bean) { setBags([]); return; }
       try {
-        const headers = { 'x-auth-token': token };
-        const resp = await axios.get(`/beanbags?bean=${formData.bean}`, { headers });
+        const resp = await api.get(`/beanbags?bean=${formData.bean}`);
         setBags(resp.data || []);
       } catch (e) {
         setBags([]);
@@ -152,8 +152,11 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     setSuccess('');
     
     try {
-      const headers = { 'x-auth-token': token };
-      const response = await axios.post('/coffeelogs/add', formData, { headers });
+      const response = await api.post('/coffeelogs/add', formData);
+      
+      // Collect data for AI training
+      const dataCollectionService = getAIDataCollectionService();
+      await dataCollectionService.collectShotData(response.data);
       
       onLogAdded(response.data);
       setSuccess('✅ Coffee log added successfully! Keep tracking your progress.');
@@ -483,8 +486,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                   type="button"
                   onClick={async () => {
                     try {
-                      const headers = { 'x-auth-token': token };
-                      const resp = await axios.post('/beanbags', { bean: formData.bean, bagSizeGrams: bagForm.bagSizeGrams }, { headers });
+                      const resp = await api.post('/beanbags', { bean: formData.bean, bagSizeGrams: bagForm.bagSizeGrams });
                       setBags([resp.data, ...bags]);
                       setFormData({ ...formData, bag: resp.data._id });
                     } catch (e) {
@@ -502,8 +504,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                   type="button"
                   onClick={async () => {
                     try {
-                      const headers = { 'x-auth-token': token };
-                      await axios.patch(`/beanbags/${formData.bag}/empty`, {}, { headers });
+                      await api.patch(`/beanbags/${formData.bag}/empty`, {});
                       const updated = bags.map(b => b._id === formData.bag ? { ...b, remainingGrams: 0, isEmpty: true } : b);
                       setBags(updated);
                     } catch (e) {

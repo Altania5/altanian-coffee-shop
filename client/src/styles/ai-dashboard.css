@@ -1,0 +1,545 @@
+/* AI Training Dashboard Styles */
+.ai-dashboard-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Training Status Container */
+.training-status-container {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.training-status-container h2 {
+  color: #2c3e50;
+  margin-bottom: 30px;
+  font-size: 2rem;
+}
+
+.training-status {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.status-phase {
+  margin-bottom: 20px;
+}
+
+.phase-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.phase-badge.idle {
+  background: #6c757d;
+  color: white;
+}
+
+.phase-badge.initializing {
+  background: #17a2b8;
+  color: white;
+}
+
+.phase-badge.training {
+  background: #ffc107;
+  color: #212529;
+}
+
+.phase-badge.ready {
+  background: #28a745;
+  color: white;
+}
+
+.phase-badge.error {
+  background: #dc3545;
+  color: white;
+}
+
+.progress-container {
+  margin: 20px 0;
+  position: relative;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.status-message {
+  font-size: 1.1rem;
+  color: #495057;
+  margin: 20px 0;
+  font-weight: 500;
+}
+
+.training-details {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.epoch-info {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.loss-info {
+  display: flex;
+  gap: 15px;
+  font-size: 0.9rem;
+}
+
+.loss-info span {
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.dashboard-header h2 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 2rem;
+}
+
+.dashboard-header p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.dashboard-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-section h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+  transition: transform 0.2s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+}
+
+.status-icon {
+  font-size: 2rem;
+  margin-right: 15px;
+}
+
+.status-content {
+  flex: 1;
+}
+
+.status-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 5px;
+}
+
+.status-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.metric-card {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.metric-description {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Collection Stats */
+.collection-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #28a745;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* Common Issues */
+.common-issues {
+  margin-top: 20px;
+}
+
+.common-issues h4 {
+  color: #dc3545;
+  margin-bottom: 10px;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #fff5f5;
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
+}
+
+.issue-name {
+  font-weight: 500;
+  color: #721c24;
+  text-transform: capitalize;
+}
+
+.issue-count {
+  font-weight: bold;
+  color: #dc3545;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.action-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.action-btn.primary {
+  background: #007bff;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.action-btn.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.action-btn.secondary:hover {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+.action-btn.danger {
+  background: #dc3545;
+  color: white;
+}
+
+.action-btn.danger:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Advanced Settings */
+.advanced-content {
+  margin-top: 15px;
+}
+
+.setting-group {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.setting-group label {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.setting-group input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+}
+
+.setting-group input[type="number"] {
+  width: 80px;
+  padding: 5px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  margin-left: 10px;
+}
+
+.setting-description {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Training Info */
+.training-info {
+  padding: 15px;
+  background: #e7f3ff;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.training-info p {
+  margin: 5px 0;
+  color: #2c3e50;
+}
+
+/* Tips */
+.tips {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.tips h3 {
+  color: #856404;
+  border-bottom-color: #ffeaa7;
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+}
+
+.tips-list li {
+  padding: 8px 0;
+  color: #856404;
+  position: relative;
+  padding-left: 25px;
+}
+
+.tips-list li:before {
+  content: "💡";
+  position: absolute;
+  left: 0;
+  top: 8px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.loading-spinner:before {
+  content: "⏳";
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ai-dashboard-container {
+    padding: 15px;
+  }
+  
+  .status-grid,
+  .metrics-grid,
+  .collection-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+  
+  .dashboard-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .ai-dashboard-container {
+    background: #2c3e50;
+    color: #ecf0f1;
+  }
+  
+  .dashboard-section {
+    background: #34495e;
+    color: #ecf0f1;
+  }
+  
+  .dashboard-section h3 {
+    color: #ecf0f1;
+    border-bottom-color: #4a6741;
+  }
+  
+  .status-card,
+  .metric-card,
+  .stat-item,
+  .setting-group,
+  .training-info {
+    background: #3c4f66;
+    color: #ecf0f1;
+  }
+  
+  .status-label,
+  .metric-label,
+  .stat-label,
+  .setting-description {
+    color: #bdc3c7;
+  }
+  
+  .status-value,
+  .metric-value,
+  .stat-value {
+    color: #ecf0f1;
+  }
+}

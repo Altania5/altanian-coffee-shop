@@ -10,6 +10,7 @@ import SuggestedItemManager from '../components/SuggestedItemManager';
 import PromoCodeManager from '../components/PromoCodeManager';
 import OrderQueue from '../components/admin/OrderQueue';
 import LoyaltyManager from '../components/admin/LoyaltyManager';
+import AITrainingDashboard from '../components/AITrainingDashboard';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -376,6 +377,13 @@ function AdminPage({ user }) {
           <span className="tab-icon">🎯</span>
           Loyalty
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'ai-training' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ai-training')}
+        >
+          <span className="tab-icon">🤖</span>
+          AI Training
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -409,6 +417,9 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'loyalty' && (
           <LoyaltyManager token={user.token} />
+        )}
+        {activeTab === 'ai-training' && (
+          <AITrainingDashboard />
         )}
       </div>
     </div>

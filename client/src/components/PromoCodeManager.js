@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 function PromoCodeManager({ token }) {
   const [codes, setCodes] = useState([]);
@@ -14,8 +14,7 @@ function PromoCodeManager({ token }) {
       return;
     }
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.get(`${baseURL}/promocodes`, { headers: { 'x-auth-token': token } });
+      const res = await api.get('/promocodes');
       setCodes(res.data);
     } catch (err) {
       console.error("Error fetching promo codes:", err);
@@ -41,8 +40,7 @@ function PromoCodeManager({ token }) {
       return;
     }
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.post(`${baseURL}/promocodes/add`, newCode, { headers: { 'x-auth-token': token } });
+      const res = await api.post('/promocodes/add', newCode);
       setCodes([res.data, ...codes]);
       setNewCode({ code: '', discountPercentage: '', expiresAt: '' }); // Reset form
       alert('Promo code created successfully!');

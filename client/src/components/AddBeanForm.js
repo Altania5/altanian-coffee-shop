@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 function AddBeanForm({ token, onBeanAdded }) {
   const [name, setName] = useState('');
@@ -15,8 +15,6 @@ function AddBeanForm({ token, onBeanAdded }) {
     e.preventDefault();
     setError('');
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const headers = { 'x-auth-token': token };
       const newBean = { 
         name, 
         roaster, 
@@ -26,7 +24,7 @@ function AddBeanForm({ token, onBeanAdded }) {
         processMethod,
         notes
       };
-      const response = await axios.post(`${baseURL}/beans/add`, newBean, { headers });
+      const response = await api.post('/beans/add', newBean);
       onBeanAdded(response.data);
       // Clear form
       setName('');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 function SuggestedItemManager({ token }) {
   const [products, setProducts] = useState([]);
@@ -14,11 +14,9 @@ function SuggestedItemManager({ token }) {
       return;
     }
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const authHeaders = { 'x-auth-token': token };
       const [productsRes, suggestedRes] = await Promise.all([
-        axios.get(`${baseURL}/products`),
-        axios.get(`${baseURL}/settings/suggested-product`, { headers: authHeaders })
+        api.get('/products'),
+        api.get('/settings/suggested-product')
       ]);
       setProducts(productsRes.data);
       if (suggestedRes.data) {
@@ -43,8 +41,7 @@ function SuggestedItemManager({ token }) {
       return;
     }
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.put(`${baseURL}/settings/suggested-product`, { productId: suggestedProduct }, { headers: { 'x-auth-token': token } });
+      const res = await api.put('/settings/suggested-product', { productId: suggestedProduct });
       setCurrentSuggested(res.data);
       alert('Suggested item updated successfully!');
     } catch (err) {

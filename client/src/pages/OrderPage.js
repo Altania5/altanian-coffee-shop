@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Cart from '../components/Cart';
 import OrderHistory from '../components/OrderHistory';
 import Products from '../components/Products';
@@ -12,18 +12,14 @@ function OrderPage({ user, cart, setCart, addToCart, updateCartQuantity, removeF
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-        const headers = user.token ? { 'x-auth-token': user.token } : {};
-        
         // Fetch products
-        const productsRes = await axios.get(`${baseURL}/products`, 
-          Object.keys(headers).length > 0 ? { headers } : {});
+        const productsRes = await api.get('/products');
         setProducts(productsRes.data);
         
         // Fetch inventory if user is authenticated
         if (user.token) {
           try {
-            const inventoryRes = await axios.get(`${baseURL}/inventory`, { headers });
+            const inventoryRes = await api.get('/inventory');
             setInventory(inventoryRes.data);
           } catch (inventoryError) {
             console.log('Could not fetch inventory:', inventoryError.response?.status);
@@ -34,7 +30,7 @@ function OrderPage({ user, cart, setCart, addToCart, updateCartQuantity, removeF
         console.error('Error fetching data:', error);
       }
     };
-    
+
     fetchData();
   }, [user.token]);
 

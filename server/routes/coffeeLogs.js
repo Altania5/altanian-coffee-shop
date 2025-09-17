@@ -8,7 +8,13 @@ const BeanBag = require('../models/beanBag.model');
 // @access  Private
 router.post('/add', auth, async (req, res) => {
   try {
-    const { bean, bag, machine, grindSize, extractionTime, temperature, inWeight, outWeight, tasteMetExpectations, notes } = req.body;
+    console.log('Coffee log request body:', JSON.stringify(req.body, null, 2));
+    const { 
+      bean, bag, machine, grindSize, extractionTime, temperature, inWeight, outWeight, 
+      tasteMetExpectations, notes, shotQuality, tasteProfile, roastLevel, processMethod,
+      usedPuckScreen, usedWDT, distributionTechnique, usedPreInfusion, preInfusionTime,
+      preInfusionPressure, humidity, pressure, targetProfile
+    } = req.body;
 
     // Basic validation
     if (!bean || !machine || !grindSize || !extractionTime || !inWeight || !outWeight) {
@@ -26,7 +32,25 @@ router.post('/add', auth, async (req, res) => {
       inWeight,
       outWeight,
       tasteMetExpectations,
-      notes
+      notes,
+      // AI Training Parameters
+      shotQuality: shotQuality || 5,
+      tasteProfile: tasteProfile || { sweetness: 3, acidity: 3, bitterness: 3, body: 3 },
+      roastLevel: roastLevel || 'medium',
+      processMethod: processMethod || 'washed',
+      // Preparation Technique Parameters
+      usedPuckScreen: usedPuckScreen || false,
+      usedWDT: usedWDT || false,
+      distributionTechnique: distributionTechnique || 'none',
+      // Pre-Infusion Parameters
+      usedPreInfusion: usedPreInfusion || false,
+      preInfusionTime: preInfusionTime || undefined,
+      preInfusionPressure: preInfusionPressure || undefined,
+      // Environmental Factors
+      humidity: humidity || undefined,
+      pressure: pressure || 9,
+      // User Goals
+      targetProfile: targetProfile || 'balanced'
     });
 
     // If a bag is provided, decrement remaining grams and flag empty if needed
@@ -48,12 +72,16 @@ router.post('/add', auth, async (req, res) => {
     }
 
     const savedLog = await newLog.save();
+    console.log('Coffee log saved successfully:', savedLog._id);
     // Populate the bean details before sending back
-    const populatedLog = await savedLog
+    const populatedLog = await CoffeeLog.findById(savedLog._id)
       .populate('bean', 'name roaster')
       .populate('bag', 'bagSizeGrams remainingGrams isEmpty');
     res.json(populatedLog);
   } catch (err) {
+    console.error('Error adding coffee log:', err);
+    console.error('Error details:', err.message);
+    console.error('Error stack:', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
