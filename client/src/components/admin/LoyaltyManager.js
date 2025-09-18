@@ -218,7 +218,7 @@ const LoyaltyManager = ({ token }) => {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .loyalty-manager {
           max-width: 1200px;
           margin: 0 auto;

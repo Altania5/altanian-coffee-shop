@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getAdvancedEspressoAI } from '../ai/AdvancedEspressoAI';
+import { getCentralizedAIService } from '../services/CentralizedAIService';
 import { getAIDataCollectionService } from '../services/AIDataCollectionService';
+import api from '../utils/api';
 import '../styles/ai-dashboard.css';
 
 const AITrainingDashboard = () => {
@@ -9,40 +10,59 @@ const AITrainingDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [trainingStatus, setTrainingStatus] = useState(null);
+  const [modelStats, setModelStats] = useState(null);
+  const [activeModel, setActiveModel] = useState(null);
 
   useEffect(() => {
     loadAIData();
     
-    // Subscribe to training status updates
-    const ai = getAdvancedEspressoAI();
-    const statusCallback = (status) => {
-      setTrainingStatus(status);
-    };
-    
-    ai.addStatusCallback(statusCallback);
+    // Set up periodic status checking for centralized AI
+    const statusInterval = setInterval(async () => {
+      const ai = getCentralizedAIService();
+      const status = await ai.getTrainingStatus();
+      console.log('📊 Training Status Update:', status);
+      if (status) {
+        setTrainingStatus({
+          phase: status.isTraining ? 'training' : 'ready',
+          progress: status.trainingProgress || 0,
+          message: status.message || (status.isTraining ? 'Training centralized model...' : 'Centralized model ready'),
+          currentEpoch: status.currentEpoch || 0,
+          totalEpochs: status.totalEpochs || 1000,
+          loss: status.currentLoss ? status.currentLoss.toFixed(4) : '0.0000',
+          valLoss: status.currentValLoss ? status.currentValLoss.toFixed(4) : '0.0000'
+        });
+      }
+    }, 1000);
     
     return () => {
-      ai.removeStatusCallback(statusCallback);
+      clearInterval(statusInterval);
     };
   }, []);
 
   const loadAIData = async () => {
     try {
-      const ai = getAdvancedEspressoAI();
+      const ai = getCentralizedAIService();
       const dataService = getAIDataCollectionService();
       
-      const [modelInfo, stats, aiStatus] = await Promise.all([
+      // Initialize centralized AI if not ready
+      if (!ai.isReady) {
+        await ai.initialize();
+      }
+      
+      const [modelInfo, stats, aiStats] = await Promise.all([
         ai.getModelInfo(),
         dataService.getCollectionStats(),
-        ai.getAIStatus()
+        api.get('/ai-models/statistics').catch(() => ({ data: { data: null } }))
       ]);
       
-      setAiInfo({ ...modelInfo, ...aiStatus });
+      setAiInfo(modelInfo);
       setCollectionStats(stats);
+      setModelStats(aiStats.data.data);
+      setActiveModel(aiStats.data.data?.modelStats?.activeModel || null);
       setLoading(false);
       
       // Log AI status for debugging
-      console.log('🤖 AI Status Check:', aiStatus);
+      console.log('🤖 Centralized AI Status Check:', modelInfo);
     } catch (error) {
       console.error('Error loading AI data:', error);
       setLoading(false);
@@ -52,14 +72,18 @@ const AITrainingDashboard = () => {
   const handleRetrainModel = async () => {
     try {
       setLoading(true);
-      const ai = getAdvancedEspressoAI();
+      const ai = getCentralizedAIService();
       const dataService = getAIDataCollectionService();
       
       // Flush any pending data
       await dataService.flushPendingData();
       
-      // Retrain the model
-      await ai.createAndTrainAdvancedModel();
+      // Retrain the centralized model
+      const result = await ai.retrainModel();
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
       
       // Reload data
       await loadAIData();
@@ -167,31 +191,40 @@ const AITrainingDashboard = () => {
           <div className="status-card">
             <div className="status-icon">🧠</div>
             <div className="status-content">
-              <div className="status-label">Model Version</div>
-              <div className="status-value">{aiInfo?.modelVersion || 'Unknown'}</div>
+              <div className="status-label">Active Model</div>
+              <div className="status-value">
+                {activeModel ? `v${activeModel.version}` : 'No Active Model'}
+              </div>
+              <div className="status-message" style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
+                {activeModel ? 'Published model in use' : 'Train and publish a model'}
+              </div>
             </div>
           </div>
           
           <div className="status-card">
             <div className="status-icon">
-              {aiInfo?.status === 'trained' ? '🤖' : 
-               aiInfo?.status === 'fallback' ? '📝' : 
-               aiInfo?.status === 'training' ? '🔄' : '❓'}
+              {activeModel ? '🚀' : 
+               aiInfo?.hasModel ? '🤖' : 
+               aiInfo?.isUsingFallback ? '📝' : 
+               aiInfo?.isTraining ? '🔄' : '❓'}
             </div>
             <div className="status-content">
               <div className="status-label">AI Status</div>
               <div className="status-value" style={{ 
-                color: aiInfo?.status === 'trained' ? '#00aa00' : 
-                       aiInfo?.status === 'fallback' ? '#ff8800' : 
-                       aiInfo?.status === 'training' ? '#0066cc' : '#666'
+                color: activeModel ? '#00aa00' : 
+                       aiInfo?.hasModel ? '#00aa00' : 
+                       aiInfo?.isUsingFallback ? '#ff8800' : 
+                       aiInfo?.isTraining ? '#0066cc' : '#666'
               }}>
-                {aiInfo?.status === 'trained' ? 'Trained Model' : 
-                 aiInfo?.status === 'fallback' ? 'Rule-Based Fallback' : 
-                 aiInfo?.status === 'training' ? 'Training...' : 
+                {activeModel ? 'Published Model Active' :
+                 aiInfo?.hasModel ? 'Centralized Model' : 
+                 aiInfo?.isUsingFallback ? 'Rule-Based Fallback' : 
+                 aiInfo?.isTraining ? 'Training...' : 
                  aiInfo?.isReady ? 'Ready' : 'Not Ready'}
               </div>
               <div className="status-message" style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
-                {aiInfo?.message || 'Unknown status'}
+                {activeModel ? 'Global deployment active' : 
+                 aiInfo?.isCentralized ? 'Shared across all users' : 'Local model'}
               </div>
             </div>
           </div>
@@ -200,7 +233,20 @@ const AITrainingDashboard = () => {
             <div className="status-icon">📊</div>
             <div className="status-content">
               <div className="status-label">Training Data</div>
-              <div className="status-value">{aiInfo?.userDataCount || 0} shots</div>
+              <div className="status-value">
+                {modelStats?.totalModels ? 
+                  `${modelStats.totalModels} models trained` :
+                  aiInfo?.isCentralized ? 
+                    `${aiInfo?.validLogs || 0}/${aiInfo?.totalLogs || 0} valid logs` : 
+                    (aiInfo?.userDataCount || 0) + ' shots'
+                }
+              </div>
+              <div className="status-message" style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
+                {modelStats?.totalModels ? 
+                  `Latest: ${modelStats.latestModel?.version || 'N/A'}` :
+                  aiInfo?.validLogs < 10 ? 'Need at least 10 logs for training' : 
+                  aiInfo?.totalLogs > 0 ? `Training with ALL ${aiInfo.totalLogs} database logs` : 'Ready for training'}
+              </div>
             </div>
           </div>
           
@@ -210,9 +256,16 @@ const AITrainingDashboard = () => {
               <div className="status-label">Accuracy</div>
               <div 
                 className="status-value"
-                style={{ color: getPerformanceColor(aiInfo?.performanceMetrics?.accuracy || 0) }}
+                style={{ color: getPerformanceColor(
+                  activeModel?.accuracy || 
+                  aiInfo?.performanceMetrics?.accuracy || 0
+                ) }}
               >
-                {((aiInfo?.performanceMetrics?.accuracy || 0) * 100).toFixed(1)}%
+                {((activeModel?.accuracy || 
+                   aiInfo?.performanceMetrics?.accuracy || 0) * 100).toFixed(1)}%
+              </div>
+              <div className="status-message" style={{ fontSize: '0.8em', color: '#666', marginTop: '4px' }}>
+                {activeModel ? 'Published model accuracy' : 'Current model accuracy'}
               </div>
             </div>
           </div>
@@ -220,37 +273,47 @@ const AITrainingDashboard = () => {
       </div>
 
       {/* Performance Metrics */}
-      {aiInfo?.performanceMetrics && (
+      {(activeModel?.performanceMetrics || aiInfo?.performanceMetrics) && (
         <div className="dashboard-section">
           <h3>Performance Metrics</h3>
           <div className="metrics-grid">
             <div className="metric-card">
               <div className="metric-label">Mean Absolute Error</div>
-              <div className="metric-value">{aiInfo.performanceMetrics.mae?.toFixed(3) || 'N/A'}</div>
+              <div className="metric-value">
+                {(activeModel?.performanceMetrics?.mae || aiInfo?.performanceMetrics?.mae)?.toFixed(3) || 'N/A'}
+              </div>
               <div className="metric-description">Lower is better</div>
             </div>
             
             <div className="metric-card">
               <div className="metric-label">Root Mean Square Error</div>
-              <div className="metric-value">{aiInfo.performanceMetrics.rmse?.toFixed(3) || 'N/A'}</div>
+              <div className="metric-value">
+                {(activeModel?.performanceMetrics?.rmse || aiInfo?.performanceMetrics?.rmse)?.toFixed(3) || 'N/A'}
+              </div>
               <div className="metric-description">Lower is better</div>
             </div>
             
             <div className="metric-card">
               <div className="metric-label">R² Score</div>
-              <div className="metric-value">{aiInfo.performanceMetrics.r2?.toFixed(3) || 'N/A'}</div>
+              <div className="metric-value">
+                {(activeModel?.performanceMetrics?.r2 || aiInfo?.performanceMetrics?.r2)?.toFixed(3) || 'N/A'}
+              </div>
               <div className="metric-description">Higher is better</div>
             </div>
             
             <div className="metric-card">
               <div className="metric-label">Last Updated</div>
               <div className="metric-value">
-                {aiInfo.performanceMetrics.lastUpdated 
-                  ? new Date(aiInfo.performanceMetrics.lastUpdated).toLocaleDateString()
-                  : 'Never'
+                {activeModel?.publishedAt ? 
+                  new Date(activeModel.publishedAt).toLocaleDateString() :
+                  aiInfo?.performanceMetrics?.lastUpdated ? 
+                    new Date(aiInfo.performanceMetrics.lastUpdated).toLocaleDateString() :
+                    'Never'
                 }
               </div>
-              <div className="metric-description">Model evaluation</div>
+              <div className="metric-description">
+                {activeModel ? 'Model published' : 'Model evaluation'}
+              </div>
             </div>
           </div>
         </div>
@@ -310,10 +373,10 @@ const AITrainingDashboard = () => {
         <div className="action-buttons">
           <button 
             className="action-btn primary"
-            onClick={handleRetrainModel}
+            onClick={() => window.location.href = '/admin?tab=ai-models'}
             disabled={loading}
           >
-            🔄 Retrain Model
+            🚀 Manage AI Models
           </button>
           
           <button 
@@ -336,6 +399,15 @@ const AITrainingDashboard = () => {
           >
             🗑️ Clear Data
           </button>
+        </div>
+        
+        <div className="action-info">
+          <p>
+            <strong>🚀 AI Model Management:</strong> Use the new AI Model Management system to train, test, and publish models with full control over epochs, batch size, and training parameters.
+          </p>
+          <p>
+            <strong>📊 Real-time Training:</strong> Monitor training progress with live epoch tracking, loss values, and performance metrics.
+          </p>
         </div>
       </div>
 
@@ -402,33 +474,76 @@ const AITrainingDashboard = () => {
             </div>
 
             <div className="setting-group">
-              <button 
+              <button
                 className="btn btn-primary"
+                onClick={() => window.location.href = '/admin?tab=ai-models'}
+              >
+                🚀 Open AI Model Management
+              </button>
+              <p className="setting-description">
+                Access the new AI Model Management system for advanced training, testing, and publishing
+              </p>
+            </div>
+
+            <div className="setting-group">
+              <button
+                className="btn btn-secondary"
                 onClick={async () => {
                   try {
-                    setLoading(true);
-                    const ai = getAdvancedEspressoAI();
-                    const result = await ai.trainWithExistingLogs();
-                    
-                    if (result.success) {
-                      alert(`✅ ${result.message}\n\nTotal logs: ${result.totalLogs}\nValid for training: ${result.validLogs}`);
-                    } else {
-                      alert(`❌ ${result.message}`);
-                    }
-                    
+                    const ai = getCentralizedAIService();
+                    await ai.initialize();
                     await loadAIData();
+                    const sampleInfo = aiInfo?.sampleLogs ? 
+                      aiInfo.sampleLogs.map(log => 
+                        `Log ${log.id.slice(-4)}: Quality=${log.shotQuality}, In=${log.inWeight}g, Out=${log.outWeight}g, Time=${log.extractionTime}s`
+                      ).join('\n') : 'No sample logs';
+                    
+                    alert(`📊 Debug Info:\nTotal Logs: ${aiInfo?.totalLogs || 0}\nValid Logs: ${aiInfo?.validLogs || 0}\nReady: ${aiInfo?.isReady ? 'Yes' : 'No'}\nHas Model: ${aiInfo?.hasModel ? 'Yes' : 'No'}\nLast Training: ${aiInfo?.lastTrainingDate ? new Date(aiInfo.lastTrainingDate).toLocaleString() : 'Never'}\n\n📝 Sample Logs:\n${sampleInfo}`);
                   } catch (error) {
-                    console.error('Error training with existing logs:', error);
-                    alert('❌ Error training with existing logs');
-                    setLoading(false);
+                    console.error('Error getting debug info:', error);
+                    alert('❌ Error getting debug info');
                   }
                 }}
               >
-                🚀 Train with All Existing Logs
+                🔍 Debug Info
               </button>
               <p className="setting-description">
-                Train the AI model using all existing coffee logs that have AI training data
+                Check coffee log counts and AI service status
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Real-time Training Status */}
+      {trainingStatus && trainingStatus.phase === 'training' && (
+        <div className="dashboard-section">
+          <h3>🔄 Current Training Status</h3>
+          <div className="training-status-card">
+            <div className="training-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${trainingStatus.progress}%` }}
+                ></div>
+              </div>
+              <span className="progress-text">{trainingStatus.progress}%</span>
+            </div>
+            
+            <div className="training-details">
+              <div className="training-message">{trainingStatus.message}</div>
+              
+              {trainingStatus.currentEpoch > 0 && (
+                <div className="epoch-info">
+                  <span>Epoch: {trainingStatus.currentEpoch}/{trainingStatus.totalEpochs}</span>
+                  {trainingStatus.loss && (
+                    <span>Loss: {trainingStatus.loss}</span>
+                  )}
+                  {trainingStatus.valLoss && (
+                    <span>Val Loss: {trainingStatus.valLoss}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -452,7 +567,9 @@ const AITrainingDashboard = () => {
           <li>Log shots consistently with accurate quality ratings</li>
           <li>Include detailed taste profiles for better recommendations</li>
           <li>Use advanced parameters like pre-infusion and WDT</li>
-          <li>Retrain the model periodically as you collect more data</li>
+          <li>Use the AI Model Management system to train models with configurable epochs</li>
+          <li>Test models before publishing to ensure quality</li>
+          <li>Monitor training progress with real-time epoch tracking</li>
           <li>Export your data regularly as a backup</li>
         </ul>
       </div>

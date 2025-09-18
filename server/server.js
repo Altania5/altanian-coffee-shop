@@ -52,8 +52,16 @@ const uri = process.env.ATLAS_URI;
 console.log('ATLAS_URI:', uri ? 'Found (length: ' + uri.length + ')' : 'NOT FOUND');
 mongoose.connect(uri);
 const connection = mongoose.connection;
-connection.once('open', () => {
+connection.once('open', async () => {
   console.log("MongoDB database connection established successfully");
+  
+  // Initialize AI Service after database connection
+  try {
+    const aiService = require('./services/realMLService');
+    await aiService.initialize();
+  } catch (error) {
+    console.error('❌ Error initializing AI Service:', error);
+  }
 })
 
 const productsRouter = require('./routes/products');
@@ -67,6 +75,8 @@ const promoCodesRouter = require('./routes/promoCodes');
 const paymentsRouter = require('./routes/payments');
 const loyaltyRouter = require('./routes/loyalty');
 const beanBagsRouter = require('./routes/beanBags');
+const aiRouter = require('./routes/ai');
+const aiModelsRouter = require('./routes/aiModels');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -79,10 +89,15 @@ app.use('/promocodes', promoCodesRouter);
 app.use('/payments', paymentsRouter);
 app.use('/loyalty', loyaltyRouter);
 app.use('/beanbags', beanBagsRouter);
+app.use('/ai', aiRouter);
+app.use('/ai-models', aiModelsRouter);
 
 // Initialize WebSocket server for real-time order tracking
 const OrderTrackingServer = require('./websocket/orderTracking');
 const orderTrackingWS = new OrderTrackingServer(server);
+
+// Initialize Centralized AI Service
+const aiService = require('./services/realMLService');
 
 // Make WebSocket server available to routes
 app.set('orderTrackingWS', orderTrackingWS);

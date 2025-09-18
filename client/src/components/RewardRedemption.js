@@ -135,7 +135,7 @@ const RewardRedemption = ({ user, onRewardSelected, selectedReward, onClearRewar
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .reward-redemption {
           background: #f8f9fa;
           border-radius: 10px;

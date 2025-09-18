@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAdvancedEspressoAI } from '../ai/AdvancedEspressoAI';
+import { getCentralizedAIService } from '../services/CentralizedAIService';
 
 const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [analysis, setAnalysis] = useState(null);
@@ -10,7 +10,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
 
   const performAnalysis = useCallback(async () => {
     try {
-      const ai = getAdvancedEspressoAI();
+      const ai = getCentralizedAIService();
       const result = await ai.analyzeShot(shotData);
       setAnalysis(result);
       setAiStatus('ready');
@@ -27,19 +27,25 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
     setAiStatus('analyzing');
     
     try {
-      const ai = getAdvancedEspressoAI();
+      const ai = getCentralizedAIService();
+      
+      // Initialize if not ready
+      if (!ai.isReady) {
+        await ai.initialize();
+      }
+      
       const modelInfo = ai.getModelInfo();
       
       if (modelInfo.isTraining) {
         setAiStatus('training');
         // Wait for training to complete
-        const checkTraining = setInterval(() => {
-          const info = ai.getModelInfo();
-          if (!info.isTraining && info.isReady) {
+        const checkTraining = setInterval(async () => {
+          const status = await ai.getTrainingStatus();
+          if (!status?.isTraining && modelInfo.isReady) {
             clearInterval(checkTraining);
             performAnalysis();
           }
-        }, 1000);
+        }, 2000);
       } else if (modelInfo.isReady) {
         await performAnalysis();
       } else {
@@ -56,8 +62,8 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   useEffect(() => {
     // First, try to load persisted AI response
     const loadPersistedResponse = async () => {
-      const ai = getAdvancedEspressoAI();
-      const lastResponse = ai.getLastAIResponse();
+      const ai = getCentralizedAIService();
+      const lastResponse = ai.getLastAnalysis();
       
       if (lastResponse && !shotData) {
         // Show persisted recommendation if no new shot data
@@ -252,17 +258,32 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
                     className="recommendation-card"
                     onClick={() => handleRecommendationClick(rec)}
                   >
-                    <div className="rec-header">
-                      <div className="rec-priority" style={{ color: getPriorityColor(rec.priority) }}>
-                        {getPriorityIcon(rec.priority)} {rec.priority.toUpperCase()}
-                      </div>
-                      <div className="rec-type">{rec.type}</div>
-                    </div>
-                    <div className="rec-action">{rec.action}</div>
-                    <div className="rec-improvement">
-                      <span className="improvement-icon">📊</span>
-                      {rec.expectedImprovement}
-                    </div>
+                    {typeof rec === 'string' ? (
+                      // Handle simple string recommendations (new ML format)
+                      <>
+                        <div className="rec-header">
+                          <div className="rec-priority" style={{ color: '#4CAF50' }}>
+                            💡 RECOMMENDATION
+                          </div>
+                        </div>
+                        <div className="rec-action">{rec}</div>
+                      </>
+                    ) : (
+                      // Handle structured recommendations (old format)
+                      <>
+                        <div className="rec-header">
+                          <div className="rec-priority" style={{ color: getPriorityColor(rec.priority) }}>
+                            {getPriorityIcon(rec.priority)} {rec.priority?.toUpperCase() || 'MEDIUM'}
+                          </div>
+                          <div className="rec-type">{rec.type}</div>
+                        </div>
+                        <div className="rec-action">{rec.action}</div>
+                        <div className="rec-improvement">
+                          <span className="improvement-icon">📊</span>
+                          {rec.expectedImprovement}
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -278,7 +299,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
                   <div key={param} className="analysis-item">
                     <div className="analysis-header">
                       <span className="analysis-icon">{getStatusIcon(data.status)}</span>
-                      <span className="analysis-param">{param.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                      <span className="analysis-param">{param?.replace(/([A-Z])/g, ' $1').replace(/^./, str => str?.toUpperCase() || '') || param}</span>
                     </div>
                     <div className="analysis-message">{data.message}</div>
                   </div>

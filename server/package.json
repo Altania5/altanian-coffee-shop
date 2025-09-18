@@ -16,6 +16,8 @@
     "dotenv": "^17.2.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
+    "ml-matrix": "^6.12.1",
+    "ml-regression-multivariate-linear": "^2.0.4",
     "mongoose": "^8.17.0",
     "nodemailer": "^7.0.6",
     "socket.io": "^4.8.1",

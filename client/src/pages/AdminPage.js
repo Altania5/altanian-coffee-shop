@@ -11,6 +11,7 @@ import PromoCodeManager from '../components/PromoCodeManager';
 import OrderQueue from '../components/admin/OrderQueue';
 import LoyaltyManager from '../components/admin/LoyaltyManager';
 import AITrainingDashboard from '../components/AITrainingDashboard';
+import AIModelManagement from '../components/AIModelManagement';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -384,6 +385,13 @@ function AdminPage({ user }) {
           <span className="tab-icon">🤖</span>
           AI Training
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'ai-models' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ai-models')}
+        >
+          <span className="tab-icon">🧠</span>
+          AI Models
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -420,6 +428,9 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'ai-training' && (
           <AITrainingDashboard />
+        )}
+        {activeTab === 'ai-models' && (
+          <AIModelManagement />
         )}
       </div>
     </div>

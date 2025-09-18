@@ -504,6 +504,91 @@
   }
 }
 
+/* Action Info */
+.action-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.action-info p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.action-info p:first-child {
+  margin-top: 0;
+}
+
+.action-info p:last-child {
+  margin-bottom: 0;
+}
+
+/* Training Status Card */
+.training-status-card {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid #2196f3;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.training-progress {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(33, 150, 243, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2196f3 0%, #1976d2 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-weight: bold;
+  color: #1976d2;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.training-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.training-message {
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 1.1rem;
+}
+
+.epoch-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #424242;
+}
+
+.epoch-info span {
+  background: rgba(33, 150, 243, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .ai-dashboard-container {
