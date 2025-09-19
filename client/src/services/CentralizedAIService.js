@@ -26,6 +26,8 @@ class CentralizedAIService {
   }
 
   async analyzeShot(shotData) {
+    console.log('🔍 Frontend CentralizedAIService.analyzeShot called with:', shotData);
+    
     if (!this.isReady) {
       console.warn('⚠️ Centralized AI Service not ready, using fallback');
       return this.fallbackAnalysis(shotData);
@@ -35,16 +37,26 @@ class CentralizedAIService {
       console.log('🔍 Analyzing shot with centralized AI...');
       const response = await api.post('/ai/analyze', shotData);
       
+      console.log('📡 Server response:', response.data);
+      console.log('📡 Server response type:', typeof response.data);
+      console.log('📡 Server response keys:', Object.keys(response.data || {}));
+      
       if (response.data.success) {
         this.lastAnalysis = response.data.data;
-        console.log('✅ Shot analysis complete:', this.lastAnalysis);
+        console.log('✅ Shot analysis complete from server:', this.lastAnalysis);
+        console.log('✅ Analysis data:', this.lastAnalysis);
+        console.log('✅ Predicted quality:', this.lastAnalysis?.predictedQuality);
+        console.log('✅ Current quality:', this.lastAnalysis?.currentQuality);
+        console.log('✅ Confidence:', this.lastAnalysis?.confidence);
         return this.lastAnalysis;
       } else {
         console.error('❌ Analysis failed:', response.data.message);
+        console.log('🔄 Falling back to frontend analysis');
         return this.fallbackAnalysis(shotData);
       }
     } catch (error) {
       console.error('❌ Error analyzing shot:', error);
+      console.log('🔄 Falling back to frontend analysis due to error');
       return this.fallbackAnalysis(shotData);
     }
   }
@@ -101,7 +113,7 @@ class CentralizedAIService {
       });
     }
     
-    return {
+    const result = {
       predictedQuality: Math.min(predictedQuality, 10),
       currentQuality: shotData.shotQuality || 5,
       recommendations,
@@ -111,6 +123,9 @@ class CentralizedAIService {
       isCentralized: true,
       isFallback: true
     };
+    
+    console.log('📝 Frontend fallback analysis result:', result);
+    return result;
   }
 
   async getModelStatus() {

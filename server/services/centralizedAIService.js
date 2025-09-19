@@ -2,6 +2,7 @@ const CoffeeLog = require('../models/coffeeLog.model');
 const Bean = require('../models/bean.model');
 const AIModel = require('../models/aiModel.model');
 const aiModelService = require('./aiModelService');
+const trainedModelService = require('./trainedModelService');
 
 class CentralizedAIService {
   constructor() {
@@ -27,22 +28,52 @@ class CentralizedAIService {
       this.coffeeLogCount = await CoffeeLog.countDocuments();
       console.log(`📊 Found ${this.coffeeLogCount} coffee logs in database`);
       
-      // Load active published model
+      // Initialize trained model service
+      console.log('🧠 Initializing trained model service...');
+      const trainedModelLoaded = await trainedModelService.initialize();
+      
+      // Always check for published models first (including Colab models)
       console.log('🔍 Searching for active AI model...');
       const activeModel = await this.getActiveModel();
-      console.log('🔍 Active model query result:', activeModel ? `Found v${activeModel.version}` : 'No model found');
+      console.log('🔍 Active model query result:', activeModel ? `Found ${activeModel.modelName} v${activeModel.version}` : 'No model found');
       
       if (activeModel) {
-        console.log(`🚀 Loaded active AI model: v${activeModel.version}`);
+        console.log(`🚀 Loaded active AI model: ${activeModel.modelName} v${activeModel.version}`);
         console.log(`📊 Model status: ${activeModel.status}, Active: ${activeModel.isActive}, Published: ${activeModel.isPublished}`);
         this.activeModel = activeModel;
         this.modelVersion = activeModel.version;
         this.performanceMetrics = activeModel.performanceMetrics || this.performanceMetrics;
         this.hasModel = true;
+        
+        // Check if this is a Colab-trained model
+        if (activeModel.modelName === 'Colab-Trained Scikit-Learn Model' && trainedModelLoaded) {
+          this.hasTrainedModel = true;
+          console.log('✅ Using published Colab-trained model with file-based prediction');
+        } else {
+          this.hasTrainedModel = false;
+          console.log('✅ Using published AI model');
+        }
+        
         console.log('✅ AI model successfully loaded and ready');
       } else {
-        console.log('⚠️ No active AI model found, using fallback system');
+        console.log('⚠️ No active AI model found, checking for trained model files...');
         this.hasModel = false;
+        
+        if (trainedModelLoaded) {
+          console.log('🚀 Trained scikit-learn model files found!');
+          this.hasTrainedModel = true;
+          this.modelVersion = 'trained-v1.0';
+          this.performanceMetrics = {
+            accuracy: 0.85, // From your trained model
+            mae: 0.6,
+            rmse: 0.8,
+            r2: 0.75
+          };
+          console.log('✅ Using Colab-trained model files');
+        } else {
+          console.log('⚠️ No trained model files available, using fallback system');
+          this.hasTrainedModel = false;
+        }
       }
       
       this.isReady = true;
@@ -369,25 +400,78 @@ class CentralizedAIService {
   }
 
   async analyzeShot(shotData) {
+    console.log('🔍 CentralizedAIService.analyzeShot called with:', shotData);
+    
     if (!this.isReady) {
+      console.log('⚠️ AI Service not ready, using fallback');
       return this.fallbackAnalysis(shotData);
     }
     
     try {
-      console.log('🔍 Analyzing shot - Model exists:', !!this.hasModel);
-      console.log('🔍 Model structure:', this.activeModel ? `v${this.activeModel.version}` : 'null');
+      console.log('🔍 Analyzing shot - Model status check:');
+      console.log('  - hasTrainedModel:', this.hasTrainedModel);
+      console.log('  - hasModel:', this.hasModel);
+      console.log('  - activeModel exists:', !!this.activeModel);
+      console.log('  - modelVersion:', this.modelVersion);
       
-      if (this.hasModel && this.activeModel) {
-        console.log('🚀 Using published AI model for analysis');
+      if (this.hasTrainedModel) {
+        console.log('🚀 USING COLAB-TRAINED MODEL: Scikit-learn model for analysis');
+        return this.useTrainedModelAnalysis(shotData);
+      } else if (this.hasModel && this.activeModel) {
+        console.log('🚀 FALLBACK: Using published AI model for analysis');
         return this.useAIModelAnalysis(shotData);
       } else {
-        console.log('⚠️ Using fallback analysis - no ML model available');
+        console.log('⚠️ FALLBACK: Using pattern analysis - no ML model available');
         return this.usePatternAnalysis(shotData);
       }
       
     } catch (error) {
       console.error('❌ Error analyzing shot:', error);
       return this.fallbackAnalysis(shotData);
+    }
+  }
+
+  async useTrainedModelAnalysis(shotData) {
+    try {
+      console.log('🧠 Using COLAB-TRAINED scikit-learn model for analysis...');
+      
+      // Use the trained model service to make prediction
+      const prediction = await trainedModelService.predictQuality(shotData);
+      
+      console.log('📊 Colab-trained model prediction:', prediction);
+      
+      // Convert numeric quality score to quality level
+      const qualityScore = prediction.predictedQuality;
+      let qualityLevel;
+      if (qualityScore >= 8) qualityLevel = 'excellent';
+      else if (qualityScore >= 6) qualityLevel = 'good';
+      else if (qualityScore >= 4) qualityLevel = 'average';
+      else qualityLevel = 'poor';
+      
+      // Generate smart recommendations based on the prediction
+      const recommendations = this.generateSmartRecommendations(shotData, qualityScore);
+      
+      // Track user preferences for adaptive learning
+      await this.trackUserPreferences(shotData);
+      
+      return {
+        success: true,
+        analysis: {
+          quality: qualityLevel,
+          qualityScore: Math.round(qualityScore * 10) / 10,
+          confidence: prediction.confidence,
+          modelUsed: 'Colab-Trained Scikit-Learn Model',
+          modelVersion: this.modelVersion,
+          recommendations: recommendations,
+          features: prediction.features,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ Error in Colab-trained model analysis:', error);
+      // Fallback to pattern analysis if trained model fails
+      return this.usePatternAnalysis(shotData);
     }
   }
 
@@ -475,17 +559,22 @@ class CentralizedAIService {
   generateSmartRecommendations(shotData, ratio, flowRate, predictedQuality) {
     const recommendations = [];
     
-    // Smart recommendations based on missing techniques
-    if (!shotData.tamped) {
-      recommendations.push({
-        type: 'technique',
-        priority: 'high',
-        message: '🔨 Tamp your coffee grounds evenly for better extraction',
-        impact: 'Improves extraction consistency and quality'
-      });
-    }
+    // Check if user followed previous recommendations
+    const followedRecommendations = shotData.aiRecommendationFollowed?.followed || false;
     
-    if (!shotData.wdt) {
+    console.log('🔍 Generating recommendations for shot:', {
+      usedWDT: shotData.usedWDT,
+      usedPreInfusion: shotData.usedPreInfusion,
+      usedPuckScreen: shotData.usedPuckScreen,
+      targetProfile: shotData.targetProfile,
+      followedRecommendations: followedRecommendations,
+      extractionTime: shotData.extractionTime,
+      temperature: shotData.temperature,
+      ratio: ratio
+    });
+    
+    // Smart recommendations based on missing techniques (using correct field names)
+    if (!shotData.usedWDT) {
       recommendations.push({
         type: 'technique',
         priority: 'high',
@@ -494,7 +583,7 @@ class CentralizedAIService {
       });
     }
     
-    if (!shotData.preInfusion) {
+    if (!shotData.usedPreInfusion) {
       recommendations.push({
         type: 'technique',
         priority: 'medium',
@@ -503,7 +592,7 @@ class CentralizedAIService {
       });
     }
     
-    if (!shotData.puckScreen) {
+    if (!shotData.usedPuckScreen) {
       recommendations.push({
         type: 'technique',
         priority: 'low',
@@ -512,21 +601,69 @@ class CentralizedAIService {
       });
     }
     
-    // Extraction time recommendations
+    // Extraction time recommendations - focus on controllable variables
     if (shotData.extractionTime < 25) {
-      recommendations.push({
-        type: 'timing',
-        priority: 'high',
-        message: '⏱️ Extraction time is too short - try grinding finer',
-        impact: 'Longer extraction will improve flavor development'
-      });
+      // Short extraction - recommend techniques to slow it down
+      if (shotData.grindSize > 15) {
+        recommendations.push({
+          type: 'grind',
+          priority: 'high',
+          message: '🔧 Grind finer (reduce grind size) to slow extraction',
+          impact: 'Finer grind increases resistance and extends extraction time'
+        });
+      } else if (!shotData.usedWDT) {
+        recommendations.push({
+          type: 'technique',
+          priority: 'high',
+          message: '🥄 Use WDT to eliminate channeling and slow extraction',
+          impact: 'Better distribution prevents fast channels and extends extraction'
+        });
+      } else if (!shotData.usedPreInfusion) {
+        recommendations.push({
+          type: 'technique',
+          priority: 'medium',
+          message: '💧 Add pre-infusion to slow initial extraction',
+          impact: 'Pre-infusion saturates grounds evenly, extending total time'
+        });
+      } else {
+        recommendations.push({
+          type: 'technique',
+          priority: 'medium',
+          message: '🔨 Increase tamping pressure for more resistance',
+          impact: 'Firmer tamp creates more resistance and slower extraction'
+        });
+      }
     } else if (shotData.extractionTime > 35) {
-      recommendations.push({
-        type: 'timing',
-        priority: 'medium',
-        message: '⏱️ Extraction time is long - consider grinding coarser',
-        impact: 'Shorter extraction may prevent over-extraction'
-      });
+      // Long extraction - recommend techniques to speed it up
+      if (shotData.grindSize < 12) {
+        recommendations.push({
+          type: 'grind',
+          priority: 'high',
+          message: '🔧 Grind coarser (increase grind size) to speed extraction',
+          impact: 'Coarser grind reduces resistance and shortens extraction time'
+        });
+      } else if (shotData.preInfusionTime > 10) {
+        recommendations.push({
+          type: 'technique',
+          priority: 'medium',
+          message: '💧 Reduce pre-infusion time to speed up extraction',
+          impact: 'Shorter pre-infusion reduces total extraction time'
+        });
+      } else if (shotData.pressure > 9) {
+        recommendations.push({
+          type: 'technique',
+          priority: 'low',
+          message: '⚡ Consider reducing pressure to 8-9 bar',
+          impact: 'Lower pressure can shorten extraction time'
+        });
+      } else {
+        recommendations.push({
+          type: 'technique',
+          priority: 'medium',
+          message: '🔨 Reduce tamping pressure for less resistance',
+          impact: 'Lighter tamp reduces resistance and speeds extraction'
+        });
+      }
     }
     
     // Ratio recommendations
@@ -546,6 +683,103 @@ class CentralizedAIService {
       });
     }
     
+    // Taste profile-based recommendations
+    const tasteProfile = shotData.tasteProfile || {};
+    const targetProfile = shotData.targetProfile || 'balanced';
+    
+    if (targetProfile === 'bright' || targetProfile === 'acidic') {
+      // Recommendations for brighter, more acidic shots
+      if (shotData.temperature < 95) {
+        recommendations.push({
+          type: 'temperature',
+          priority: 'medium',
+          message: '🌡️ Increase temperature to 95-96°C for brighter acidity',
+          impact: 'Higher temperature enhances acidic notes'
+        });
+      }
+      // For bright profile, we want shorter extraction - recommend techniques to achieve this
+      if (shotData.extractionTime > 30) {
+        if (shotData.grindSize < 12) {
+          recommendations.push({
+            type: 'grind',
+            priority: 'medium',
+            message: '🔧 Grind coarser to achieve shorter extraction for bright profile',
+            impact: 'Coarser grind speeds extraction, preserving acidity'
+          });
+        } else if (shotData.preInfusionTime > 8) {
+          recommendations.push({
+            type: 'technique',
+            priority: 'medium',
+            message: '💧 Reduce pre-infusion time for brighter, faster extraction',
+            impact: 'Shorter pre-infusion preserves acidic notes'
+          });
+        }
+      }
+    } else if (targetProfile === 'chocolatey' || targetProfile === 'dark') {
+      // Recommendations for darker, chocolatey shots
+      if (shotData.temperature > 92) {
+        recommendations.push({
+          type: 'temperature',
+          priority: 'medium',
+          message: '🌡️ Lower temperature to 90-92°C for chocolatey notes',
+          impact: 'Lower temperature enhances chocolate flavors'
+        });
+      }
+      // For chocolatey profile, we want longer extraction - recommend techniques to achieve this
+      if (shotData.extractionTime < 30) {
+        if (shotData.grindSize > 15) {
+          recommendations.push({
+            type: 'grind',
+            priority: 'medium',
+            message: '🔧 Grind finer to achieve longer extraction for chocolatey profile',
+            impact: 'Finer grind slows extraction, developing chocolate notes'
+          });
+        } else if (!shotData.usedPreInfusion) {
+          recommendations.push({
+            type: 'technique',
+            priority: 'medium',
+            message: '💧 Add pre-infusion to extend extraction for richer body',
+            impact: 'Pre-infusion helps develop chocolate flavors'
+          });
+        }
+      }
+    } else if (targetProfile === 'sweet') {
+      // Recommendations for sweeter shots
+      if (shotData.preInfusionTime < 8) {
+        recommendations.push({
+          type: 'technique',
+          priority: 'medium',
+          message: '💧 Increase pre-infusion time to 8-10s for sweetness',
+          impact: 'Longer pre-infusion enhances sweetness'
+        });
+      }
+      if (ratio < 2.0) {
+        recommendations.push({
+          type: 'ratio',
+          priority: 'medium',
+          message: '📊 Increase ratio to 2.0-2.2 for sweeter profile',
+          impact: 'Higher ratio brings out sweetness'
+        });
+      }
+    }
+    
+    // Adaptive learning: If user followed recommendations but still getting same suggestions,
+    // provide more advanced recommendations
+    if (followedRecommendations && recommendations.length === 0) {
+      recommendations.push({
+        type: 'advanced',
+        priority: 'low',
+        message: '🎯 Great job following recommendations! Try fine-tuning your grind size',
+        impact: 'Micro-adjustments can optimize your preferred taste profile'
+      });
+    }
+    
+    console.log('✅ Generated recommendations:', recommendations.map(r => ({
+      type: r.type,
+      priority: r.priority,
+      message: r.message
+    })));
+    
     return recommendations;
   }
 
@@ -553,13 +787,13 @@ class CentralizedAIService {
     // Calculate confidence based on model accuracy and data completeness
     const baseConfidence = this.activeModel.performanceMetrics?.accuracy || 0.75;
     
-    // Increase confidence for complete data
+    // Increase confidence for complete data (using correct field names)
     let dataCompleteness = 0.5; // Base completeness
-    if (shotData.tamped !== undefined) dataCompleteness += 0.1;
-    if (shotData.wdt !== undefined) dataCompleteness += 0.1;
-    if (shotData.preInfusion !== undefined) dataCompleteness += 0.1;
-    if (shotData.puckScreen !== undefined) dataCompleteness += 0.1;
+    if (shotData.usedWDT !== undefined) dataCompleteness += 0.1;
+    if (shotData.usedPreInfusion !== undefined) dataCompleteness += 0.1;
+    if (shotData.usedPuckScreen !== undefined) dataCompleteness += 0.1;
     if (shotData.temperature !== undefined) dataCompleteness += 0.1;
+    if (shotData.targetProfile !== undefined) dataCompleteness += 0.1;
     
     return Math.min(0.95, baseConfidence * dataCompleteness);
   }
@@ -605,6 +839,33 @@ class CentralizedAIService {
     }
     
     return Math.max(1, Math.min(Math.round(quality), 10));
+  }
+
+  // Track user preferences and learning patterns
+  async trackUserPreferences(shotData) {
+    try {
+      // This would ideally store user preferences in the database
+      // For now, we'll use the shot data to understand user patterns
+      const userPreferences = {
+        userId: shotData.user,
+        preferredTechniques: {
+          wdt: shotData.usedWDT || false,
+          preInfusion: shotData.usedPreInfusion || false,
+          puckScreen: shotData.usedPuckScreen || false
+        },
+        preferredProfile: shotData.targetProfile || 'balanced',
+        avgExtractionTime: shotData.extractionTime,
+        avgTemperature: shotData.temperature,
+        avgRatio: shotData.outWeight / shotData.inWeight,
+        lastUpdated: new Date()
+      };
+      
+      console.log('📊 User preferences tracked:', userPreferences);
+      return userPreferences;
+    } catch (error) {
+      console.error('❌ Error tracking user preferences:', error);
+      return null;
+    }
   }
 
   generateRecommendations(shotData, ratio, flowRate, predictedQuality) {
@@ -698,10 +959,12 @@ class CentralizedAIService {
   }
 
   fallbackAnalysis(shotData) {
-    console.log('📝 Using fallback analysis');
+    console.log('📝 Using fallback analysis for shot data:', shotData);
     
     const ratio = shotData.outWeight / shotData.inWeight;
     const flowRate = shotData.outWeight / shotData.extractionTime;
+    
+    console.log('📊 Calculated ratio:', ratio, 'flowRate:', flowRate);
     
     let predictedQuality = 5;
     const recommendations = [];
@@ -749,16 +1012,81 @@ class CentralizedAIService {
       });
     }
     
-    return {
-      predictedQuality: Math.min(predictedQuality, 10),
-      currentQuality: shotData.shotQuality || 5,
-      recommendations,
-      confidence: 0.5,
-      timestamp: new Date().toISOString(),
-      modelVersion: 'fallback',
-      isCentralized: true,
-      isFallback: true
-    };
+      // Ensure all values are valid numbers
+      const validPredictedQuality = isNaN(predictedQuality) ? 5 : Math.min(Math.max(predictedQuality, 1), 10);
+      const validCurrentQuality = shotData.shotQuality && !isNaN(shotData.shotQuality) ? shotData.shotQuality : 5;
+      const validConfidence = 0.5; // Fallback confidence
+      
+      const result = {
+        predictedQuality: validPredictedQuality,
+        currentQuality: validCurrentQuality,
+        recommendations,
+        confidence: validConfidence,
+        timestamp: new Date().toISOString(),
+        modelVersion: 'fallback',
+        isCentralized: true,
+        isFallback: true,
+        trainingDataCount: this.coffeeLogCount || 0,
+        lastTrainingDate: this.lastTrainingDate,
+        insights: this.generateInsights(shotData, recommendations)
+      };
+      
+      console.log('📝 Fallback analysis result:', result);
+      return result;
+  }
+
+  generateInsights(shotData, recommendations) {
+    const insights = [];
+    
+    // Analyze extraction parameters
+    const ratio = shotData.outWeight / shotData.inWeight;
+    const flowRate = shotData.outWeight / shotData.extractionTime;
+    
+    // Extraction time insights
+    if (shotData.extractionTime < 25) {
+      insights.push({
+        type: 'timing',
+        message: 'Your extraction time is on the faster side. Consider grinding finer for better flavor development.',
+        impact: 'medium'
+      });
+    } else if (shotData.extractionTime > 35) {
+      insights.push({
+        type: 'timing', 
+        message: 'Your extraction time is quite long. This might lead to over-extraction and bitter flavors.',
+        impact: 'medium'
+      });
+    }
+    
+    // Ratio insights
+    if (ratio < 1.8) {
+      insights.push({
+        type: 'ratio',
+        message: 'Your ratio is quite concentrated. Try increasing the yield for a more balanced cup.',
+        impact: 'high'
+      });
+    } else if (ratio > 2.2) {
+      insights.push({
+        type: 'ratio',
+        message: 'Your ratio is quite high. Monitor for over-extraction signs.',
+        impact: 'low'
+      });
+    }
+    
+    // Technique insights
+    const techniques = [];
+    if (shotData.usedWDT) techniques.push('WDT');
+    if (shotData.usedPuckScreen) techniques.push('Puck Screen');
+    if (shotData.usedPreInfusion) techniques.push('Pre-infusion');
+    
+    if (techniques.length > 0) {
+      insights.push({
+        type: 'technique',
+        message: `Great use of advanced techniques: ${techniques.join(', ')}. These help with extraction consistency.`,
+        impact: 'positive'
+      });
+    }
+    
+    return insights;
   }
 
   async getActiveModel() {
@@ -775,7 +1103,8 @@ class CentralizedAIService {
     return {
       isReady: this.isReady,
       isTraining: this.isTraining,
-      hasModel: this.isReady && this.coffeeLogCount > 0,
+      hasModel: this.hasModel, // Use the actual property, not a calculated value
+      hasTrainedModel: this.hasTrainedModel,
       modelVersion: this.modelVersion,
       performanceMetrics: this.performanceMetrics,
       lastTrainingDate: this.lastTrainingDate,
@@ -783,6 +1112,7 @@ class CentralizedAIService {
       coffeeLogCount: this.coffeeLogCount,
       totalLogCount: this.totalLogCount || 0,
       patterns: this.patterns,
+      trainedModelInfo: this.hasTrainedModel ? trainedModelService.getModelInfo() : null,
       trainingProgress: this.trainingProgress || 0
     };
   }

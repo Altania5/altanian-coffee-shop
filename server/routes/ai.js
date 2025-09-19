@@ -58,8 +58,14 @@ router.get('/status', auth, async (req, res) => {
 router.post('/analyze', auth, async (req, res) => {
   try {
     const shotData = req.body;
+    console.log('🔍 Received shot data for analysis:', shotData);
     
     if (!shotData.inWeight || !shotData.outWeight || !shotData.extractionTime) {
+      console.error('❌ Missing required shot data:', {
+        inWeight: shotData.inWeight,
+        outWeight: shotData.outWeight,
+        extractionTime: shotData.extractionTime
+      });
       return res.status(400).json({
         success: false,
         message: 'Missing required shot data (inWeight, outWeight, extractionTime)'
@@ -68,21 +74,52 @@ router.post('/analyze', auth, async (req, res) => {
     
     // Initialize centralized AI service if not ready
     if (!centralizedAIService.isReady) {
+      console.log('🔄 Initializing centralized AI service...');
       await centralizedAIService.initialize();
     }
     
+    console.log('🧠 Starting shot analysis...');
     const analysis = await centralizedAIService.analyzeShot(shotData);
+    console.log('✅ Analysis complete:', analysis);
+    
+    // Validate analysis data before sending to frontend
+    // Extract values from nested analysis object if it exists
+    const nestedAnalysis = analysis.analysis || {};
+    const predictedQuality = analysis.predictedQuality || nestedAnalysis.qualityScore || nestedAnalysis.predictedQuality;
+    const currentQuality = analysis.currentQuality || shotData.shotQuality;
+    const confidence = analysis.confidence || nestedAnalysis.confidence;
+    const recommendations = analysis.recommendations || nestedAnalysis.recommendations || [];
+    const modelVersion = analysis.modelVersion || nestedAnalysis.modelVersion || 'unknown';
+    
+    const validatedAnalysis = {
+      ...analysis, // Include all original properties first
+      predictedQuality: predictedQuality && !isNaN(predictedQuality) ? predictedQuality : 5,
+      currentQuality: currentQuality && !isNaN(currentQuality) ? currentQuality : 5,
+      confidence: confidence && !isNaN(confidence) ? confidence : 0.5,
+      recommendations: recommendations,
+      timestamp: analysis.timestamp || new Date().toISOString(),
+      modelVersion: modelVersion
+    };
+    
+    console.log('🔍 Validation results:');
+    console.log('  - Original predictedQuality:', analysis.predictedQuality);
+    console.log('  - Nested qualityScore:', nestedAnalysis.qualityScore);
+    console.log('  - Final predictedQuality:', validatedAnalysis.predictedQuality);
+    console.log('  - Original confidence:', analysis.confidence);
+    console.log('  - Nested confidence:', nestedAnalysis.confidence);
+    console.log('  - Final confidence:', validatedAnalysis.confidence);
     
     res.json({
       success: true,
-      data: analysis
+      data: validatedAnalysis
     });
     
   } catch (error) {
-    console.error('Error analyzing shot:', error);
+    console.error('❌ Error analyzing shot:', error);
     res.status(500).json({
       success: false,
-      message: 'Error analyzing shot'
+      message: 'Error analyzing shot',
+      error: error.message
     });
   }
 });

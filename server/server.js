@@ -19,12 +19,16 @@ const io = new Server(server, {
   },
   transports: ['polling', 'websocket'],
   allowEIO3: true,
+  allowEIO4: true,
   pingTimeout: 60000,
   pingInterval: 25000,
   upgradeTimeout: 10000,
-  maxHttpBufferSize: 1e6
+  maxHttpBufferSize: 1e6,
+  forceBase64: false,
+  serveClient: false,
+  compression: false // Disable compression to avoid frame issues
 });
-const port = process.env.PORT || 5003;
+const port = process.env.PORT || 5002;
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -57,7 +61,7 @@ connection.once('open', async () => {
   
   // Initialize AI Service after database connection
   try {
-    const aiService = require('./services/realMLService');
+    const aiService = require('./services/centralizedAIService');
     await aiService.initialize();
   } catch (error) {
     console.error('❌ Error initializing AI Service:', error);

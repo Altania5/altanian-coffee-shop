@@ -1,0 +1,18 @@
+{
+  "totalLogs": 55,
+  "qualityDistribution": {
+    "5": 55
+  },
+  "roastLevelDistribution": {
+    "medium": 30,
+    "light": 25
+  },
+  "originDistribution": {
+    "Unknown": 55
+  },
+  "averageRating": "5.00",
+  "dateRange": {
+    "earliest": "2025-08-11T21:13:01.697Z",
+    "latest": "2025-09-19T21:52:27.901Z"
+  }
+}

@@ -64,3 +64,11 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
+// Handle message events to prevent async response errors
+self.addEventListener('message', (event) => {
+  // Handle any messages from the main thread
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});

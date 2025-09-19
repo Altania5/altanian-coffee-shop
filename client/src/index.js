@@ -4,6 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Handle unhandled promise rejections to prevent console errors
+window.addEventListener('unhandledrejection', (event) => {
+  // Suppress async response errors from browser extensions
+  if (event.reason && event.reason.message && 
+      event.reason.message.includes('message channel closed')) {
+    event.preventDefault();
+    return;
+  }
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

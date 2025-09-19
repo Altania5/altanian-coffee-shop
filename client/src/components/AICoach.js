@@ -1,40 +1,52 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getCentralizedAIService } from '../services/CentralizedAIService';
 
 const AICoach = ({ shotData, onRecommendationApplied }) => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [aiStatus, setAiStatus] = useState('initializing');
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [showingPersisted, setShowingPersisted] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analyzedShotsRef = useRef(new Set());
 
-  const performAnalysis = useCallback(async () => {
-    try {
-      const ai = getCentralizedAIService();
-      const result = await ai.analyzeShot(shotData);
-      setAnalysis(result);
-      setAiStatus('ready');
-      setLoading(false);
-    } catch (error) {
-      console.error('Error performing analysis:', error);
-      setAiStatus('error');
-      setLoading(false);
-    }
-  }, [shotData]);
+  // Memoize shotData to prevent unnecessary re-renders
+  const memoizedShotData = useMemo(() => shotData, [shotData?._id, shotData?.timestamp]);
+  
+  // Debug logging
+  console.log('🤖 AICoach component rendered with shotData:', memoizedShotData);
 
   const analyzeShot = useCallback(async () => {
+    // Prevent duplicate analysis calls
+    if (isAnalyzing) {
+      console.log('⚠️ Analysis already in progress, skipping duplicate call');
+      return;
+    }
+    
+    // Check if we've already analyzed this shot
+    const shotId = memoizedShotData?._id || memoizedShotData?.timestamp;
+    if (shotId && analyzedShotsRef.current.has(shotId)) {
+      console.log('⚠️ Shot already analyzed, skipping duplicate call:', shotId);
+      return;
+    }
+    
+    console.log('🔍 AICoach.analyzeShot called with shotData:', memoizedShotData);
+    setIsAnalyzing(true);
     setLoading(true);
     setAiStatus('analyzing');
     
     try {
       const ai = getCentralizedAIService();
+      console.log('🤖 AI Service ready status:', ai.isReady);
       
       // Initialize if not ready
       if (!ai.isReady) {
+        console.log('🔄 Initializing AI service...');
         await ai.initialize();
       }
       
       const modelInfo = ai.getModelInfo();
+      console.log('📊 Model info:', modelInfo);
       
       if (modelInfo.isTraining) {
         setAiStatus('training');
@@ -43,11 +55,27 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
           const status = await ai.getTrainingStatus();
           if (!status?.isTraining && modelInfo.isReady) {
             clearInterval(checkTraining);
-            performAnalysis();
+            // Perform analysis directly here instead of calling performAnalysis
+            const result = await ai.analyzeShot(memoizedShotData);
+            console.log('✅ AICoach received analysis result:', result);
+            setAnalysis(result);
+            setAiStatus('ready');
+            setLoading(false);
+            setIsAnalyzing(false);
+            // Mark this shot as analyzed
+            if (shotId) analyzedShotsRef.current.add(shotId);
           }
         }, 2000);
       } else if (modelInfo.isReady) {
-        await performAnalysis();
+        // Perform analysis directly here instead of calling performAnalysis
+        const result = await ai.analyzeShot(memoizedShotData);
+        console.log('✅ AICoach received analysis result (ready path):', result);
+        setAnalysis(result);
+        setAiStatus('ready');
+        setLoading(false);
+        setIsAnalyzing(false);
+        // Mark this shot as analyzed
+        if (shotId) analyzedShotsRef.current.add(shotId);
       } else {
         setAiStatus('initializing');
         setTimeout(analyzeShot, 2000); // Retry in 2 seconds
@@ -56,8 +84,9 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
       console.error('Error analyzing shot:', error);
       setAiStatus('error');
       setLoading(false);
+      setIsAnalyzing(false);
     }
-  }, [performAnalysis]);
+  }, [memoizedShotData, isAnalyzing]);
 
   useEffect(() => {
     // First, try to load persisted AI response
@@ -80,9 +109,12 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
       loadPersistedResponse();
     } else {
       setShowingPersisted(false);
-      analyzeShot();
+      // Only analyze if we don't already have analysis for this shot data
+      if (!analysis || analysis.timestamp !== shotData.timestamp) {
+        analyzeShot();
+      }
     }
-  }, [shotData, analyzeShot]);
+  }, [shotData, analyzeShot]); // Include analyzeShot in dependencies
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -118,6 +150,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   };
 
   const getConfidenceColor = (confidence) => {
+    if (!confidence || isNaN(confidence)) return '#666';
     if (confidence >= 0.8) return '#00aa00';
     if (confidence >= 0.6) return '#ff8800';
     return '#ff4444';
@@ -126,24 +159,51 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
   const getQualityImprovement = () => {
     if (!analysis) return null;
     
-    const improvement = analysis.predictedQuality - analysis.currentQuality;
-    if (improvement > 0) {
+    // Check if we have valid quality values
+    const currentQuality = analysis.currentQuality && !isNaN(analysis.currentQuality) ? analysis.currentQuality : 0;
+    const predictedQuality = analysis.predictedQuality && !isNaN(analysis.predictedQuality) ? analysis.predictedQuality : 0;
+    
+    if (currentQuality === 0 || predictedQuality === 0) {
       return {
-        text: `AI predicts +${improvement} points improvement`,
-        color: '#00aa00',
-        icon: '📈'
+        text: 'Unable to calculate quality improvement',
+        color: '#666',
+        icon: '❓',
+        confidence: 'Unknown'
       };
-    } else if (improvement < 0) {
+    }
+    
+    const improvement = predictedQuality - currentQuality;
+    const confidence = analysis.confidence && !isNaN(analysis.confidence) 
+      ? (analysis.confidence >= 0.8 ? 'High confidence' : analysis.confidence >= 0.6 ? 'Medium confidence' : 'Low confidence')
+      : 'Unknown';
+    
+    if (Math.abs(improvement) < 0.2) {
       return {
-        text: `Quality may decrease by ${Math.abs(improvement)} points`,
+        text: 'Great! You\'re already making excellent coffee.',
+        color: '#00aa00',
+        icon: '🎉',
+        confidence
+      };
+    } else if (improvement > 0.2) {
+      return {
+        text: `AI predicts +${improvement.toFixed(1)} points improvement`,
+        color: '#00aa00',
+        icon: '📈',
+        confidence
+      };
+    } else if (improvement < -0.2) {
+      return {
+        text: `Quality may decrease by ${Math.abs(improvement).toFixed(1)} points`,
         color: '#ff4444',
-        icon: '📉'
+        icon: '📉',
+        confidence
       };
     }
     return {
       text: 'Quality should remain stable',
       color: '#666',
-      icon: '➡️'
+      icon: '➡️',
+      confidence
     };
   };
 
@@ -205,7 +265,7 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
         </h3>
         <div className="coach-summary">
           <div className="confidence-badge" style={{ borderColor: getConfidenceColor(analysis.confidence) }}>
-            {Math.round(analysis.confidence * 100)}% confident
+            {analysis.confidence && !isNaN(analysis.confidence) ? Math.round(analysis.confidence * 100) : 0}% confident
           </div>
           {showingPersisted && (
             <div className="timestamp-badge">
@@ -230,6 +290,9 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
                   style={{ color: qualityImprovement.color }}
                 >
                   {qualityImprovement.icon} {qualityImprovement.text}
+                  <div className="confidence-indicator" style={{ fontSize: '0.8em', opacity: 0.8 }}>
+                    ({qualityImprovement.confidence})
+                  </div>
                 </div>
               )}
             </div>
@@ -237,12 +300,16 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
             <div className="quality-comparison">
               <div className="quality-item">
                 <span className="quality-label">Current:</span>
-                <span className="quality-value current">{analysis.currentQuality}/10</span>
+                <span className="quality-value current">
+                  {analysis.currentQuality && !isNaN(analysis.currentQuality) ? analysis.currentQuality : 'N/A'}/10
+                </span>
               </div>
               <div className="quality-arrow">→</div>
               <div className="quality-item">
                 <span className="quality-label">AI Prediction:</span>
-                <span className="quality-value predicted">{analysis.predictedQuality}/10</span>
+                <span className="quality-value predicted">
+                  {analysis.predictedQuality && !isNaN(analysis.predictedQuality) ? analysis.predictedQuality : 'N/A'}/10
+                </span>
               </div>
             </div>
           </div>
@@ -265,8 +332,13 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
                           <div className="rec-priority" style={{ color: '#4CAF50' }}>
                             💡 RECOMMENDATION
                           </div>
+                          <div className="rec-type">TECHNIQUE</div>
                         </div>
                         <div className="rec-action">{rec}</div>
+                        <div className="rec-improvement">
+                          <span className="improvement-icon">📊</span>
+                          Expected to improve shot quality
+                        </div>
                       </>
                     ) : (
                       // Handle structured recommendations (old format)
@@ -275,12 +347,12 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
                           <div className="rec-priority" style={{ color: getPriorityColor(rec.priority) }}>
                             {getPriorityIcon(rec.priority)} {rec.priority?.toUpperCase() || 'MEDIUM'}
                           </div>
-                          <div className="rec-type">{rec.type}</div>
+                          <div className="rec-type">{rec.type || 'TECHNIQUE'}</div>
                         </div>
-                        <div className="rec-action">{rec.action}</div>
+                        <div className="rec-action">{rec.action || rec.message || rec}</div>
                         <div className="rec-improvement">
                           <span className="improvement-icon">📊</span>
-                          {rec.expectedImprovement}
+                          {rec.expectedImprovement || rec.impact || 'Expected to improve shot quality'}
                         </div>
                       </>
                     )}
@@ -291,22 +363,60 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
           )}
 
           {/* Detailed Analysis */}
-          {analysis.analysis && (
-            <div className="analysis-section">
-              <h4>📋 Detailed Analysis</h4>
-              <div className="analysis-items">
-                {Object.entries(analysis.analysis).map(([param, data]) => (
-                  <div key={param} className="analysis-item">
-                    <div className="analysis-header">
-                      <span className="analysis-icon">{getStatusIcon(data.status)}</span>
-                      <span className="analysis-param">{param?.replace(/([A-Z])/g, ' $1').replace(/^./, str => str?.toUpperCase() || '') || param}</span>
-                    </div>
-                    <div className="analysis-message">{data.message}</div>
-                  </div>
-                ))}
+          <div className="analysis-section">
+            <h4>📋 Detailed Analysis</h4>
+            <div className="analysis-items">
+              <div className="analysis-item">
+                <div className="analysis-header">
+                  <span className="analysis-icon">📊</span>
+                  <span className="analysis-param">Quality Score</span>
+                </div>
+                <div className="analysis-message">
+                  {analysis.analysis?.qualityScore || analysis.predictedQuality || 'N/A'} out of 10
+                </div>
+              </div>
+              
+              <div className="analysis-item">
+                <div className="analysis-header">
+                  <span className="analysis-icon">🎯</span>
+                  <span className="analysis-param">Confidence</span>
+                </div>
+                <div className="analysis-message">
+                  {analysis.confidence ? `${Math.round(analysis.confidence * 100)}%` : 'N/A'}
+                </div>
+              </div>
+              
+              <div className="analysis-item">
+                <div className="analysis-header">
+                  <span className="analysis-icon">🤖</span>
+                  <span className="analysis-param">Model Used</span>
+                </div>
+                <div className="analysis-message">
+                  {analysis.analysis?.modelUsed || 'Colab-Trained Scikit-Learn Model'}
+                </div>
+              </div>
+              
+              <div className="analysis-item">
+                <div className="analysis-header">
+                  <span className="analysis-icon">📝</span>
+                  <span className="analysis-param">Model Version</span>
+                </div>
+                <div className="analysis-message">
+                  {analysis.modelVersion || analysis.analysis?.modelVersion || '1.0'}
+                </div>
+              </div>
+              
+              <div className="analysis-item">
+                <div className="analysis-header">
+                  <span className="analysis-icon">⏰</span>
+                  <span className="analysis-param">Analysis Time</span>
+                </div>
+                <div className="analysis-message">
+                  {analysis.timestamp ? new Date(analysis.timestamp).toLocaleString() : 'N/A'}
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Diagnosis (if available from rule-based fallback) */}
           {analysis.diagnosis && (
@@ -316,15 +426,53 @@ const AICoach = ({ shotData, onRecommendationApplied }) => {
             </div>
           )}
 
+          {/* AI Learning Insights */}
+          {analysis.recommendations && analysis.recommendations.length > 0 && (
+            <div className="learning-insights">
+              <h4>🧠 AI Learning Insights</h4>
+              <div className="insights-content">
+                <div className="insight-item">
+                  <span className="insight-icon">📊</span>
+                  <span className="insight-text">
+                    Based on {analysis.trainingDataCount || 'your'} previous shots, the AI has identified patterns in your brewing technique.
+                  </span>
+                </div>
+                {analysis.modelVersion && analysis.modelVersion !== 'fallback' && (
+                  <div className="insight-item">
+                    <span className="insight-icon">🤖</span>
+                    <span className="insight-text">
+                      Using trained model v{analysis.modelVersion} with {analysis.confidence >= 0.8 ? 'high' : analysis.confidence >= 0.6 ? 'medium' : 'low'} confidence.
+                    </span>
+                  </div>
+                )}
+                <div className="insight-item">
+                  <span className="insight-icon">💡</span>
+                  <span className="insight-text">
+                    Each shot you log helps improve the AI's recommendations for you and other users.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI Model Info */}
           <div className="model-info">
             <small>
-              {analysis.confidence >= 0.8 
-                ? '🧠 High-confidence AI prediction' 
-                : analysis.confidence >= 0.6 
-                ? '🤔 Medium-confidence AI prediction'
-                : '📝 Low-confidence prediction (more data needed)'}
+              {analysis.confidence && !isNaN(analysis.confidence) ? (
+                analysis.confidence >= 0.8 
+                  ? '🧠 High-confidence AI prediction' 
+                  : analysis.confidence >= 0.6 
+                  ? '🤔 Medium-confidence AI prediction'
+                  : '📝 Low-confidence prediction (more data needed)'
+              ) : (
+                '📝 Unable to determine confidence level'
+              )}
             </small>
+            {analysis.modelVersion && analysis.modelVersion !== 'fallback' && (
+              <small style={{ display: 'block', marginTop: '4px' }}>
+                Model: {analysis.modelVersion} | Last updated: {analysis.lastTrainingDate ? new Date(analysis.lastTrainingDate).toLocaleDateString() : 'Unknown'}
+              </small>
+            )}
           </div>
         </div>
       )}

@@ -7,7 +7,6 @@ const AIModelManagement = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [showTrainingConfig, setShowTrainingConfig] = useState(false);
   const [trainingConfig, setTrainingConfig] = useState({
     epochs: 100,
     batchSize: 32,
@@ -17,7 +16,6 @@ const AIModelManagement = () => {
     patience: 10
   });
   const [trainingStatus, setTrainingStatus] = useState(null);
-  const [selectedModel, setSelectedModel] = useState(null);
   const [jupyterStatus, setJupyterStatus] = useState(null);
   const [trainingMethod, setTrainingMethod] = useState('api'); // 'api' or 'jupyter'
 
@@ -74,7 +72,6 @@ const AIModelManagement = () => {
       
       if (response.data.success) {
         alert('✅ Training started successfully!');
-        setShowTrainingConfig(false);
         await loadData();
       } else {
         alert('❌ Error starting training: ' + response.data.message);
@@ -610,6 +607,18 @@ const AIModelManagement = () => {
                   ⏳ A model is currently training. Please wait for it to complete.
                 </div>
               )}
+              
+              <div className="training-info">
+                <h5>Training Method Comparison</h5>
+                <div className="method-comparison">
+                  <div className="method-detail">
+                    <strong>API Training:</strong> Fast, centralized training using all available coffee logs. Best for quick iterations and testing.
+                  </div>
+                  <div className="method-detail">
+                    <strong>Jupyter Training:</strong> Advanced training with TensorFlow/Keras. Best for complex models and research.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

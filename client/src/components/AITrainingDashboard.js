@@ -560,6 +560,50 @@ const AITrainingDashboard = () => {
         </div>
       )}
 
+      {/* AI Performance Insights */}
+      <div className="dashboard-section">
+        <h3>🧠 AI Performance Insights</h3>
+        <div className="insights-grid">
+          <div className="insight-card">
+            <div className="insight-icon">📈</div>
+            <div className="insight-content">
+              <h4>Model Accuracy Trend</h4>
+              <p>
+                {activeModel?.accuracy >= 0.8 
+                  ? 'Your AI model shows excellent accuracy! The recommendations are highly reliable.'
+                  : activeModel?.accuracy >= 0.6 
+                  ? 'Your AI model has good accuracy. Consider training with more data to improve further.'
+                  : 'Your AI model needs more training data. Log more shots to improve accuracy.'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="insight-card">
+            <div className="insight-icon">🎯</div>
+            <div className="insight-content">
+              <h4>Recommendation Quality</h4>
+              <p>
+                {aiInfo?.coffeeLogCount > 100 
+                  ? 'With extensive training data, your AI provides personalized recommendations based on your brewing patterns.'
+                  : aiInfo?.coffeeLogCount > 50 
+                  ? 'Your AI is learning your preferences. More data will improve recommendation accuracy.'
+                  : 'Log more shots to help the AI learn your brewing style and provide better recommendations.'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="insight-card">
+            <div className="insight-icon">🔄</div>
+            <div className="insight-content">
+              <h4>Continuous Learning</h4>
+              <p>
+                The AI system continuously improves as you log more shots. Each shot contributes to better predictions for you and other users.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tips */}
       <div className="dashboard-section tips">
         <h3>💡 Tips for Better AI Performance</h3>
@@ -571,6 +615,8 @@ const AITrainingDashboard = () => {
           <li>Test models before publishing to ensure quality</li>
           <li>Monitor training progress with real-time epoch tracking</li>
           <li>Export your data regularly as a backup</li>
+          <li>Review AI insights to understand your brewing patterns</li>
+          <li>Share successful recipes to help improve the global model</li>
         </ul>
       </div>
     </div>

@@ -50,13 +50,16 @@ export const SocketProvider = ({ children, user }) => {
         : 'http://localhost:5003';
       
       const newSocket = io(socketUrl, {
-        transports: ['polling', 'websocket'], // Try polling first, then websocket
+        transports: ['polling'], // Use polling only to avoid WebSocket frame header issues
         timeout: 20000,
         forceNew: true,
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
-        maxReconnectionAttempts: 5
+        maxReconnectionAttempts: 5,
+        upgrade: false, // Disable WebSocket upgrade
+        rememberUpgrade: false,
+        forceBase64: false
       });
 
       // Connection event handlers
@@ -75,6 +78,7 @@ export const SocketProvider = ({ children, user }) => {
 
       newSocket.on('connect_error', (error) => {
         console.error('🔌 Connection error:', error.message);
+        console.log('⚠️ WebSocket connection failed, but app will continue to work without real-time features');
         setIsConnected(false);
       });
 

@@ -4,7 +4,7 @@ const API_CONFIG = {
     baseURL: 'https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com',
   },
   development: {
-    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5002',  // Point to local server for dev
+    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003',  // Point to local server for dev
   }
 };
 

@@ -459,6 +459,12 @@ class RealMLService {
       return this.fallbackAnalysis(shotData);
     }
 
+    // Validate input data
+    if (!shotData || typeof shotData !== 'object') {
+      console.error('❌ Invalid shot data provided');
+      return this.fallbackAnalysis(shotData);
+    }
+
     try {
       // Prepare feature vector for prediction
       const featureVector = [
