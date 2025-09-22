@@ -47,7 +47,7 @@ export const SocketProvider = ({ children, user }) => {
       // Create socket connection
       const socketUrl = process.env.NODE_ENV === 'production' 
         ? 'https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com'
-        : 'http://localhost:5003';
+        : 'http://localhost:5002';
       
       const newSocket = io(socketUrl, {
         transports: ['polling'], // Use polling only to avoid WebSocket frame header issues

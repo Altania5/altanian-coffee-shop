@@ -13,8 +13,9 @@ const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
       ? ["https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com", "https://www.altaniancoffee.com", "https://altaniancoffee.com"]
-      : ["http://localhost:3000", "http://localhost:3001"],
-    methods: ["GET", "POST"],
+      : ["http://localhost:3000", "http://localhost:3001", "http://10.81.100.68:3000", "http://10.81.100.68"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true
   },
   transports: ['polling', 'websocket'],
@@ -31,14 +32,28 @@ const io = new Server(server, {
 const port = process.env.PORT || 5002;
 
 // Enhanced CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
+// CORS middleware configuration
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = process.env.NODE_ENV === 'production'
     ? ["https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com", "https://www.altaniancoffee.com", "https://altaniancoffee.com"]
-    : ["http://localhost:3000", "http://localhost:3001"],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
-}));
+    : ["http://localhost:3000", "http://localhost:3001", "http://10.81.100.68:3000", "http://10.81.100.68"];
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 app.use(express.json());
 
 // Add headers to prevent caching issues
@@ -52,7 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const uri = process.env.ATLAS_URI || 'mongodb+srv://coffeeshop_app_db:Alex998863-_@cluster0.z1v17tk.mongodb.net/coffeeshop_app_db?retryWrites=true&w=majority&appName=Cluster0';
+const uri = process.env.ATLAS_URI;
 console.log('ATLAS_URI:', uri ? 'Found (length: ' + uri.length + ')' : 'NOT FOUND');
 mongoose.connect(uri).catch(err => {
   console.error('MongoDB connection error:', err);

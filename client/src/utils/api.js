@@ -3,11 +3,11 @@ import axios from 'axios';
 // API utility for handling base URL in development vs production
 const getBaseURL = () => {
   // Check if we're in development mode (localhost:3000)
-  const isDevelopment = window.location.hostname === 'localhost' && window.location.port === '3000';
+  const isDevelopment = (window.location.hostname === 'localhost' || window.location.hostname === '10.81.100.68') && window.location.port === '3000';
   
   if (isDevelopment) {
     // Force localhost URL in development, ignore REACT_APP_API_BASE_URL
-    return 'http://localhost:5003';
+    return 'http://localhost:5002';
   }
   return process.env.REACT_APP_API_BASE_URL || 'https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com';
 };

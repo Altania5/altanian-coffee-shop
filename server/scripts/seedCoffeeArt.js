@@ -108,7 +108,7 @@ const sampleContests = [
 async function seedCoffeeArt() {
   try {
     // Connect to MongoDB
-    const uri = process.env.ATLAS_URI || 'mongodb+srv://coffeeshop_app_db:Alex998863-_@cluster0.z1v17tk.mongodb.net/coffeeshop_app_db?retryWrites=true&w=majority&appName=Cluster0';
+    const uri = process.env.ATLAS_URI;
     await mongoose.connect(uri);
     console.log('Connected to MongoDB');
 
