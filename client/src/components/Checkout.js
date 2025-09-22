@@ -6,8 +6,9 @@ import {
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
-import axios from 'axios';
+import api from '../utils/api';
 import RewardRedemption from './RewardRedemption';
+import PromoCodeInput from './PromoCodeInput';
 
 // Initialize Stripe with error handling
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -48,15 +49,21 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
   const [tip, setTip] = useState(0);
   const [tipOption, setTipOption] = useState('custom'); // 'none', '15', '18', '20', 'custom'
   const [selectedReward, setSelectedReward] = useState(null);
+  const [appliedPromo, setAppliedPromo] = useState(null);
   
   // Calculate totals
   const subtotal = cart.reduce((acc, item) => {
     const price = Number(item.estimatedPrice || item.price || 0);
     return acc + price * (item.quantity || 1);
   }, 0);
-  const discount = selectedReward ? calculateDiscount(selectedReward, subtotal) : 0;
-  const tax = Math.round((subtotal - discount) * 0.0875 * 100) / 100; // 8.75% tax
-  const total = subtotal + tax + tip - discount;
+  
+  // Calculate discounts
+  const rewardDiscount = selectedReward ? calculateDiscount(selectedReward, subtotal) : 0;
+  const promoDiscount = appliedPromo ? (subtotal * appliedPromo.discountPercentage / 100) : 0;
+  const totalDiscount = rewardDiscount + promoDiscount;
+  
+  const tax = Math.round((subtotal - totalDiscount) * 0.0875 * 100) / 100; // 8.75% tax
+  const total = subtotal + tax + tip - totalDiscount;
 
   // Calculate discount from reward
   const calculateDiscount = (reward, subtotal) => {
@@ -81,6 +88,16 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
   // Handle clearing reward
   const handleClearReward = () => {
     setSelectedReward(null);
+  };
+
+  // Handle promo code application
+  const handlePromoApplied = (promoData) => {
+    setAppliedPromo(promoData);
+  };
+
+  // Handle promo code removal
+  const handlePromoRemoved = () => {
+    setAppliedPromo(null);
   };
 
   // Handle tip selection
@@ -131,8 +148,10 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         items: cart,
         customer: customerInfo,
         tip: tip,
-        discount: discount,
+        discount: totalDiscount,
         rewardId: selectedReward ? selectedReward._id : undefined,
+        promoCode: appliedPromo ? appliedPromo.code : undefined,
+        promoId: appliedPromo ? appliedPromo.promoId : undefined,
         notes: specialInstructions.trim() || undefined,
         source: 'website'
       };
@@ -157,10 +176,10 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         // Send order to backend with payment method
         const headers = token ? { 'x-auth-token': token } : {};
         
-        const response = await axios.post('/orders', {
+        const response = await api.post('/orders', {
           ...orderData,
           paymentMethodId: stripePaymentMethod.id
-        }, { headers });
+        });
 
         if (response.data.success) {
           // Handle successful payment
@@ -188,7 +207,7 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         // Cash payment - create order without payment method
         const headers = token ? { 'x-auth-token': token } : {};
         
-        const response = await axios.post('/orders', orderData, { headers });
+        const response = await api.post('/orders', orderData);
 
         if (response.data.success) {
           onPaymentSuccess({
@@ -328,6 +347,14 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
           </div>
         </div>
 
+        {/* Promo Code */}
+        <PromoCodeInput
+          onPromoApplied={handlePromoApplied}
+          onPromoRemoved={handlePromoRemoved}
+          appliedPromo={appliedPromo}
+          token={token}
+        />
+
         {/* Reward Redemption */}
         {token && (
           <RewardRedemption
@@ -412,10 +439,16 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
               <span>${tip.toFixed(2)}</span>
             </div>
           )}
-          {discount > 0 && (
+          {rewardDiscount > 0 && (
             <div className="total-row discount-row">
-              <span>Discount ({selectedReward?.name}):</span>
-              <span>-${discount.toFixed(2)}</span>
+              <span>Reward Discount ({selectedReward?.name}):</span>
+              <span>-${rewardDiscount.toFixed(2)}</span>
+            </div>
+          )}
+          {promoDiscount > 0 && (
+            <div className="total-row discount-row">
+              <span>Promo Discount ({appliedPromo?.code}):</span>
+              <span>-${promoDiscount.toFixed(2)}</span>
             </div>
           )}
           <div className="total-row final-total">

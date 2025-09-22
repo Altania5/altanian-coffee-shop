@@ -12,6 +12,12 @@ import OrderQueue from '../components/admin/OrderQueue';
 import LoyaltyManager from '../components/admin/LoyaltyManager';
 import AITrainingDashboard from '../components/AITrainingDashboard';
 import AIModelManagement from '../components/AIModelManagement';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import DynamicPricing from '../components/DynamicPricing';
+import DynamicPricingAdmin from '../components/DynamicPricingAdmin';
+import CoffeeArtGallery from '../components/CoffeeArtGallery';
+import SocialFeatures from '../components/SocialFeatures';
+import HealthInsights from '../components/HealthInsights';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -31,11 +37,12 @@ function AdminPage({ user }) {
   // Check if user has admin privileges - only 'owner' role has admin access
   const isAdmin = user && user.role === 'owner';
   
-  // Debug logging to help troubleshoot access issues
-  console.log('AdminPage - User object:', user);
-  console.log('AdminPage - User role:', user?.role);
-  console.log('AdminPage - User firstName:', user?.firstName);
-  console.log('AdminPage - Is admin?', isAdmin);
+  // Debug logging to help troubleshoot access issues (only log once)
+  useEffect(() => {
+    if (user) {
+      console.log('AdminPage - User role:', user.role, 'Is admin?', isAdmin);
+    }
+  }, [user, isAdmin]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -392,6 +399,41 @@ function AdminPage({ user }) {
           <span className="tab-icon">🧠</span>
           AI Models
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          <span className="tab-icon">📊</span>
+          Analytics
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'pricing' ? 'active' : ''}`}
+          onClick={() => setActiveTab('pricing')}
+        >
+          <span className="tab-icon">💰</span>
+          Dynamic Pricing
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'art-gallery' ? 'active' : ''}`}
+          onClick={() => setActiveTab('art-gallery')}
+        >
+          <span className="tab-icon">🎨</span>
+          Art Gallery
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'social' ? 'active' : ''}`}
+          onClick={() => setActiveTab('social')}
+        >
+          <span className="tab-icon">👥</span>
+          Social Features
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'health' ? 'active' : ''}`}
+          onClick={() => setActiveTab('health')}
+        >
+          <span className="tab-icon">💚</span>
+          Health Insights
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -431,6 +473,21 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'ai-models' && (
           <AIModelManagement />
+        )}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard user={user} />
+        )}
+        {activeTab === 'pricing' && (
+          <DynamicPricingAdmin />
+        )}
+        {activeTab === 'art-gallery' && (
+          <CoffeeArtGallery />
+        )}
+        {activeTab === 'social' && (
+          <SocialFeatures user={user} />
+        )}
+        {activeTab === 'health' && (
+          <HealthInsights user={user} />
         )}
       </div>
     </div>

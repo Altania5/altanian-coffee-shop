@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import images from '../assets/images';
 import TipJar from '../components/TipJar';
+import SmartRecommendations from '../components/SmartRecommendations';
+import SocialFeatures from '../components/SocialFeatures';
+import CoffeeArtGallery from '../components/CoffeeArtGallery';
+import HealthInsights from '../components/HealthInsights';
+import DynamicPricing from '../components/DynamicPricing';
 import api from '../utils/api';
 
 function HomePage({ user }) {
@@ -50,6 +55,13 @@ function HomePage({ user }) {
     if (hour < 14) return 'Fuel your afternoon with our signature blend';
     if (hour < 18) return 'Perfect time for an afternoon pick-me-up';
     return 'Wind down with our evening specials';
+  };
+
+  const handleRecommendationClick = (drinkName) => {
+    // Navigate to order page with the recommended drink
+    // This would typically trigger navigation to the order page
+    console.log('Recommended drink clicked:', drinkName);
+    // You could emit an event or use a navigation function here
   };
 
   return (
@@ -115,6 +127,14 @@ function HomePage({ user }) {
           )}
         </div>
 
+        {/* Smart Recommendations */}
+        {user && (
+          <SmartRecommendations 
+            user={user} 
+            onRecommendationClick={handleRecommendationClick}
+          />
+        )}
+
         <div className="home-card suggestion-card">
           <div className="card-header">
             <h3>Try Something New</h3>
@@ -160,6 +180,33 @@ function HomePage({ user }) {
           <TipJar user={user} />
         </div>
       </div>
+
+      {/* Additional Features Section */}
+      {user && (
+        <div className="features-section">
+          <div className="features-grid">
+            <div className="feature-card">
+              <h3>🎨 Coffee Art Gallery</h3>
+              <CoffeeArtGallery />
+            </div>
+            
+            <div className="feature-card">
+              <h3>👥 Social Features</h3>
+              <SocialFeatures />
+            </div>
+            
+            <div className="feature-card">
+              <h3>💚 Health Insights</h3>
+              <HealthInsights />
+            </div>
+            
+            <div className="feature-card">
+              <h3>💰 Dynamic Pricing</h3>
+              <DynamicPricing />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

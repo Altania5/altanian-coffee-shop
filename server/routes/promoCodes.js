@@ -17,7 +17,40 @@ router.post('/verify', async (req, res) => {
     if (!promo) {
       return res.status(404).json({ msg: 'Invalid or expired promo code.' });
     }
-    res.json({ discountPercentage: promo.discountPercentage });
+
+    // Check usage limits
+    if (promo.maxUsage && promo.usageCount >= promo.maxUsage) {
+      return res.status(400).json({ msg: 'Promo code usage limit reached.' });
+    }
+
+    res.json({ 
+      discountPercentage: promo.discountPercentage,
+      promoId: promo._id 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Track promo code usage
+router.post('/use', async (req, res) => {
+  try {
+    const { promoId } = req.body;
+    
+    if (!promoId) {
+      return res.status(400).json({ msg: 'Promo ID is required.' });
+    }
+
+    const promo = await PromoCode.findById(promoId);
+    if (!promo) {
+      return res.status(404).json({ msg: 'Promo code not found.' });
+    }
+
+    // Increment usage count
+    promo.usageCount += 1;
+    await promo.save();
+
+    res.json({ success: true, usageCount: promo.usageCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

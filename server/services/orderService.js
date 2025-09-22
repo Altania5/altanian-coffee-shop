@@ -48,6 +48,11 @@ class OrderService {
         tip: orderData.tip || 0,
         discount: orderData.discount || 0,
         totalAmount,
+        promoCode: orderData.promoCode ? {
+          code: orderData.promoCode,
+          discountPercentage: orderData.discountPercentage || 0,
+          appliedAt: new Date()
+        } : undefined,
         notes: orderData.notes,
         specialInstructions: orderData.specialInstructions,
         source: orderData.source || 'website'
@@ -93,7 +98,22 @@ class OrderService {
       // 9. Populate order for response
       await order.populate('items.product customer.user');
       
-      // 10. Process reward redemption if applicable
+      // 10. Track promo code usage if applicable
+      if (orderData.promoCode && orderData.promoId) {
+        try {
+          const PromoCode = require('../models/promoCode.model');
+          await PromoCode.findByIdAndUpdate(
+            orderData.promoId,
+            { $inc: { usageCount: 1 } },
+            { session: useSession }
+          );
+        } catch (promoError) {
+          console.error('Failed to track promo code usage:', promoError);
+          // Don't fail the order for promo tracking issues
+        }
+      }
+
+      // 11. Process reward redemption if applicable
       if (orderData.rewardId && order.customer.user) {
         process.nextTick(async () => {
           try {

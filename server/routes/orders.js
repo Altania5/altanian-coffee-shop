@@ -13,7 +13,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
  */
 router.post('/', async (req, res) => {
   try {
-    const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount } = req.body;
+    const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount, promoCode, promoId } = req.body;
     
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -42,6 +42,8 @@ router.post('/', async (req, res) => {
       tip: tip || 0,
       discount: discount || 0,
       rewardId: rewardId || undefined,
+      promoCode: promoCode || undefined,
+      promoId: promoId || undefined,
       notes,
       specialInstructions,
       source: 'website'
@@ -177,6 +179,36 @@ router.get('/', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch orders'
+    });
+  }
+});
+
+/**
+ * @route   GET /orders/history
+ * @desc    Get user's order history
+ * @access  Private
+ */
+router.get('/history', auth, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const orders = await Order.find({ 'customer.user': req.user.id })
+      .populate('items.product', 'name price')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(offset));
+    
+    res.json({
+      success: true,
+      orders,
+      count: orders.length
+    });
+    
+  } catch (error) {
+    console.error('Get order history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order history'
     });
   }
 });

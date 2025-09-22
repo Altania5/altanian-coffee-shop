@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ? 
@@ -26,7 +26,7 @@ function TipJar({ user }) {
       }
       
       const headers = { 'x-auth-token': user.token };
-      const response = await axios.post('/payments/create-tip-session', { amount }, { headers });
+      const response = await api.post('/payments/create-tip-session', { amount });
       const session = response.data;
 
       const result = await stripe.redirectToCheckout({

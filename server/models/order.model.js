@@ -85,6 +85,13 @@ const orderSchema = new Schema({
   discount: { type: Number, default: 0 },
   totalAmount: { type: Number, required: true },
   
+  // Promo code tracking
+  promoCode: {
+    code: String,
+    discountPercentage: Number,
+    appliedAt: Date
+  },
+  
   // Order status and tracking
   status: {
     type: String,

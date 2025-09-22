@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket }) {
   const [items, setItems] = useState(inventory || []);
@@ -93,17 +93,38 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
     handleInventoryUpdate(itemId, newQuantity);
   };
 
-  const handleInventoryUpdate = (itemId, newQuantity) => {
-    // Update local state immediately
-    setItems(prev => prev.map(item =>
-      item._id === itemId
-        ? { ...item, quantityInStock: newQuantity, currentQuantity: newQuantity }
-        : item
-    ));
-    
-    // Notify parent component
-    if (onInventoryUpdate) {
-      onInventoryUpdate(itemId, newQuantity);
+  const handleInventoryUpdate = async (itemId, newQuantity) => {
+    try {
+      // Update local state immediately for responsive UI
+      setItems(prev => prev.map(item =>
+        item._id === itemId
+          ? { ...item, quantityInStock: newQuantity, currentQuantity: newQuantity }
+          : item
+      ));
+      
+      // Make API call to persist changes
+      await api.put(`/inventory/update/${itemId}`, { 
+        quantityInStock: newQuantity,
+        currentQuantity: newQuantity 
+      });
+      
+      // Notify parent component
+      if (onInventoryUpdate) {
+        onInventoryUpdate(itemId, newQuantity);
+      }
+      
+      console.log(`✅ Inventory updated: Item ${itemId} quantity set to ${newQuantity}`);
+    } catch (error) {
+      console.error('❌ Failed to update inventory:', error);
+      
+      // Revert local state on error
+      setItems(prev => prev.map(item =>
+        item._id === itemId
+          ? { ...item, quantityInStock: item.quantityInStock, currentQuantity: item.currentQuantity }
+          : item
+      ));
+      
+      alert('Failed to update inventory. Please try again.');
     }
   };
 
@@ -119,7 +140,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
       const token = localStorage.getItem('token'); // Get from storage or context
       const headers = { 'x-auth-token': token };
 
-      await axios.put(`${baseURL}/inventory/update/${editingItem._id}`, editingItem, { headers });
+      await api.put(`/inventory/update/${editingItem._id}`, editingItem);
       
       // Update local state
       setItems(prev => prev.map(item =>
@@ -141,7 +162,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
 
       console.log('➕ Adding new inventory item:', newItem);
 
-      const response = await axios.post(`${baseURL}/inventory/add`, newItem, { headers });
+      const response = await api.post('/inventory/add', newItem);
       
       console.log('✅ Item added successfully:', response.data);
       
@@ -168,7 +189,7 @@ function InventoryManager({ inventory, lowStockAlerts, onInventoryUpdate, socket
       const token = localStorage.getItem('token');
       const headers = { 'x-auth-token': token };
 
-      await axios.delete(`${baseURL}/inventory/delete/${itemId}`, { headers });
+      await api.delete(`/inventory/delete/${itemId}`);
       
       setItems(prev => prev.filter(item => item._id !== itemId));
     } catch (error) {

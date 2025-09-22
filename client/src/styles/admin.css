@@ -93,23 +93,47 @@
 /* Admin Tabs */
 .admin-tabs {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 30px;
   border-bottom: 1px solid #dee2e6;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-tabs::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.admin-tabs::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.admin-tabs::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .tab-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  padding: 8px 12px;
   border: none;
   background: none;
-  font-size: 1rem;
+  font-size: 0.9rem;
   cursor: pointer;
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
   transition: all 0.2s;
   color: #6c757d;
+  white-space: nowrap;
+  min-width: fit-content;
+  flex-shrink: 0;
 }
 
 .tab-button:hover {

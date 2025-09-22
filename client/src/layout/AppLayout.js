@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
+import Footer from '../components/Footer';
 import HomePage from '../pages/HomePage';
 import OrderPage from '../pages/OrderPage';
 import AdminPage from '../pages/AdminPage';
@@ -198,16 +199,17 @@ function AppLayout({ user, onLogout }) {
   };
 
   return (
-    <div>
+    <div className="app-layout">
       <Navbar
         user={user}
         onLogout={handleLogout}
         setActiveTab={setActiveTab}
         cartItemCount={cart.reduce((count, item) => count + item.quantity, 0)}
       />
-      <main>
+      <main className="main-content">
         {renderContent()}
       </main>
+      <Footer />
       <NotificationCenter />
     </div>
   );

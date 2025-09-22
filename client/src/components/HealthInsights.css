@@ -1,0 +1,480 @@
+/* Health Insights Styles */
+.health-insights {
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--box-shadow);
+  border: 1px solid var(--border-color);
+}
+
+.health-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.health-header h3 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.health-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-light-color);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--text-color);
+  background: var(--cream);
+}
+
+.tab.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  background: var(--cream);
+}
+
+.health-content {
+  margin-top: var(--spacing-lg);
+}
+
+/* Caffeine Tab Styles */
+.caffeine-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.daily-summary {
+  background: var(--cream);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+}
+
+.caffeine-meter {
+  margin: var(--spacing-md) 0;
+}
+
+.caffeine-amount {
+  text-align: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.amount {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.unit {
+  font-size: 1.2rem;
+  color: var(--text-light-color);
+  margin-left: var(--spacing-xs);
+}
+
+.caffeine-bar {
+  width: 100%;
+  height: 20px;
+  background: var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.caffeine-fill {
+  height: 100%;
+  background: var(--accent-color);
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.caffeine-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.recommendation-card {
+  background: var(--surface-color);
+  border: 2px solid var(--accent-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.recommendation-icon {
+  font-size: 1.5rem;
+}
+
+.recommendation-card p {
+  margin: 0;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.weekly-stats {
+  margin-bottom: var(--spacing-lg);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.stat-card {
+  background: var(--cream);
+  border-radius: var(--border-radius-small);
+  padding: var(--spacing-md);
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.caffeine-history,
+.sleep-history {
+  margin-bottom: var(--spacing-lg);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--cream);
+  border-radius: var(--border-radius-small);
+  border: 1px solid var(--border-color);
+}
+
+.date {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.amount,
+.hours {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.drinks,
+.quality {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Sleep Tab Styles */
+.sleep-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.sleep-entry {
+  background: var(--cream);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+}
+
+.sleep-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  background: var(--surface-color);
+  color: var(--text-color);
+  transition: var(--transition-fast);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(205, 133, 63, 0.1);
+}
+
+.form-group input[type="range"] {
+  padding: 0;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  outline: none;
+}
+
+.form-group input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.quality-value {
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.add-sleep-btn {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-small);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  align-self: flex-start;
+}
+
+.add-sleep-btn:hover:not(:disabled) {
+  background: var(--secondary-coffee);
+  transform: translateY(-1px);
+}
+
+.add-sleep-btn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sleep-recommendation {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Recommendations Tab Styles */
+.recommendations-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.tip-card {
+  background: var(--cream);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.tip-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.tip-content h5 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tip-content p {
+  margin: 0;
+  color: var(--text-light-color);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.health-facts h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.facts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.fact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--cream);
+  border-radius: var(--border-radius-small);
+  border: 1px solid var(--border-color);
+}
+
+.fact-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.fact-item p {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--spacing-md) auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .health-insights {
+    padding: var(--spacing-md);
+  }
+  
+  .health-tabs {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .tab {
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+  }
+  
+  .tab.active {
+    border-bottom-color: var(--accent-color);
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .history-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  
+  .amount {
+    font-size: 2rem;
+  }
+  
+  .sleep-form {
+    gap: var(--spacing-sm);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .health-insights {
+    border: 2px solid var(--primary-coffee);
+  }
+  
+  .tab.active {
+    border-bottom-width: 3px;
+  }
+  
+  .recommendation-card,
+  .stat-card,
+  .tip-card,
+  .fact-item {
+    border: 2px solid var(--primary-coffee);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .caffeine-fill {
+    transition: none;
+  }
+  
+  .add-sleep-btn:hover {
+    transform: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}

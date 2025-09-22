@@ -1,0 +1,521 @@
+/* Coffee Art Gallery Styles */
+.coffee-art-gallery {
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--box-shadow);
+  border: 1px solid var(--border-color);
+}
+
+.gallery-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.gallery-header h3 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.gallery-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-light-color);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--text-color);
+  background: var(--cream);
+}
+
+.tab.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  background: var(--cream);
+}
+
+.gallery-content {
+  margin-top: var(--spacing-lg);
+}
+
+/* Gallery Tab Styles */
+.gallery-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.gallery-filters {
+  margin-bottom: var(--spacing-lg);
+}
+
+.filter-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: var(--text-color);
+}
+
+.filter-btn:hover {
+  background: var(--cream);
+  border-color: var(--accent-color);
+}
+
+.filter-btn.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.artworks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.artwork-card {
+  background: var(--cream);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+  border: 1px solid var(--border-color);
+  transition: var(--transition-fast);
+}
+
+.artwork-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--box-shadow-large);
+}
+
+.artwork-image-container {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.artwork-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition-fast);
+}
+
+.artwork-card:hover .artwork-image {
+  transform: scale(1.05);
+}
+
+.featured-badge {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: var(--accent-color);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-small);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.artwork-info {
+  padding: var(--spacing-md);
+}
+
+.artwork-title {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.artwork-description {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-light-color);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.artwork-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.artist-name {
+  font-weight: 500;
+}
+
+.artwork-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.vote-btn,
+.share-btn {
+  flex: 1;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: var(--text-color);
+}
+
+.vote-btn:hover,
+.share-btn:hover {
+  background: var(--cream);
+  border-color: var(--accent-color);
+}
+
+.vote-btn:disabled {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+  cursor: not-allowed;
+}
+
+/* Contests Tab Styles */
+.contests-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.contests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.contest-card {
+  background: var(--cream);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--box-shadow);
+}
+
+.contest-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.contest-icon {
+  font-size: 2rem;
+}
+
+.contest-info h5 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.contest-info p {
+  margin: 0;
+  color: var(--text-light-color);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.contest-details {
+  margin-bottom: var(--spacing-sm);
+}
+
+.contest-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.contest-timeline {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.join-contest-btn {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-small);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  width: 100%;
+}
+
+.join-contest-btn:hover:not(:disabled) {
+  background: var(--secondary-coffee);
+  transform: translateY(-1px);
+}
+
+.join-contest-btn:disabled {
+  background: var(--success-color);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Upload Tab Styles */
+.upload-tab h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.upload-form {
+  max-width: 500px;
+}
+
+.upload-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.upload-label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.file-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--cream);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.file-input:hover {
+  border-color: var(--accent-color);
+  background: var(--surface-color);
+}
+
+.file-preview {
+  margin-top: var(--spacing-sm);
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: var(--border-radius-small);
+  box-shadow: var(--box-shadow);
+}
+
+.file-name {
+  margin-top: var(--spacing-xs);
+  font-size: 0.9rem;
+  color: var(--text-light-color);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  background: var(--surface-color);
+  color: var(--text-color);
+  transition: var(--transition-fast);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(205, 133, 63, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.upload-btn {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: var(--secondary-coffee);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
+}
+
+.upload-btn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.empty-gallery {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .coffee-art-gallery {
+    padding: var(--spacing-md);
+  }
+  
+  .gallery-tabs {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .tab {
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+  }
+  
+  .tab.active {
+    border-bottom-color: var(--accent-color);
+  }
+  
+  .artworks-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-buttons {
+    justify-content: center;
+  }
+  
+  .contest-stats,
+  .contest-timeline {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .artwork-meta {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .coffee-art-gallery {
+    border: 2px solid var(--primary-coffee);
+  }
+  
+  .tab.active {
+    border-bottom-width: 3px;
+  }
+  
+  .artwork-card,
+  .contest-card {
+    border: 2px solid var(--primary-coffee);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .artwork-card:hover,
+  .join-contest-btn:hover,
+  .upload-btn:hover {
+    transform: none;
+  }
+  
+  .artwork-image {
+    transition: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}

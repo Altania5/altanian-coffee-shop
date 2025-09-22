@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import axios from 'axios';
+import api from '../utils/api';
 
 export default function CheckoutForm({ cart, user, total, onSuccessfulCheckout }) {
   const stripe = useStripe();
@@ -39,7 +39,7 @@ export default function CheckoutForm({ cart, user, total, onSuccessfulCheckout }
     try {
       const orderData = { cart, total: parseFloat(total.toFixed(2)) };
       const headers = { 'x-auth-token': user.token };
-      await axios.post('/orders', orderData, { headers });
+      await api.post('/orders', orderData);
       
       onSuccessfulCheckout(); 
 

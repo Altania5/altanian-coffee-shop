@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const CATEGORIES = ['Beans', 'Milk', 'Syrup', 'Tea', 'Powder', 'Refresher', 'Topping'];
 const UNITS = ['Bottles', 'Bags', 'Boxes', 'Carton'];
@@ -18,8 +18,7 @@ function InventoryManager({ token }) {
     }
     setLoading(true);
     try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.get(`${baseURL}/inventory`, { headers: { 'x-auth-token': token } });
+      const res = await api.get('/inventory');
       setItems(res.data);
     } catch (err) {
       console.error("Error fetching inventory:", err);
@@ -46,8 +45,7 @@ function InventoryManager({ token }) {
         unit: newItem.unit,
         quantity: parseInt(newItem.quantity) || 0,
       };
-      const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      const res = await axios.post(`${baseURL}/inventory/add`, itemData, { headers: { 'x-auth-token': token } });
+      const res = await api.post('/inventory/add', itemData);
       setItems([...items, res.data]); 
       setNewItem({ name: '', quantity: 0, unit: 'Bags' });
     } catch (err) {
@@ -58,7 +56,7 @@ function InventoryManager({ token }) {
   const handleUpdate = async (id, field, value) => {
     try {
       const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-      await axios.put(`${baseURL}/inventory/update/${id}`, { [field]: value }, { headers: { 'x-auth-token': token } });
+      await api.put(`/inventory/update/${id}`, { [field]: value });
       fetchItems();
     } catch (err) {
       alert('Error updating item: ' + (err.response?.data?.message || err.message));
@@ -69,7 +67,7 @@ function InventoryManager({ token }) {
     if (window.confirm('Are you sure you want to delete this item?')) {
         try {
             const baseURL = process.env.REACT_APP_API_BASE_URL || '';
-            await axios.delete(`${baseURL}/inventory/delete/${id}`, { headers: { 'x-auth-token': token } });
+            await api.delete(`/inventory/delete/${id}`);
             setItems(items.filter(item => item._id !== id));
         } catch (err) {
             alert('Error deleting item: ' + (err.response?.data?.message || err.message));

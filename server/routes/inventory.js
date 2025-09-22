@@ -59,6 +59,27 @@ router.put('/update/:id', ownerAuth, async (req, res) => {
   }
 });
 
+// Alternative route for direct inventory updates (used by frontend)
+router.put('/:id', ownerAuth, async (req, res) => {
+  try {
+    const updatedItem = await InventoryItem.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true } 
+    );
+     if (!updatedItem) {
+      return res.status(404).json({ msg: 'Item not found' });
+    }
+    res.json(updatedItem);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ msg: messages[0] });
+    }
+    res.status(500).json({ error: 'Server error updating item: ' + err.message });
+  }
+});
+
 router.delete('/delete/:id', ownerAuth, async (req, res) => {
     try {
         const deletedItem = await InventoryItem.findByIdAndDelete(req.params.id);

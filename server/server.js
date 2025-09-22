@@ -52,9 +52,16 @@ app.use((req, res, next) => {
   next();
 });
 
-const uri = process.env.ATLAS_URI;
+const uri = process.env.ATLAS_URI || 'mongodb+srv://coffeeshop_app_db:Alex998863-_@cluster0.z1v17tk.mongodb.net/coffeeshop_app_db?retryWrites=true&w=majority&appName=Cluster0';
 console.log('ATLAS_URI:', uri ? 'Found (length: ' + uri.length + ')' : 'NOT FOUND');
-mongoose.connect(uri);
+mongoose.connect(uri).catch(err => {
+  console.error('MongoDB connection error:', err);
+  console.log('Trying fallback connection...');
+  mongoose.connect('mongodb://localhost:27017/altaniancoffee').catch(fallbackErr => {
+    console.error('Fallback MongoDB connection also failed:', fallbackErr);
+    console.log('Server will continue without database connection');
+  });
+});
 const connection = mongoose.connection;
 connection.once('open', async () => {
   console.log("MongoDB database connection established successfully");
@@ -81,6 +88,9 @@ const loyaltyRouter = require('./routes/loyalty');
 const beanBagsRouter = require('./routes/beanBags');
 const aiRouter = require('./routes/ai');
 const aiModelsRouter = require('./routes/aiModels');
+const coffeeArtRouter = require('./routes/coffeeArt');
+const socialFeaturesRouter = require('./routes/socialFeatures');
+const healthInsightsRouter = require('./routes/healthInsights');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -95,6 +105,9 @@ app.use('/loyalty', loyaltyRouter);
 app.use('/beanbags', beanBagsRouter);
 app.use('/ai', aiRouter);
 app.use('/ai-models', aiModelsRouter);
+app.use('/coffee-art', coffeeArtRouter);
+app.use('/social', socialFeaturesRouter);
+app.use('/health', healthInsightsRouter);
 
 // Initialize WebSocket server for real-time order tracking
 const OrderTrackingServer = require('./websocket/orderTracking');

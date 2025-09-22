@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 import AppLayout from './layout/AppLayout';
 import LoginPage from './pages/LoginPage';
 import { SocketProvider } from './context/SocketContext';
+import pwaService from './services/PWAService';
 
 import './App.css';
 
