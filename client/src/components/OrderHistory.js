@@ -15,7 +15,7 @@ function OrderHistory({ token }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchOrders();

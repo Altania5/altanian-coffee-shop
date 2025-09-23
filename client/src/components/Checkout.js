@@ -57,14 +57,6 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
     return acc + price * (item.quantity || 1);
   }, 0);
   
-  // Calculate discounts
-  const rewardDiscount = selectedReward ? calculateDiscount(selectedReward, subtotal) : 0;
-  const promoDiscount = appliedPromo ? (subtotal * appliedPromo.discountPercentage / 100) : 0;
-  const totalDiscount = rewardDiscount + promoDiscount;
-  
-  const tax = Math.round((subtotal - totalDiscount) * 0.0875 * 100) / 100; // 8.75% tax
-  const total = subtotal + tax + tip - totalDiscount;
-
   // Calculate discount from reward
   const calculateDiscount = (reward, subtotal) => {
     switch (reward.discountType) {
@@ -79,6 +71,14 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         return 0;
     }
   };
+
+  // Calculate discounts
+  const rewardDiscount = selectedReward ? calculateDiscount(selectedReward, subtotal) : 0;
+  const promoDiscount = appliedPromo ? (subtotal * appliedPromo.discountPercentage / 100) : 0;
+  const totalDiscount = rewardDiscount + promoDiscount;
+  
+  const tax = Math.round((subtotal - totalDiscount) * 0.0875 * 100) / 100; // 8.75% tax
+  const total = subtotal + tax + tip - totalDiscount;
 
   // Handle reward selection
   const handleRewardSelected = (reward) => {
@@ -174,8 +174,6 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         }
 
         // Send order to backend with payment method
-        const headers = token ? { 'x-auth-token': token } : {};
-        
         const response = await api.post('/orders', {
           ...orderData,
           paymentMethodId: stripePaymentMethod.id
@@ -205,8 +203,6 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
 
       } else {
         // Cash payment - create order without payment method
-        const headers = token ? { 'x-auth-token': token } : {};
-        
         const response = await api.post('/orders', orderData);
 
         if (response.data.success) {

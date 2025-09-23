@@ -11,9 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production'
-      ? ["https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com", "https://www.altaniancoffee.com", "https://altaniancoffee.com"]
-      : ["http://localhost:3000", "http://localhost:3001", "http://10.81.100.68:3000", "http://10.81.100.68"],
+    origin: true, // Allow all origins in development
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true
@@ -31,30 +29,16 @@ const io = new Server(server, {
 });
 const port = process.env.PORT || 5002;
 
-// Enhanced CORS configuration
-// CORS middleware configuration
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ["https://altanian-coffee-shop-b74ac47acbb4.herokuapp.com", "https://www.altaniancoffee.com", "https://altaniancoffee.com"]
-    : ["http://localhost:3000", "http://localhost:3001", "http://10.81.100.68:3000", "http://10.81.100.68"];
-
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+// Simple CORS configuration for development
+app.use(cors({
+  origin: true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+}));
 app.use(express.json());
+
 
 // Add headers to prevent caching issues
 app.use((req, res, next) => {

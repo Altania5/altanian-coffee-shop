@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import smartRecommendationService from '../services/SmartRecommendationService';
 import './SmartRecommendations.css';
 
@@ -8,13 +8,7 @@ function SmartRecommendations({ user, onRecommendationClick }) {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadRecommendations();
-    }
-  }, [user]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -27,7 +21,13 @@ function SmartRecommendations({ user, onRecommendationClick }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    if (user) {
+      loadRecommendations();
+    }
+  }, [user, loadRecommendations]);
 
   const handleRecommendationClick = (drinkName) => {
     if (onRecommendationClick) {

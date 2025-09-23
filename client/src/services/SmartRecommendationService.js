@@ -1,4 +1,5 @@
 import api from '../utils/api';
+import locationService from './LocationService';
 
 class SmartRecommendationService {
   constructor() {
@@ -18,9 +19,12 @@ class SmartRecommendationService {
         return this.getDefaultWeatherData();
       }
 
-      // Using a free weather API (you can replace with your preferred service)
+      // Get user's location for weather data
+      const location = await locationService.getLocationForWeather();
+      
+      // Using coordinates for more accurate weather data
       const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=San Francisco&appid=${apiKey}&units=metric`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lon}&appid=${apiKey}&units=metric`
       );
       
       if (!response.ok) {
@@ -33,7 +37,9 @@ class SmartRecommendationService {
         condition: data.weather[0].main.toLowerCase(),
         humidity: data.main.humidity,
         windSpeed: data.wind.speed,
-        location: data.name
+        location: data.name,
+        coordinates: { lat: location.lat, lon: location.lon },
+        isDefaultLocation: location.isDefault
       };
       
       this.lastUpdate = Date.now();

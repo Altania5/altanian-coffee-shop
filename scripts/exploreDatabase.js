@@ -4,7 +4,7 @@ require('dotenv').config();
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(process.env.ATLAS_URI);
         console.log('✅ Connected to MongoDB');
         return mongoose.connection.db;
     } catch (error) {
@@ -29,8 +29,8 @@ async function exploreDatabase() {
         
         // Check specific collections for user data
         const USER_IDS = [
-            '68925b9ea610c07348ea412a', // old user ID
-            '68bb1d47735cc4373efd98f7'  // new user ID
+            '68d1ebadd1eab2c8767bab64', // current user ID
+            '68bb1d47735cc4373efd98f7'  // target user ID
         ];
         
         for (const userId of USER_IDS) {

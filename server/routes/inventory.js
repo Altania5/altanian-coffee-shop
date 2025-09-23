@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const ownerAuth = require('../middleware/ownerAuth');
 let InventoryItem = require('../models/inventory.model');
+const { updateAllProductsAvailability, getProductsUsingIngredient } = require('../utils/productAvailability');
 
 router.get('/', async (req, res) => {
   try {
@@ -48,6 +49,16 @@ router.put('/update/:id', ownerAuth, async (req, res) => {
      if (!updatedItem) {
       return res.status(404).json({ msg: 'Item not found' });
     }
+    
+    // Update product availability after inventory change
+    try {
+      const updateResults = await updateAllProductsAvailability();
+      console.log('Product availability updated after inventory change:', updateResults);
+    } catch (updateError) {
+      console.error('Error updating product availability:', updateError);
+      // Don't fail the inventory update if product update fails
+    }
+    
     res.json(updatedItem);
   } catch (err) {
     // Also add robust error handling here
@@ -70,6 +81,16 @@ router.put('/:id', ownerAuth, async (req, res) => {
      if (!updatedItem) {
       return res.status(404).json({ msg: 'Item not found' });
     }
+    
+    // Update product availability after inventory change
+    try {
+      const updateResults = await updateAllProductsAvailability();
+      console.log('Product availability updated after inventory change:', updateResults);
+    } catch (updateError) {
+      console.error('Error updating product availability:', updateError);
+      // Don't fail the inventory update if product update fails
+    }
+    
     res.json(updatedItem);
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -86,10 +107,60 @@ router.delete('/delete/:id', ownerAuth, async (req, res) => {
         if (!deletedItem) {
             return res.status(404).json({ msg: 'Item not found' });
         }
+        
+        // Update product availability after inventory deletion
+        try {
+          const updateResults = await updateAllProductsAvailability();
+          console.log('Product availability updated after inventory deletion:', updateResults);
+        } catch (updateError) {
+          console.error('Error updating product availability:', updateError);
+        }
+        
         res.json({ msg: 'Item deleted', item: deletedItem });
     } catch (err) {
         res.status(500).json({ error: 'Server error deleting item: ' + err.message });
     }
+});
+
+// Route to manually update all product availability
+router.post('/update-product-availability', ownerAuth, async (req, res) => {
+  try {
+    const results = await updateAllProductsAvailability();
+    res.json({
+      success: true,
+      message: 'Product availability updated successfully',
+      results
+    });
+  } catch (error) {
+    console.error('Error updating product availability:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update product availability: ' + error.message 
+    });
+  }
+});
+
+// Route to get products affected by an inventory item
+router.get('/:id/affected-products', ownerAuth, async (req, res) => {
+  try {
+    const products = await getProductsUsingIngredient(req.params.id);
+    res.json({
+      success: true,
+      inventoryItemId: req.params.id,
+      affectedProducts: products.map(product => ({
+        id: product._id,
+        name: product.name,
+        isAvailable: product.isAvailable,
+        recipe: product.recipe
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting affected products:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get affected products: ' + error.message 
+    });
+  }
 });
 
 module.exports = router;

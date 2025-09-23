@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamicPricingService from '../services/DynamicPricingService';
 import './DynamicPricing.css';
 
@@ -7,13 +7,7 @@ function DynamicPricing({ product, inventoryData, showExplanation = false }) {
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
 
-  useEffect(() => {
-    if (product) {
-      loadPricingInfo();
-    }
-  }, [product, inventoryData]);
-
-  const loadPricingInfo = async () => {
+  const loadPricingInfo = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -39,7 +33,13 @@ function DynamicPricing({ product, inventoryData, showExplanation = false }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [product, inventoryData]);
+
+  useEffect(() => {
+    if (product) {
+      loadPricingInfo();
+    }
+  }, [product, inventoryData, loadPricingInfo]);
 
   const getPriceChangeIcon = (change) => {
     if (change > 0) return '📈';

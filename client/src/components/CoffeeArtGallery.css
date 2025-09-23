@@ -6,10 +6,50 @@
   margin-bottom: var(--spacing-lg);
   box-shadow: var(--box-shadow);
   border: 1px solid var(--border-color);
+  transition: all var(--transition-smooth);
+}
+
+.coffee-art-gallery:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
 }
 
 .gallery-header {
   margin-bottom: var(--spacing-lg);
+}
+
+.gallery-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: var(--spacing-xs);
+  background: var(--cream);
+  border-radius: var(--border-radius-small);
+  padding: 2px;
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-size: 1rem;
+}
+
+.view-btn:hover {
+  background: var(--surface-color);
+}
+
+.view-btn.active {
+  background: var(--accent-color);
+  color: white;
 }
 
 .gallery-header h3 {
@@ -97,6 +137,79 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--spacing-lg);
+}
+
+/* Compact View Styles */
+.artworks-grid.compact-view {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-sm);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.compact-view .artwork-card {
+  padding: var(--spacing-sm);
+}
+
+.compact-view .artwork-image {
+  height: 120px;
+  object-fit: cover;
+}
+
+.compact-view .artwork-info h4 {
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.compact-view .artwork-info p {
+  font-size: 0.8rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.compact-view .artwork-stats {
+  font-size: 0.8rem;
+}
+
+.compact-view .vote-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.8rem;
+}
+
+/* Desktop-specific layout improvements */
+@media (min-width: 1024px) {
+  .coffee-art-gallery {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  
+  .artworks-grid.full-view {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .gallery-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .gallery-tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .gallery-filters {
+    flex-shrink: 0;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .artworks-grid {
+    flex: 1;
+    overflow-y: auto;
+  }
 }
 
 .artwork-card {

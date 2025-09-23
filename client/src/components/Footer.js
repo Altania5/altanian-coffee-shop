@@ -15,15 +15,15 @@ function Footer() {
               Crafting exceptional coffee experiences with passion and precision.
             </p>
             <div className="footer-social">
-              <a href="#" className="social-link" aria-label="Facebook">
+              <button className="social-link" aria-label="Facebook">
                 <span className="social-icon">📘</span>
-              </a>
-              <a href="#" className="social-link" aria-label="Instagram">
+              </button>
+              <button className="social-link" aria-label="Instagram">
                 <span className="social-icon">📷</span>
-              </a>
-              <a href="#" className="social-link" aria-label="Twitter">
+              </button>
+              <button className="social-link" aria-label="Twitter">
                 <span className="social-icon">🐦</span>
-              </a>
+              </button>
             </div>
           </div>
 
@@ -31,10 +31,10 @@ function Footer() {
           <div className="footer-section">
             <h4 className="footer-title">Quick Links</h4>
             <ul className="footer-links">
-              <li><a href="#home" className="footer-link">Home</a></li>
-              <li><a href="#order" className="footer-link">Order</a></li>
-              <li><a href="#loyalty" className="footer-link">Loyalty Program</a></li>
-              <li><a href="#log" className="footer-link">Coffee Log</a></li>
+              <li><button className="footer-link">Home</button></li>
+              <li><button className="footer-link">Order</button></li>
+              <li><button className="footer-link">Loyalty Program</button></li>
+              <li><button className="footer-link">Coffee Log</button></li>
             </ul>
           </div>
 
@@ -42,10 +42,10 @@ function Footer() {
           <div className="footer-section">
             <h4 className="footer-title">Services</h4>
             <ul className="footer-links">
-              <li><a href="#" className="footer-link">Espresso</a></li>
-              <li><a href="#" className="footer-link">Cappuccino</a></li>
-              <li><a href="#" className="footer-link">Latte</a></li>
-              <li><a href="#" className="footer-link">Cold Brew</a></li>
+              <li><button className="footer-link">Espresso</button></li>
+              <li><button className="footer-link">Cappuccino</button></li>
+              <li><button className="footer-link">Latte</button></li>
+              <li><button className="footer-link">Cold Brew</button></li>
             </ul>
           </div>
 
@@ -80,9 +80,9 @@ function Footer() {
               © {currentYear} Altania Coffee. All rights reserved.
             </p>
             <div className="footer-legal">
-              <a href="#" className="legal-link">Privacy Policy</a>
-              <a href="#" className="legal-link">Terms of Service</a>
-              <a href="#" className="legal-link">Accessibility</a>
+              <button className="legal-link">Privacy Policy</button>
+              <button className="legal-link">Terms of Service</button>
+              <button className="legal-link">Accessibility</button>
             </div>
           </div>
         </div>

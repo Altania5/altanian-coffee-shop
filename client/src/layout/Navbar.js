@@ -20,6 +20,10 @@ const NavLinks = ({ setActiveTab }) => (
       <span className="nav-icon">📖</span>
       <span className="nav-text">Log</span>
     </button>
+    <button onClick={() => setActiveTab('account')}>
+      <span className="nav-icon">👤</span>
+      <span className="nav-text">Account</span>
+    </button>
   </>
 );
 

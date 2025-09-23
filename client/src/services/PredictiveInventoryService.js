@@ -1,3 +1,5 @@
+import locationService from './LocationService';
+
 class PredictiveInventoryService {
   constructor() {
     this.historicalData = [];
@@ -124,8 +126,11 @@ class PredictiveInventoryService {
 
   async updateWeatherData() {
     try {
+      // Get user's location for weather data
+      const location = await locationService.getLocationForWeather();
+      
       const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=San Francisco&appid=${process.env.REACT_APP_WEATHER_API_KEY}&units=metric`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lon}&appid=${process.env.REACT_APP_WEATHER_API_KEY}&units=metric`
       );
       
       if (response.ok) {
@@ -134,7 +139,10 @@ class PredictiveInventoryService {
           temperature: data.main.temp,
           condition: data.weather[0].main.toLowerCase(),
           humidity: data.main.humidity,
-          windSpeed: data.wind.speed
+          windSpeed: data.wind.speed,
+          location: data.name,
+          coordinates: { lat: location.lat, lon: location.lon },
+          isDefaultLocation: location.isDefault
         };
       }
     } catch (error) {

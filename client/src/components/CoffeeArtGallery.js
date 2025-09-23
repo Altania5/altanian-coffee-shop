@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import './CoffeeArtGallery.css';
 
-function CoffeeArtGallery({ user }) {
+function CoffeeArtGallery({ user, compact = false }) {
   const [activeTab, setActiveTab] = useState('gallery');
   const [artworks, setArtworks] = useState([]);
   const [contests, setContests] = useState([]);
@@ -14,6 +14,7 @@ function CoffeeArtGallery({ user }) {
     description: '',
     contestId: null
   });
+  const [viewMode, setViewMode] = useState(compact ? 'compact' : 'full');
 
   useEffect(() => {
     loadGalleryData();
@@ -119,7 +120,27 @@ function CoffeeArtGallery({ user }) {
   return (
     <div className="coffee-art-gallery">
       <div className="gallery-header">
-        <h3>🎨 Coffee Art Gallery</h3>
+        <div className="gallery-title-section">
+          <h3>🎨 Coffee Art Gallery</h3>
+          {!compact && (
+            <div className="view-mode-toggle">
+              <button 
+                className={`view-btn ${viewMode === 'compact' ? 'active' : ''}`}
+                onClick={() => setViewMode('compact')}
+                title="Compact View"
+              >
+                📱
+              </button>
+              <button 
+                className={`view-btn ${viewMode === 'full' ? 'active' : ''}`}
+                onClick={() => setViewMode('full')}
+                title="Full View"
+              >
+                🖥️
+              </button>
+            </div>
+          )}
+        </div>
         <div className="gallery-tabs">
           <button 
             className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}
@@ -148,6 +169,7 @@ function CoffeeArtGallery({ user }) {
             artworks={artworks}
             onVote={voteForArtwork}
             user={user}
+            viewMode={viewMode}
           />
         )}
 
@@ -176,7 +198,7 @@ function CoffeeArtGallery({ user }) {
 }
 
 // Gallery Tab Component
-function GalleryTab({ artworks, onVote, user }) {
+function GalleryTab({ artworks, onVote, user, viewMode = 'full' }) {
   const [filter, setFilter] = useState('all'); // 'all', 'featured', 'recent', 'popular'
 
   const filteredArtworks = artworks.filter(artwork => {
@@ -224,7 +246,7 @@ function GalleryTab({ artworks, onVote, user }) {
         </div>
       </div>
 
-      <div className="artworks-grid">
+      <div className={`artworks-grid ${viewMode === 'compact' ? 'compact-view' : 'full-view'}`}>
         {filteredArtworks.map(artwork => (
           <div key={artwork._id} className="artwork-card">
             <div className="artwork-image-container">

@@ -1,3 +1,5 @@
+import locationService from './LocationService';
+
 class DynamicPricingService {
   constructor() {
     this.basePrices = new Map();
@@ -129,9 +131,12 @@ class DynamicPricingService {
         return;
       }
 
-      // This would typically fetch from a weather API
+      // Get user's location for weather data
+      const location = await locationService.getLocationForWeather();
+      
+      // Fetch weather data using coordinates
       const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=San Francisco&appid=${apiKey}&units=metric`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lon}&appid=${apiKey}&units=metric`
       );
       
       if (response.ok) {
@@ -140,7 +145,10 @@ class DynamicPricingService {
           temperature: data.main.temp,
           condition: data.weather[0].main.toLowerCase(),
           humidity: data.main.humidity,
-          windSpeed: data.wind.speed
+          windSpeed: data.wind.speed,
+          location: data.name,
+          coordinates: { lat: location.lat, lon: location.lon },
+          isDefaultLocation: location.isDefault
         };
       } else {
         throw new Error(`Weather API request failed: ${response.status}`);

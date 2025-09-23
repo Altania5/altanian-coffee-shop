@@ -1252,11 +1252,14 @@ button:disabled {
 
 @media (min-width: 1024px) {
   .home-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
   }
   
   .tip-jar-wrapper {
-    grid-column: 2;
+    grid-column: 1 / -1;
+    max-width: 400px;
+    margin: 0 auto;
   }
   
   .hero-content {

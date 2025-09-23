@@ -11,6 +11,7 @@ const productSchema = new Schema({
     quantityRequired: { type: Number, required: true }
   }],
   isAvailable: { type: Boolean, default: true },
+  availabilityManuallySet: { type: Boolean, default: false },
   category: {
     type: String,
     required: true,

@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import images from '../assets/images';
 import TipJar from '../components/TipJar';
 import SmartRecommendations from '../components/SmartRecommendations';
-import SocialFeatures from '../components/SocialFeatures';
-import CoffeeArtGallery from '../components/CoffeeArtGallery';
-import HealthInsights from '../components/HealthInsights';
-import DynamicPricing from '../components/DynamicPricing';
+import LocationPermission from '../components/LocationPermission';
+import WeatherBackground from '../components/WeatherBackground';
 import api from '../utils/api';
 
 function HomePage({ user }) {
@@ -13,6 +11,8 @@ function HomePage({ user }) {
   const [suggestedProduct, setSuggestedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showLocationPermission, setShowLocationPermission] = useState(true);
+  const [weatherData, setWeatherData] = useState(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -64,33 +64,90 @@ function HomePage({ user }) {
     // You could emit an event or use a navigation function here
   };
 
+  const fetchWeatherData = async () => {
+    try {
+      // Get current date to determine season
+      const now = new Date();
+      const month = now.getMonth() + 1; // 1-12
+      const day = now.getDate();
+      
+      // Determine season based on date
+      let season = 'spring';
+      if ((month === 9 && day >= 22) || month === 10 || month === 11 || (month === 12 && day <= 20)) {
+        season = 'fall';
+      } else if ((month === 12 && day >= 21) || month === 1 || month === 2 || (month === 3 && day <= 19)) {
+        season = 'winter';
+      } else if ((month === 3 && day >= 20) || month === 4 || month === 5 || (month === 6 && day <= 20)) {
+        season = 'spring';
+      } else {
+        season = 'summer';
+      }
+      
+      // Mock weather data with seasonal variation
+      const mockWeather = {
+        temperature: season === 'winter' ? 5 : season === 'summer' ? 28 : 22,
+        condition: season === 'winter' ? 'snow' : season === 'summer' ? 'sunny' : 'clear',
+        humidity: 65,
+        windSpeed: 8,
+        location: 'Current Location',
+        season: season
+      };
+      setWeatherData(mockWeather);
+      console.log('Weather data set:', mockWeather);
+    } catch (error) {
+      console.error('Failed to fetch weather data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeatherData();
+  }, []);
+
   return (
     <div className="home-container">
       {/* Hero Section */}
-      <div className="hero-section">
-        <div className="hero-content">
-          <div className="hero-greeting">
-            <h1 className="hero-title">{getGreeting()}{user?.firstName ? `, ${user.firstName}` : ''}!</h1>
-            <p className="hero-subtitle">{getTimeBasedRecommendation()}</p>
-          </div>
-          <div className="hero-time">
-            <div className="time-display">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <WeatherBackground weatherData={weatherData}>
+        <div className="hero-section">
+          <div className="hero-content">
+            <div className="hero-greeting">
+              <h1 className="hero-title">{getGreeting()}{user?.firstName ? `, ${user.firstName}` : ''}!</h1>
+              <p className="hero-subtitle">{getTimeBasedRecommendation()}</p>
             </div>
-            <div className="date-display">
-              {currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+            <div className="hero-time">
+              <div className="time-display">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div className="date-display">
+                {currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+              </div>
+            </div>
+          </div>
+          <div className="hero-decoration">
+            <div className="coffee-steam">☕</div>
+            <div className="floating-beans">
+              <span className="bean bean-1">☕</span>
+              <span className="bean bean-2">🫘</span>
+              <span className="bean bean-3">☕</span>
             </div>
           </div>
         </div>
-        <div className="hero-decoration">
-          <div className="coffee-steam">☕</div>
-          <div className="floating-beans">
-            <span className="bean bean-1">☕</span>
-            <span className="bean bean-2">🫘</span>
-            <span className="bean bean-3">☕</span>
-          </div>
-        </div>
-      </div>
+      </WeatherBackground>
+
+      {/* Location Permission */}
+      {showLocationPermission && (
+        <LocationPermission
+          onLocationUpdate={(location) => {
+            console.log('Location updated:', location);
+            // Trigger weather data refresh when location changes
+            fetchWeatherData();
+          }}
+          onPermissionChange={(permission) => {
+            if (permission === 'granted') {
+              setShowLocationPermission(false);
+            }
+          }}
+        />
+      )}
 
       {/* Main Content Grid */}
       <div className="home-grid">
@@ -181,32 +238,6 @@ function HomePage({ user }) {
         </div>
       </div>
 
-      {/* Additional Features Section */}
-      {user && (
-        <div className="features-section">
-          <div className="features-grid">
-            <div className="feature-card">
-              <h3>🎨 Coffee Art Gallery</h3>
-              <CoffeeArtGallery />
-            </div>
-            
-            <div className="feature-card">
-              <h3>👥 Social Features</h3>
-              <SocialFeatures />
-            </div>
-            
-            <div className="feature-card">
-              <h3>💚 Health Insights</h3>
-              <HealthInsights />
-            </div>
-            
-            <div className="feature-card">
-              <h3>💰 Dynamic Pricing</h3>
-              <DynamicPricing />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

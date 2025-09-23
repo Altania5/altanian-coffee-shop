@@ -5,6 +5,7 @@ import HomePage from '../pages/HomePage';
 import OrderPage from '../pages/OrderPage';
 import AdminPage from '../pages/AdminPage';
 import CoffeeLogPage from '../pages/CoffeeLogPage';
+import AccountManager from '../pages/AccountManager';
 import CustomerForm from '../components/CustomerForm';
 import Checkout from '../components/Checkout';
 import OrderSuccess from '../components/OrderSuccess';
@@ -192,6 +193,11 @@ function AppLayout({ user, onLogout }) {
         return <CoffeeLogPage user={user} />;
       case 'loyalty':
         return <LoyaltyDashboard user={user} token={user.token} />;
+      case 'account':
+        return <AccountManager user={user} onUserUpdate={(updatedUser) => {
+          // Update user data if needed
+          console.log('User updated:', updatedUser);
+        }} />;
       case 'home':
       default:
         return <HomePage user={user} />;

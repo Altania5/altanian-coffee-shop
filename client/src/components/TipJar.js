@@ -25,7 +25,6 @@ function TipJar({ user }) {
         return;
       }
       
-      const headers = { 'x-auth-token': user.token };
       const response = await api.post('/payments/create-tip-session', { amount });
       const session = response.data;
 

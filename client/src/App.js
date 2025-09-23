@@ -3,7 +3,6 @@ import { jwtDecode } from 'jwt-decode';
 import AppLayout from './layout/AppLayout';
 import LoginPage from './pages/LoginPage';
 import { SocketProvider } from './context/SocketContext';
-import pwaService from './services/PWAService';
 
 import './App.css';
 
@@ -40,7 +39,7 @@ function App() {
   };
 
   // Memoize user object to prevent unnecessary re-renders
-  const stableUser = useMemo(() => user, [user?.id, user?.role, user?.token]);
+  const stableUser = useMemo(() => user, [user]);
 
   // If there's no user, show the LoginPage. Otherwise, show the main app.
   return stableUser ? (

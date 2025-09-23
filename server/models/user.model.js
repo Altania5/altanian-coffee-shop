@@ -25,6 +25,10 @@ const userSchema = new Schema({
     minlength: 6,
     select: false
   },
+  phone: {
+    type: String,
+    trim: true
+  },
   role: {
     type: String,
     enum: ['customer', 'owner'],

@@ -12,7 +12,14 @@ function Products({ token, addToCart }) {
     try {
       // Fetch products (no auth required)
       const productsRes = await api.get('/products');
-      setProducts(productsRes.data);
+      const productsData = productsRes.data;
+      
+      console.log('📦 Products fetched for Order Page:', productsData);
+      productsData.forEach(product => {
+        console.log(`☕ ${product.name}: Available=${product.isAvailable} (${typeof product.isAvailable}), Recipe=${product.recipe?.length || 0} items`);
+      });
+      
+      setProducts(productsData);
       
       // Only try to fetch inventory if we have a token
       if (token) {
@@ -40,15 +47,46 @@ function Products({ token, addToCart }) {
 
 
   const isProductInStock = (product) => {
-    if (!product.isAvailable) {
+    // Debug logging
+    console.log(`🔍 Checking stock for ${product.name}:`, {
+      isAvailable: product.isAvailable,
+      recipeLength: product.recipe?.length || 0,
+      recipe: product.recipe
+    });
+    
+    // First check if product is marked as available
+    const productAvailable = product.isAvailable === true || product.isAvailable === 'true' || product.isAvailable === 1;
+    if (!productAvailable) {
+      console.log(`❌ ${product.name} marked as unavailable`);
       return false;
     }
+    
+    // If no recipe, product is available
     if (!product.recipe || product.recipe.length === 0) {
+      console.log(`✅ ${product.name} has no recipe requirements`);
       return true;
     }
-    return product.recipe.every(ingredient => {
-      return ingredient.item && ingredient.item.isAvailable && ingredient.item.quantity >= ingredient.quantityRequired;
+    
+    // Check each ingredient
+    const allIngredientsAvailable = product.recipe.every(ingredient => {
+      if (!ingredient.item) {
+        console.log(`❌ ${product.name} missing ingredient reference`);
+        return false;
+      }
+      
+      const ingredientAvailable = ingredient.item.isAvailable === true || ingredient.item.isAvailable === 'true' || ingredient.item.isAvailable === 1;
+      const stockQuantity = ingredient.item.quantityInStock || ingredient.item.quantity || 0;
+      const requiredQuantity = ingredient.quantityRequired || 0;
+      
+      const hasEnoughStock = stockQuantity >= requiredQuantity;
+      
+      console.log(`  - ${ingredient.item.itemName || ingredient.item.name}: Need ${requiredQuantity}, Have ${stockQuantity}, Available: ${ingredientAvailable}, Has Stock: ${hasEnoughStock}`);
+      
+      return ingredientAvailable && hasEnoughStock;
     });
+    
+    console.log(`${allIngredientsAvailable ? '✅' : '❌'} ${product.name} stock check result: ${allIngredientsAvailable}`);
+    return allIngredientsAvailable;
   };
 
   const handleAddToCart = (product) => {

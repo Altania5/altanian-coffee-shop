@@ -37,19 +37,6 @@ const RewardRedemption = ({ user, onRewardSelected, selectedReward, onClearRewar
     setShowRewards(false);
   };
 
-  const calculateDiscount = (reward, subtotal) => {
-    switch (reward.discountType) {
-      case 'percentage':
-        return subtotal * (reward.discountValue / 100);
-      case 'fixed':
-        return Math.min(reward.discountValue, subtotal);
-      case 'free_item':
-        // For free items, we'll need to handle this differently in the order processing
-        return 0;
-      default:
-        return 0;
-    }
-  };
 
   if (!user || !user.token) {
     return null; // Don't show rewards for guest users

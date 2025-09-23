@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
 import '../styles/admin.css';
@@ -13,11 +12,11 @@ import LoyaltyManager from '../components/admin/LoyaltyManager';
 import AITrainingDashboard from '../components/AITrainingDashboard';
 import AIModelManagement from '../components/AIModelManagement';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
-import DynamicPricing from '../components/DynamicPricing';
 import DynamicPricingAdmin from '../components/DynamicPricingAdmin';
 import CoffeeArtGallery from '../components/CoffeeArtGallery';
 import SocialFeatures from '../components/SocialFeatures';
 import HealthInsights from '../components/HealthInsights';
+import SeasonalManager from '../components/SeasonalManager';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -120,7 +119,7 @@ function AdminPage({ user }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [isAdmin]);
 
   const generateMockOrders = () => {
     return [
@@ -434,6 +433,13 @@ function AdminPage({ user }) {
           <span className="tab-icon">💚</span>
           Health Insights
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'seasonal' ? 'active' : ''}`}
+          onClick={() => setActiveTab('seasonal')}
+        >
+          <span className="tab-icon">🎨</span>
+          Seasonal Manager
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -488,6 +494,9 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'health' && (
           <HealthInsights user={user} />
+        )}
+        {activeTab === 'seasonal' && (
+          <SeasonalManager user={user} />
         )}
       </div>
     </div>
