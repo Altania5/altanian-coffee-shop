@@ -223,6 +223,9 @@ class DataValidationService {
   initialize() {
     console.log('🚀 Initializing data validation service...');
     
+    // Force cache busting for critical resources
+    this.forceCacheRefresh();
+    
     // Check if app can start
     if (!this.canAppStart()) {
       console.warn('⚠️ App startup issues detected, performing cleanup...');
@@ -234,6 +237,43 @@ class DataValidationService {
     this.validateAndCleanSessionStorage();
     
     console.log('✅ Data validation service initialized');
+  }
+
+  /**
+   * Force cache refresh for critical resources
+   */
+  forceCacheRefresh() {
+    try {
+      // Clear any cached API responses
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+      
+      // Force reload of critical scripts if they're cached
+      const criticalScripts = [
+        '/static/js/main.',
+        '/static/css/main.'
+      ];
+      
+      criticalScripts.forEach(scriptPattern => {
+        const scripts = document.querySelectorAll(`script[src*="${scriptPattern}"], link[href*="${scriptPattern}"]`);
+        scripts.forEach(script => {
+          if (script.src || script.href) {
+            const url = new URL(script.src || script.href);
+            url.searchParams.set('v', Date.now());
+            if (script.src) script.src = url.toString();
+            if (script.href) script.href = url.toString();
+          }
+        });
+      });
+      
+    } catch (error) {
+      console.warn('Cache refresh failed:', error);
+    }
   }
 
   /**
