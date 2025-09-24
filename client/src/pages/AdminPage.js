@@ -532,7 +532,7 @@ function AdminPage({ user }) {
                 <button 
                   className="cleanup-btn repair-btn"
                   onClick={() => {
-                    if (confirm('This will clean up corrupted data and reload the page. Continue?')) {
+                    if (window.confirm('This will clean up corrupted data and reload the page. Continue?')) {
                       manualCleanupService.clearCorruptedData();
                     }
                   }}
@@ -547,8 +547,8 @@ function AdminPage({ user }) {
                 <button 
                   className="cleanup-btn danger-btn"
                   onClick={() => {
-                    if (confirm('⚠️ WARNING: This will clear ALL app data including login tokens, cart, preferences, and AI models. You will need to log in again. Continue?')) {
-                      if (confirm('Are you absolutely sure? This action cannot be undone.')) {
+                    if (window.confirm('⚠️ WARNING: This will clear ALL app data including login tokens, cart, preferences, and AI models. You will need to log in again. Continue?')) {
+                      if (window.confirm('Are you absolutely sure? This action cannot be undone.')) {
                         manualCleanupService.clearAllData();
                       }
                     }
