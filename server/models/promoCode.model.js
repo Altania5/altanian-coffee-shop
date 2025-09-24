@@ -6,6 +6,9 @@ const promoCodeSchema = new Schema({
   discountPercentage: { type: Number, required: true, min: 1, max: 100 },
   isActive: { type: Boolean, default: true },
   expiresAt: { type: Date },
+  maxUsage: { type: Number, default: null },
+  usageCount: { type: Number, default: 0 },
+  user: { type: Schema.Types.ObjectId, ref: 'User' }
 }, {
   timestamps: true,
 });

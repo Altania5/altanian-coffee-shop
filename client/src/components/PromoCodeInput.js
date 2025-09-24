@@ -10,6 +10,7 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
 
   const handleApplyPromo = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
     
     if (!promoCode.trim()) {
       setError('Please enter a promo code');
@@ -41,7 +42,8 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
       }
     } catch (error) {
       console.error('Promo code error:', error);
-      setError(error.response?.data?.msg || 'Invalid or expired promo code');
+      const errorMessage = error.response?.data?.msg || error.message || 'Invalid or expired promo code';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -58,21 +60,29 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
       <h3 className="section-title">🎟️ Promo Code</h3>
       
       {!appliedPromo ? (
-        <form onSubmit={handleApplyPromo} className="promo-form">
+        <form onSubmit={handleApplyPromo} className="promo-form" onClick={(e) => e.stopPropagation()}>
           <div className="promo-input-group">
             <input
               type="text"
               value={promoCode}
               onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleApplyPromo(e);
+                }
+              }}
               placeholder="Enter promo code"
               className="promo-input"
               maxLength={20}
               disabled={loading}
             />
             <button
-              type="submit"
+              type="button"
               className="apply-promo-btn"
               disabled={loading || !promoCode.trim()}
+              onClick={handleApplyPromo}
             >
               {loading ? (
                 <span className="loading-spinner"></span>

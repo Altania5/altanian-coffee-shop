@@ -16,7 +16,7 @@
 }
 
 .promo-input {
-  flex: 1;
+  flex: 2;
   padding: var(--spacing-md);
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -25,6 +25,7 @@
   background: var(--surface-color);
   color: var(--text-color);
   transition: var(--transition-fast);
+  min-width: 0;
 }
 
 .promo-input:focus {
@@ -52,7 +53,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
+  min-width: 100px;
+  flex-shrink: 0;
 }
 
 .apply-promo-btn:hover:not(:disabled) {
