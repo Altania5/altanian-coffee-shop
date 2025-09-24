@@ -24,10 +24,7 @@ const cardStyle = {
       fontSmoothing: 'antialiased',
       fontSize: '16px',
       lineHeight: '24px',
-      backgroundColor: 'white',
-      border: '2px solid #E5E5E5',
-      borderRadius: '8px',
-      padding: '12px 16px',
+      backgroundColor: 'transparent',
       '::placeholder': {
         color: '#8B6F4D',
       },
@@ -35,11 +32,9 @@ const cardStyle = {
     invalid: {
       color: '#CD5C5C',
       iconColor: '#CD5C5C',
-      borderColor: '#CD5C5C',
     },
     complete: {
       color: '#28a745',
-      borderColor: '#28a745',
     },
   },
   hidePostalCode: true,
