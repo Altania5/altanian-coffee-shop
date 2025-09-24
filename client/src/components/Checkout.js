@@ -9,6 +9,7 @@ import {
 import api from '../utils/api';
 import RewardRedemption from './RewardRedemption';
 import PromoCodeInput from './PromoCodeInput';
+import './Checkout.css';
 
 // Initialize Stripe with error handling
 const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -23,6 +24,10 @@ const cardStyle = {
       fontSmoothing: 'antialiased',
       fontSize: '16px',
       lineHeight: '24px',
+      backgroundColor: 'white',
+      border: '2px solid #E5E5E5',
+      borderRadius: '8px',
+      padding: '12px 16px',
       '::placeholder': {
         color: '#8B6F4D',
       },
@@ -30,9 +35,11 @@ const cardStyle = {
     invalid: {
       color: '#CD5C5C',
       iconColor: '#CD5C5C',
+      borderColor: '#CD5C5C',
     },
     complete: {
       color: '#28a745',
+      borderColor: '#28a745',
     },
   },
   hidePostalCode: true,
@@ -400,7 +407,10 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
             <h3 className="section-title">💳 Card Details</h3>
             <div className="card-element-container">
               {stripePromise ? (
-                <CardElement options={cardStyle} />
+                <CardElement 
+                  options={cardStyle}
+                  className="stripe-card-element"
+                />
               ) : (
                 <div className="stripe-error">
                   <p>⚠️ Card payment is temporarily unavailable.</p>
