@@ -17,20 +17,14 @@ function App() {
       try {
         console.log('🚀 Initializing app...');
         
-        // Force a small delay to ensure DOM is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Run data validation and cleanup
-        dataValidationService.initialize();
-        
-        // Additional check for corrupted data
-        const hasCorruptedData = checkForCorruptedData();
-        if (hasCorruptedData) {
-          console.warn('🗑️ Corrupted data detected, performing cleanup...');
-          dataValidationService.emergencyCleanup();
+        // Run data validation and cleanup (non-blocking)
+        try {
+          dataValidationService.initialize();
+        } catch (error) {
+          console.warn('Data validation failed, continuing anyway:', error);
         }
         
-        // Check for existing token after cleanup
+        // Check for existing token
         const token = localStorage.getItem('token');
         if (token) {
           try {
@@ -49,8 +43,6 @@ function App() {
         
       } catch (error) {
         console.error('❌ App initialization failed:', error);
-        // Emergency cleanup
-        dataValidationService.emergencyCleanup();
       } finally {
         setIsInitializing(false);
       }
@@ -58,38 +50,6 @@ function App() {
 
     initializeApp();
   }, []);
-
-  // Helper function to check for corrupted data
-  const checkForCorruptedData = () => {
-    try {
-      // Check if localStorage is accessible
-      const testKey = 'app-health-check';
-      localStorage.setItem(testKey, 'test');
-      localStorage.removeItem(testKey);
-      
-      // Check for common corruption patterns
-      const keys = Object.keys(localStorage);
-      for (const key of keys) {
-        try {
-          const value = localStorage.getItem(key);
-          if (value && value.length > 0) {
-            // Try to parse JSON values
-            if (key.includes('ai-') || key.includes('espresso-')) {
-              JSON.parse(value);
-            }
-          }
-        } catch (error) {
-          console.warn(`Corrupted data found in key: ${key}`);
-          return true;
-        }
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error checking for corrupted data:', error);
-      return true;
-    }
-  };
 
   const handleLogin = (token) => {
     localStorage.setItem('token', token);

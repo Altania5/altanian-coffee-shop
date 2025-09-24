@@ -223,20 +223,16 @@ class DataValidationService {
   initialize() {
     console.log('🚀 Initializing data validation service...');
     
-    // Force cache busting for critical resources
-    this.forceCacheRefresh();
-    
-    // Check if app can start
-    if (!this.canAppStart()) {
-      console.warn('⚠️ App startup issues detected, performing cleanup...');
-      this.emergencyCleanup();
+    try {
+      // Run validation and cleanup
+      this.validateAndCleanLocalStorage();
+      this.validateAndCleanSessionStorage();
+      
+      console.log('✅ Data validation service initialized');
+    } catch (error) {
+      console.error('❌ Data validation initialization failed:', error);
+      // Don't throw error, just log it
     }
-    
-    // Run validation and cleanup
-    this.validateAndCleanLocalStorage();
-    this.validateAndCleanSessionStorage();
-    
-    console.log('✅ Data validation service initialized');
   }
 
   /**

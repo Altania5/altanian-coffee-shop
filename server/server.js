@@ -49,14 +49,6 @@ app.use((req, res, next) => {
     res.setHeader('Expires', '0');
   }
   
-  // Add cache-busting headers for JavaScript and CSS files
-  if (req.path.includes('/static/js/') || req.path.includes('/static/css/')) {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('ETag', `"${Date.now()}"`);
-  }
-  
   next();
 });
 
@@ -163,18 +155,18 @@ global.io = io;
 if (process.env.NODE_ENV === 'production') {
     const buildPath = path.join(__dirname, '..', 'client', 'build');
     
-    // Serve static files from the React app build directory with no caching
+    // Serve static files from the React app build directory with short cache
     app.use('/static', express.static(path.join(buildPath, 'static'), {
-        maxAge: 0,
-        etag: false,
-        lastModified: false
+        maxAge: '5m', // 5 minutes instead of no cache
+        etag: true,
+        lastModified: true
     }));
     
-    // Serve other static files (favicon, manifest, etc.) with no caching
+    // Serve other static files (favicon, manifest, etc.) with short cache
     app.use(express.static(buildPath, {
-        maxAge: 0,
-        etag: false,
-        lastModified: false,
+        maxAge: '5m', // 5 minutes instead of no cache
+        etag: true,
+        lastModified: true,
         index: false
     }));
 
