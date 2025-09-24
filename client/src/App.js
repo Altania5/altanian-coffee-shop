@@ -3,26 +3,50 @@ import { jwtDecode } from 'jwt-decode';
 import AppLayout from './layout/AppLayout';
 import LoginPage from './pages/LoginPage';
 import { SocketProvider } from './context/SocketContext';
+import dataValidationService from './utils/dataValidation';
 
 import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // This effect runs once on startup to check for an existing token
+  // Initialize data validation and check for existing token
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const initializeApp = async () => {
       try {
-        const decodedUser = jwtDecode(token);
-        const userData = { ...decodedUser, token };
-        console.log('🔑 App startup - User data:', userData);
-        setUser(userData); // Store decoded user info and token
+        console.log('🚀 Initializing app...');
+        
+        // Run data validation and cleanup
+        dataValidationService.initialize();
+        
+        // Check for existing token after cleanup
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const decodedUser = jwtDecode(token);
+            const userData = { ...decodedUser, token };
+            console.log('🔑 App startup - User data:', userData);
+            setUser(userData);
+          } catch (error) {
+            console.warn('🗑️ Invalid token found, removing:', error.message);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+        
+        console.log('✅ App initialization complete');
+        
       } catch (error) {
-        // If token is invalid, remove it
-        localStorage.removeItem('token');
+        console.error('❌ App initialization failed:', error);
+        // Emergency cleanup
+        dataValidationService.emergencyCleanup();
+      } finally {
+        setIsInitializing(false);
       }
-    }
+    };
+
+    initializeApp();
   }, []);
 
   const handleLogin = (token) => {
@@ -40,6 +64,42 @@ function App() {
 
   // Memoize user object to prevent unnecessary re-renders
   const stableUser = useMemo(() => user, [user]);
+
+  // Show loading screen during initialization
+  if (isInitializing) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        backgroundColor: '#FDF6E3',
+        fontFamily: 'Poppins, sans-serif'
+      }}>
+        <div style={{
+          fontSize: '2rem',
+          marginBottom: '1rem',
+          color: '#4A2C17'
+        }}>
+          ☕
+        </div>
+        <div style={{
+          fontSize: '1.2rem',
+          color: '#4A2C17',
+          marginBottom: '0.5rem'
+        }}>
+          Altanian Coffee
+        </div>
+        <div style={{
+          fontSize: '0.9rem',
+          color: '#8B6F4D'
+        }}>
+          Initializing...
+        </div>
+      </div>
+    );
+  }
 
   // If there's no user, show the LoginPage. Otherwise, show the main app.
   return stableUser ? (

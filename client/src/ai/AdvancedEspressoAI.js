@@ -1296,10 +1296,15 @@ class AdvancedEspressoAI {
 
   async loadUserData() {
     try {
-      const userData = JSON.parse(localStorage.getItem('advanced-espresso-ai-user-data'));
-      return userData || [];
+      const userData = localStorage.getItem('advanced-espresso-ai-user-data');
+      if (!userData) return [];
+      
+      const parsed = JSON.parse(userData);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.log('No existing user data found');
+      console.error('Error loading user data:', error);
+      // Clean up corrupted data
+      localStorage.removeItem('advanced-espresso-ai-user-data');
       return [];
     }
   }

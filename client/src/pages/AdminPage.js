@@ -17,6 +17,7 @@ import CoffeeArtGallery from '../components/CoffeeArtGallery';
 import SocialFeatures from '../components/SocialFeatures';
 import HealthInsights from '../components/HealthInsights';
 import SeasonalManager from '../components/SeasonalManager';
+import manualCleanupService from '../utils/manualCleanup';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -440,6 +441,13 @@ function AdminPage({ user }) {
           <span className="tab-icon">🎨</span>
           Seasonal Manager
         </button>
+        <button 
+          className={`tab-button ${activeTab === 'cleanup' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cleanup')}
+        >
+          <span className="tab-icon">🧹</span>
+          Cleanup
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -497,6 +505,81 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'seasonal' && (
           <SeasonalManager user={user} />
+        )}
+        {activeTab === 'cleanup' && (
+          <div className="cleanup-section">
+            <h3>🧹 Data Cleanup & Recovery</h3>
+            <p>Use these tools to fix app loading issues and clean up corrupted data.</p>
+            
+            <div className="cleanup-actions">
+              <div className="cleanup-card">
+                <h4>📊 Storage Information</h4>
+                <p>View current storage usage and data status.</p>
+                <button 
+                  className="cleanup-btn info-btn"
+                  onClick={() => {
+                    const info = manualCleanupService.getStorageInfo();
+                    alert(`Storage Info:\n\nLocalStorage: ${info.localStorage.keys} keys, ${Math.round(info.localStorage.size / 1024)}KB\nSessionStorage: ${info.sessionStorage.keys} keys, ${Math.round(info.sessionStorage.size / 1024)}KB`);
+                  }}
+                >
+                  View Storage Info
+                </button>
+              </div>
+
+              <div className="cleanup-card">
+                <h4>🔧 Clean Corrupted Data</h4>
+                <p>Remove only corrupted data while keeping valid data intact.</p>
+                <button 
+                  className="cleanup-btn repair-btn"
+                  onClick={() => {
+                    if (confirm('This will clean up corrupted data and reload the page. Continue?')) {
+                      manualCleanupService.clearCorruptedData();
+                    }
+                  }}
+                >
+                  Clean Corrupted Data
+                </button>
+              </div>
+
+              <div className="cleanup-card">
+                <h4>🗑️ Clear All Data</h4>
+                <p>Remove all stored data (localStorage, sessionStorage, IndexedDB). Use this as a last resort.</p>
+                <button 
+                  className="cleanup-btn danger-btn"
+                  onClick={() => {
+                    if (confirm('⚠️ WARNING: This will clear ALL app data including login tokens, cart, preferences, and AI models. You will need to log in again. Continue?')) {
+                      if (confirm('Are you absolutely sure? This action cannot be undone.')) {
+                        manualCleanupService.clearAllData();
+                      }
+                    }
+                  }}
+                >
+                  Clear All Data
+                </button>
+              </div>
+
+              <div className="cleanup-card">
+                <h4>📥 Export Data</h4>
+                <p>Download all stored data for debugging purposes.</p>
+                <button 
+                  className="cleanup-btn export-btn"
+                  onClick={() => manualCleanupService.downloadStorageData()}
+                >
+                  Download Storage Data
+                </button>
+              </div>
+            </div>
+
+            <div className="cleanup-info">
+              <h4>ℹ️ Troubleshooting Tips</h4>
+              <ul>
+                <li><strong>App won't load:</strong> Try "Clean Corrupted Data" first</li>
+                <li><strong>Login issues:</strong> Use "Clear All Data" and log in again</li>
+                <li><strong>AI features not working:</strong> Clear corrupted data to reset AI models</li>
+                <li><strong>Cart not saving:</strong> Check storage info and clean if needed</li>
+              </ul>
+            </div>
+          </div>
         )}
       </div>
     </div>

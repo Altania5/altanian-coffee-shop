@@ -12,9 +12,14 @@ class AIDataCollectionService {
   loadPendingData() {
     try {
       const saved = localStorage.getItem('ai-pending-data');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error('Error loading pending data:', error);
+      // Clean up corrupted data
+      localStorage.removeItem('ai-pending-data');
       return [];
     }
   }
