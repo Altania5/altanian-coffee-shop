@@ -31,10 +31,18 @@ function AccountManager({ user, onUserUpdate }) {
   // Favorites
   const [favorites, setFavorites] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
-  
-  // Order history
-  const [orderHistory, setOrderHistory] = useState([]);
+
+  // Order summary
+  const [orderSummary, setOrderSummary] = useState({
+    activeOrders: [],
+    pastOrders: [],
+    counts: { active: 0, past: 0, total: 0 }
+  });
   const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
+  const pendingOrders = orderSummary.activeOrders;
+  const pastOrders = orderSummary.pastOrders;
+
+  const activeOrderStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
 
   useEffect(() => {
     if (user) {
@@ -45,28 +53,44 @@ function AccountManager({ user, onUserUpdate }) {
   const loadUserData = async () => {
     try {
       setLoading(true);
+      setOrderHistoryLoading(true);
       const [profileRes, favoritesRes, ordersRes] = await Promise.all([
         api.get('/users/profile'),
         api.get('/users/favorites'),
-        api.get('/orders/myorders')
+        api.get('/orders/user/summary')
       ]);
-      
-      if (profileRes.data) {
-        setProfileData(prev => ({ ...prev, ...profileRes.data }));
+
+      if (profileRes.data?.user) {
+        const profile = profileRes.data.user;
+        setProfileData({
+          firstName: profile.firstName || '',
+          lastName: profile.lastName || '',
+          email: profile.email || '',
+          birthday: profile.birthday || '',
+          phone: profile.phone || ''
+        });
+        if (onUserUpdate) {
+          onUserUpdate({ ...user, ...profile });
+        }
       }
-      
+
       setFavorites(favoritesRes.data?.favorites || []);
-      setOrderHistory(ordersRes.data || []);
-      
-      // Load available products for favorites
+      const summary = ordersRes.data || {};
+      setOrderSummary({
+        activeOrders: summary.activeOrders || [],
+        pastOrders: summary.pastOrders || [],
+        counts: summary.counts || { active: 0, past: 0, total: 0 }
+      });
+
       const productsRes = await api.get('/products');
       setAvailableProducts(productsRes.data?.products || []);
-      
+
     } catch (error) {
       console.error('Error loading user data:', error);
       setError('Failed to load user data');
     } finally {
       setLoading(false);
+      setOrderHistoryLoading(false);
     }
   };
 
@@ -77,12 +101,25 @@ function AccountManager({ user, onUserUpdate }) {
     setSuccess(null);
 
     try {
-      const response = await api.put('/users/profile', profileData);
-      if (response.data.success) {
-        setSuccess('Profile updated successfully!');
+      const payload = {
+        firstName: profileData.firstName.trim(),
+        lastName: profileData.lastName.trim(),
+        phone: profileData.phone?.trim() || ''
+      };
+
+      const response = await api.put('/users/profile', payload);
+      if (response.data.success && response.data.user) {
+        const updated = response.data.user;
+        setProfileData(prev => ({
+          ...prev,
+          firstName: updated.firstName || prev.firstName,
+          lastName: updated.lastName || prev.lastName,
+          phone: updated.phone || ''
+        }));
         if (onUserUpdate) {
-          onUserUpdate({ ...user, ...profileData });
+          onUserUpdate({ ...user, ...updated });
         }
+        setSuccess('Profile updated successfully!');
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update profile');
@@ -175,6 +212,27 @@ function AccountManager({ user, onUserUpdate }) {
       case 'out-of-stock': return 'Temporarily unavailable';
       default: return 'Available';
     }
+  };
+
+  const formatOrderStatus = (status) => {
+    const labels = {
+      pending: 'Order Received',
+      confirmed: 'Confirmed',
+      preparing: 'Being Prepared',
+      ready: 'Ready for Pickup',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    };
+    return labels[status] || status;
+  };
+
+  const summarizeOrderItems = (order) => {
+    if (!Array.isArray(order.items) || order.items.length === 0) {
+      return 'No items';
+    }
+    return order.items
+      .map(item => `${item.quantity}x ${item.productName || item.product?.name || 'Item'}`)
+      .join(', ');
   };
 
   return (
@@ -275,10 +333,11 @@ function AccountManager({ user, onUserUpdate }) {
                   type="email"
                   id="email"
                   value={profileData.email}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                  autoComplete="email"
-                  required
+                  readOnly
+                  aria-readonly="true"
+                  className="readonly-input"
                 />
+                <small>Email address cannot be changed. Contact support if you need assistance.</small>
               </div>
               
               <div className="form-group">
@@ -478,38 +537,93 @@ function AccountManager({ user, onUserUpdate }) {
           <div className="tab-section">
             <h2>Order History</h2>
             <div className="order-history">
-              {orderHistory.length === 0 ? (
-                <div className="no-orders">
-                  <span className="no-orders-icon">📋</span>
-                  <p>No orders yet</p>
-                  <p className="no-orders-subtitle">Your order history will appear here</p>
-                </div>
+              {orderHistoryLoading ? (
+                <div className="order-loading">Loading orders...</div>
               ) : (
-                <div className="orders-list">
-                  {orderHistory.map((order) => (
-                    <div key={order._id} className="order-card">
-                      <div className="order-header">
-                        <span className="order-number">Order #{order.orderNumber}</span>
-                        <span className={`order-status ${order.status}`}>{order.status}</span>
+                <>
+                  <div className="orders-group">
+                    <h3 className="orders-group-title">
+                      Active Orders
+                      <span className="badge">{orderSummary.counts.active}</span>
+                    </h3>
+                    {pendingOrders.length === 0 ? (
+                      <div className="no-orders">
+                        <span className="no-orders-icon">📡</span>
+                        <p>No active orders right now</p>
                       </div>
-                      <div className="order-details">
-                        <div className="order-items">
-                          {order.items?.map((item, index) => (
-                            <span key={index} className="order-item">
-                              {item.quantity}x {item.name || item.product?.name}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="order-total">
-                          Total: ${order.totalAmount?.toFixed(2) || order.total?.toFixed(2)}
-                        </div>
+                    ) : (
+                      <div className="orders-list">
+                        {pendingOrders.map((order) => (
+                          <div key={order.id} className={`order-card ${order.status}`}>
+                            <div className="order-header">
+                              <span className="order-number">Order #{order.orderNumber}</span>
+                              <span className={`order-status ${order.status}`}>{formatOrderStatus(order.status)}</span>
+                            </div>
+                            <div className="order-details">
+                              <div className="order-items">
+                                {summarizeOrderItems(order)
+                                  .split(', ')
+                                  .map((item, index) => (
+                                    <span key={index} className="order-item">{item}</span>
+                                  ))}
+                              </div>
+                              <div className="order-total">
+                                Total: ${Number(order.totalAmount ?? order.total ?? 0).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="order-date">
+                              Placed on {new Date(order.createdAt).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="order-date">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                    )}
+                  </div>
+
+                  <div className="orders-group">
+                    <h3 className="orders-group-title">
+                      Past Orders
+                      <span className="badge">{orderSummary.counts.past}</span>
+                    </h3>
+                    {pastOrders.length === 0 ? (
+                      <div className="no-orders">
+                        <span className="no-orders-icon">📋</span>
+                        <p>No past orders yet</p>
+                        <p className="no-orders-subtitle">Your completed order history will appear here</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      <div className="orders-list">
+                        {pastOrders.map((order) => (
+                          <div key={order.id} className={`order-card ${order.status}`}>
+                            <div className="order-header">
+                              <span className="order-number">Order #{order.orderNumber}</span>
+                              <span className={`order-status ${order.status}`}>{formatOrderStatus(order.status)}</span>
+                            </div>
+                            <div className="order-details">
+                              <div className="order-items">
+                                {summarizeOrderItems(order)
+                                  .split(', ')
+                                  .map((item, index) => (
+                                    <span key={index} className="order-item">{item}</span>
+                                  ))}
+                              </div>
+                              <div className="order-total">
+                                Total: ${Number(order.totalAmount ?? order.total ?? 0).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="order-date">
+                              {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

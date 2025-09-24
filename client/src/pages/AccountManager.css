@@ -555,6 +555,52 @@
   font-size: 0.9rem;
 }
 
+.orders-group {
+  margin-bottom: var(--spacing-xl);
+}
+
+.orders-group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.05rem;
+  color: var(--primary-coffee);
+  margin-bottom: var(--spacing-md);
+}
+
+.orders-group-title .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: rgba(205, 133, 63, 0.12);
+  color: var(--primary-coffee);
+}
+
+.order-loading {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.order-card.pending,
+.order-card.confirmed,
+.order-card.preparing,
+.order-card.ready {
+  border-left: 4px solid var(--accent-color);
+}
+
+.order-status.pending,
+.order-status.confirmed,
+.order-status.preparing,
+.order-status.ready {
+  background: rgba(205, 133, 63, 0.15);
+  color: var(--primary-coffee);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .account-manager {

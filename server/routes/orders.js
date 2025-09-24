@@ -269,6 +269,61 @@ router.get('/myorders', auth, async (req, res) => {
 });
 
 /**
+ * @route   GET /orders/user/summary
+ * @desc    Get current user's orders grouped by status
+ * @access  Private
+ */
+router.get('/user/summary', auth, async (req, res) => {
+  try {
+    const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+
+    const orders = await Order.find({ 'customer.user': req.user.id })
+      .populate('items.product', 'name')
+      .sort({ createdAt: -1 });
+
+    const activeOrders = [];
+    const pastOrders = [];
+
+    orders.forEach(order => {
+      const baseOrder = {
+        id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        createdAt: order.createdAt,
+        totalAmount: order.totalAmount,
+        items: order.items.map(item => ({
+          quantity: item.quantity,
+          productName: item.productName || item.product?.name || 'Item'
+        }))
+      };
+
+      if (activeStatuses.includes(order.status)) {
+        activeOrders.push(baseOrder);
+      } else {
+        pastOrders.push(baseOrder);
+      }
+    });
+
+    res.json({
+      success: true,
+      activeOrders,
+      pastOrders,
+      counts: {
+        active: activeOrders.length,
+        past: pastOrders.length,
+        total: orders.length
+      }
+    });
+  } catch (error) {
+    console.error('Get user order summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order summary'
+    });
+  }
+});
+
+/**
  * @route   GET /orders/:id
  * @desc    Get single order by ID
  * @access  Private

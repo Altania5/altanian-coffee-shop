@@ -118,32 +118,28 @@ router.route('/profile').get(auth, async (req, res) => {
 // --- UPDATE USER PROFILE ---
 router.route('/profile').put(auth, async (req, res) => {
   try {
-    const { firstName, lastName, email, phone } = req.body;
-    
-    // Validation
-    if (!firstName || !lastName || !email) {
-      return res.status(400).json({ msg: 'Please provide firstName, lastName, and email' });
+    const { firstName, lastName, phone } = req.body;
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({ msg: 'Please provide firstName and lastName' });
     }
-    
-    // Check if email is already taken by another user
-    const existingUser = await User.findOne({ 
-      email: email,
-      _id: { $ne: req.user.id }
-    });
-    if (existingUser) {
-      return res.status(400).json({ msg: 'Email is already taken by another user' });
-    }
-    
+
+    const updatePayload = {
+      firstName,
+      lastName,
+      phone: phone || ''
+    };
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { firstName, lastName, email, phone },
+      updatePayload,
       { new: true, select: '-password' }
     );
-    
+
     if (!updatedUser) {
       return res.status(404).json({ msg: 'User not found' });
     }
-    
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
