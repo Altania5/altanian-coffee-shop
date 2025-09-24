@@ -62,22 +62,24 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
       {!appliedPromo ? (
         <form onSubmit={handleApplyPromo} className="promo-form" onClick={(e) => e.stopPropagation()}>
           <div className="promo-input-group">
-            <input
-              type="text"
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleApplyPromo(e);
-                }
-              }}
-              placeholder="Enter promo code"
-              className="promo-input"
-              maxLength={20}
-              disabled={loading}
-            />
+            <div className="promo-input-wrapper">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleApplyPromo(e);
+                  }
+                }}
+                placeholder="Enter promo code"
+                className="promo-input"
+                maxLength={20}
+                disabled={loading}
+              />
+            </div>
             <button
               type="button"
               className="apply-promo-btn"

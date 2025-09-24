@@ -27,37 +27,31 @@
 
 .promo-input-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: white;
-  border: 1.5px solid rgba(205, 133, 63, 0.28);
-  border-radius: var(--border-radius);
-  box-shadow: 0 6px 16px rgba(74, 44, 23, 0.08);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.promo-input-group:focus-within {
-  border-color: rgba(205, 133, 63, 0.65);
-  box-shadow: 0 10px 24px rgba(205, 133, 63, 0.18);
+.promo-input-wrapper {
+  position: relative;
 }
 
 .promo-input {
-  flex: 1;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: 1px solid rgba(205, 133, 63, 0.25);
-  border-radius: calc(var(--border-radius) - 6px);
-  background: #fffaf1;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid rgba(74, 44, 23, 0.25);
+  border-radius: var(--border-radius);
+  background: #fffdfa;
   font-size: 1rem;
   font-family: var(--font-primary);
   color: var(--text-color);
   outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
 }
 
 .promo-input:focus {
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(205, 133, 63, 0.16);
+  box-shadow: 0 0 0 3px rgba(205, 133, 63, 0.18);
 }
 
 .promo-input::placeholder {
@@ -73,11 +67,12 @@
 }
 
 .apply-promo-btn {
-  padding: var(--spacing-md) var(--spacing-xl);
+  width: 100%;
+  padding: 0.9rem 1rem;
   background: linear-gradient(135deg, var(--accent-color), var(--secondary-coffee));
   color: white;
   border: none;
-  border-radius: calc(var(--border-radius) - 6px);
+  border-radius: var(--border-radius);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -85,10 +80,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 140px;
-  flex-shrink: 0;
   position: relative;
   overflow: hidden;
+  letter-spacing: 0.04em;
 }
 
 .apply-promo-btn::before {
@@ -264,16 +258,6 @@
 .error-icon,
 .success-icon {
   font-size: 1.1rem;
-}
-
-/* Additional input field overrides to ensure transparency */
-.promo-input,
-.promo-input:focus,
-.promo-input:active,
-.promo-input:hover {
-  background: inherit;
-  -webkit-background-clip: padding-box;
-  background-clip: padding-box;
 }
 
 /* Mobile Responsive */
