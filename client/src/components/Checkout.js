@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -28,6 +28,7 @@ const cardStyle = {
       '::placeholder': {
         color: '#8B6F4D',
       },
+      iconColor: '#8B6F4D'
     },
     invalid: {
       color: '#CD5C5C',
@@ -161,6 +162,8 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
 
   const handleSavePaymentMethod = async () => {
     try {
+      setErrorMessage(null);
+      setSuccessMessage(null);
       setLoading(true);
       const setupIntentRes = await api.post('/orders/payment-methods/setup-intent');
       const clientSecret = setupIntentRes.data?.clientSecret;
@@ -466,13 +469,15 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
 
             {(showCardForm || savedCards.length === 0) && (
               <div className="card-element-container">
-                <CardElement 
-                  options={cardStyle}
-                  className="stripe-card-element"
-                />
-                <button type="button" className="save-card-btn" onClick={handleSavePaymentMethod} disabled={loading}>
-                  {loading ? 'Saving…' : 'Save card for future orders'}
-                </button>
+                <div className="stripe-card-wrapper">
+                  <CardElement 
+                    options={cardStyle}
+                    className="stripe-card-element"
+                  />
+                  <button type="button" className="save-card-btn" onClick={handleSavePaymentMethod} disabled={loading}>
+                    {loading ? 'Saving…' : 'Save card for future orders'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -542,6 +547,8 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
             </span>
           )}
         </button>
+        {successMessage && <div className="payment-success-msg">{successMessage}</div>}
+        {errorMessage && <div className="payment-error-msg">{errorMessage}</div>}
       </form>
     </div>
   );

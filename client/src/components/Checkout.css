@@ -355,3 +355,112 @@
     border: 2px solid var(--primary-coffee);
   }
 }
+
+.payment-method-selection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.saved-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.saved-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.saved-card-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid rgba(205, 133, 63, 0.25);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.saved-card-option.selected {
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(205, 133, 63, 0.15);
+}
+
+.saved-card-option input {
+  margin-right: var(--spacing-sm);
+}
+
+.card-brand,
+.card-last4,
+.card-exp,
+.card-default {
+  font-size: 0.9rem;
+}
+
+.card-default {
+  margin-left: auto;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(205, 133, 63, 0.15);
+  color: var(--primary-coffee);
+  font-weight: 600;
+}
+
+.add-new-card-btn,
+.save-card-btn {
+  margin-top: var(--spacing-sm);
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  background: linear-gradient(135deg, var(--accent-color), var(--secondary-coffee));
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.add-new-card-btn:hover,
+.save-card-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--box-shadow-hover);
+}
+
+.stripe-card-wrapper {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--spacing-sm);
+  align-items: center;
+  background: white;
+  border: 1px solid rgba(205, 133, 63, 0.25);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+}
+
+.stripe-card-element {
+  margin: 0;
+  padding: 0;
+}
+
+.payment-success-msg,
+.payment-error-msg {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+}
+
+.payment-success-msg {
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid var(--success-color);
+  color: var(--success-color);
+}
+
+.payment-error-msg {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+}

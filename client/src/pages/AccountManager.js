@@ -41,6 +41,7 @@ function AccountManager({ user, onUserUpdate }) {
   const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
   const pendingOrders = orderSummary.activeOrders;
   const pastOrders = orderSummary.pastOrders;
+  const [paymentSetupMessage, setPaymentSetupMessage] = useState('');
 
   const activeOrderStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
 
@@ -54,10 +55,11 @@ function AccountManager({ user, onUserUpdate }) {
     try {
       setLoading(true);
       setOrderHistoryLoading(true);
-      const [profileRes, favoritesRes, ordersRes] = await Promise.all([
+      const [profileRes, favoritesRes, ordersRes, paymentRes] = await Promise.all([
         api.get('/users/profile'),
         api.get('/users/favorites'),
-        api.get('/orders/user/summary')
+        api.get('/orders/user/summary'),
+        api.get('/orders/payment-methods')
       ]);
 
       if (profileRes.data?.user) {
@@ -81,7 +83,9 @@ function AccountManager({ user, onUserUpdate }) {
         counts: summary.counts || { active: 0, past: 0, total: 0 }
       });
 
-      setFavorites(favoritesRes.data?.favorites || []);
+      setFavorites(Array.isArray(favoritesRes.data?.favorites) ? favoritesRes.data.favorites : []);
+      setPaymentMethods(Array.isArray(paymentRes.data?.paymentMethods) ? paymentRes.data.paymentMethods : []);
+      setPaymentSetupMessage('');
 
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -186,6 +190,35 @@ function AccountManager({ user, onUserUpdate }) {
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to remove favorite');
+    }
+  };
+
+  const handleRemovePaymentMethod = async (paymentMethodId) => {
+    try {
+      const response = await api.delete(`/orders/payment-methods/${paymentMethodId}`);
+      if (response.data.success) {
+        setPaymentMethods(prev => prev.filter(pm => pm.paymentMethodId !== paymentMethodId));
+        setSuccess('Payment method removed');
+        setPaymentSetupMessage('');
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to remove payment method');
+    }
+  };
+
+  const handleAddPaymentMethod = async () => {
+    try {
+      setError(null);
+      setSuccess(null);
+      setPaymentSetupMessage('');
+      const setupRes = await api.post('/orders/payment-methods/setup-intent');
+      if (!setupRes.data?.clientSecret) {
+        throw new Error('Failed to initialize payment setup');
+      }
+
+      setPaymentSetupMessage('Setup intent created. Complete checkout to save your card.');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to start payment method setup');
     }
   };
 
@@ -428,39 +461,55 @@ function AccountManager({ user, onUserUpdate }) {
                   <p>No payment methods saved</p>
                   <button 
                     className="add-payment-btn"
-                    onClick={() => setShowAddPayment(true)}
+                    onClick={() => {
+                      setShowAddPayment(true);
+                      handleAddPaymentMethod();
+                    }}
                   >
                     Add Payment Method
                   </button>
                 </div>
               ) : (
                 <div className="payment-methods-list">
-                  {paymentMethods.map((method, index) => (
-                    <div key={index} className="payment-method-card">
+                  {paymentMethods.map((method) => (
+                    <div key={method.paymentMethodId} className="payment-method-card">
                       <div className="payment-method-info">
                         <span className="payment-icon">💳</span>
                         <div className="payment-details">
-                          <span className="payment-type">{method.type}</span>
+                          <span className="payment-type">{method.brand?.toUpperCase() || 'Card'}</span>
                           <span className="payment-number">**** **** **** {method.last4}</span>
+                          <span className="payment-exp">Expires {method.expMonth}/{method.expYear}</span>
+                          {method.isDefault && <span className="payment-default">Default</span>}
                         </div>
                       </div>
-                      <button className="remove-payment-btn">Remove</button>
+                      <button 
+                        className="remove-payment-btn"
+                        onClick={() => handleRemovePaymentMethod(method.paymentMethodId)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                   <button 
                     className="add-payment-btn secondary"
-                    onClick={() => setShowAddPayment(true)}
+                    onClick={() => {
+                      setShowAddPayment(true);
+                      handleAddPaymentMethod();
+                    }}
                   >
                     Add Another Payment Method
                   </button>
                 </div>
               )}
             </div>
+            {paymentSetupMessage && (
+              <div className="payment-hint">{paymentSetupMessage}</div>
+            )}
             
             {showAddPayment && (
               <div className="add-payment-modal">
                 <h3>Add Payment Method</h3>
-                <p>Payment method management will be integrated with Stripe in a future update.</p>
+                <p>Start a checkout to save a new card. Once complete, it will appear in your saved methods.</p>
                 <button 
                   className="close-modal-btn"
                   onClick={() => setShowAddPayment(false)}

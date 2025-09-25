@@ -264,6 +264,41 @@
 .payment-details {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  color: var(--text-color);
+}
+
+.payment-exp {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.payment-default {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-coffee);
+  background: rgba(205, 133, 63, 0.15);
+  border-radius: 999px;
+}
+
+.add-payment-modal {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-light);
+  text-align: center;
+}
+
+.add-payment-modal p {
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
 }
 
 .payment-type {
@@ -599,6 +634,16 @@
 .order-status.ready {
   background: rgba(205, 133, 63, 0.15);
   color: var(--primary-coffee);
+}
+
+.payment-hint {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(205, 133, 63, 0.08);
+  border: 1px solid rgba(205, 133, 63, 0.25);
+  border-radius: var(--border-radius);
+  color: var(--primary-coffee);
+  font-size: 0.9rem;
 }
 
 /* Responsive Design */
