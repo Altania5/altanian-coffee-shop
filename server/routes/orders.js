@@ -6,6 +6,29 @@ const Order = require('../models/order.model');
 const OrderService = require('../services/orderService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/user.model');
+const loyaltyService = require('../services/loyaltyService');
+
+const awardLoyaltyIfEligible = async (order, userId) => {
+  if (!userId || order.loyaltyAwarded || order.totalAmount <= 0) {
+    return;
+  }
+
+  try {
+    const loyaltyResult = await loyaltyService.awardPoints(userId, {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      totalAmount: order.totalAmount
+    });
+    console.log(`✅ Awarded ${loyaltyResult.pointsEarned} loyalty points to user ${userId}`);
+    order.loyaltyAwarded = true;
+    await order.save();
+    if (loyaltyResult.tierUpgraded) {
+      console.log(`🎉 User tier upgraded to ${loyaltyResult.newTier}!`);
+    }
+  } catch (loyaltyError) {
+    console.error('❌ Failed to award loyalty points:', loyaltyError.message);
+  }
+};
 
 /**
  * @route   POST /orders
@@ -90,6 +113,10 @@ router.post('/', async (req, res) => {
           result.order.payment.status = 'completed';
           result.order.payment.paidAt = new Date();
           result.order.status = 'confirmed';
+
+          if (customer.user) {
+            process.nextTick(() => awardLoyaltyIfEligible(result.order, customer.user));
+          }
         } else {
           result.order.payment.status = 'processing';
         }
@@ -140,6 +167,10 @@ router.post('/', async (req, res) => {
         result.order.payment.status = 'completed';
         result.order.status = 'confirmed';
         await result.order.save();
+
+        if (customer.user) {
+          process.nextTick(() => awardLoyaltyIfEligible(result.order, customer.user));
+        }
       }
       
       res.status(201).json({

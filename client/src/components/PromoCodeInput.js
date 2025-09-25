@@ -60,7 +60,7 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
       <h3 className="section-title">🎟️ Promo Code</h3>
       
       {!appliedPromo ? (
-        <form onSubmit={handleApplyPromo} className="promo-form" onClick={(e) => e.stopPropagation()}>
+        <div className="promo-form" onSubmit={handleApplyPromo} onClick={(e) => e.stopPropagation()}>
           <div className="promo-input-group">
             <div className="promo-input-wrapper">
               <input
@@ -107,7 +107,7 @@ function PromoCodeInput({ onPromoApplied, onPromoRemoved, appliedPromo, token })
               {success}
             </div>
           )}
-        </form>
+        </div>
       ) : (
         <div className="applied-promo">
           <div className="promo-info">

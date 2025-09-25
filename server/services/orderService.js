@@ -129,7 +129,7 @@ class OrderService {
         });
       }
 
-      // 11. Award loyalty points if user is authenticated
+      // 12. Award loyalty points if user is authenticated
       if (order.customer.user) {
         process.nextTick(async () => {
           try {
@@ -139,6 +139,8 @@ class OrderService {
               totalAmount: order.totalAmount
             });
             console.log(`✅ Awarded ${loyaltyResult.pointsEarned} loyalty points to user ${order.customer.user}`);
+            order.loyaltyAwarded = true;
+            await order.save({ session: useSession });
             if (loyaltyResult.tierUpgraded) {
               console.log(`🎉 User tier upgraded to ${loyaltyResult.newTier}!`);
             }
@@ -148,7 +150,7 @@ class OrderService {
         });
       }
 
-      // 12. Send order confirmation email
+      // 13. Send order confirmation email
       process.nextTick(async () => {
         try {
           await emailService.sendOrderConfirmation(order);

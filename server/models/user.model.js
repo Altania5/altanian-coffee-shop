@@ -29,6 +29,15 @@ const userSchema = new Schema({
     type: String,
     trim: true
   },
+  stripeCustomerId: { type: String },
+  savedPaymentMethods: [{
+    paymentMethodId: String,
+    brand: String,
+    last4: String,
+    expMonth: Number,
+    expYear: Number,
+    isDefault: { type: Boolean, default: false }
+  }],
   role: {
     type: String,
     enum: ['customer', 'owner'],

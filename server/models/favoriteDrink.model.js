@@ -26,6 +26,7 @@ favoriteDrinkSchema.methods.toClient = function() {
     productImage: this.productImage,
     basePrice: this.basePrice,
     customizations: this.customizations || {},
+    customizationHash: this.customizationHash,
     lastOrderedAt: this.lastOrderedAt,
     timesOrdered: this.timesOrdered,
     createdAt: this.createdAt,

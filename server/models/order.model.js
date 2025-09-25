@@ -91,7 +91,9 @@ const orderSchema = new Schema({
     discountPercentage: Number,
     appliedAt: Date
   },
-  
+
+  loyaltyAwarded: { type: Boolean, default: false },
+
   // Order status and tracking
   status: {
     type: String,
