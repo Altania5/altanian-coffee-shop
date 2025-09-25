@@ -3,6 +3,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 let User = require('../models/user.model');
+const FavoriteDrink = require('../models/favoriteDrink.model');
+const Product = require('../models/product.model');
+
+// utility to hash customization objects consistently
+const hashCustomizations = (data = {}) => {
+  const stable = JSON.stringify(data, Object.keys(data).sort());
+  return require('crypto').createHash('sha256').update(stable).digest('hex');
+};
 
 // --- REGISTRATION ---
 router.route('/register').post(async (req, res) => {
@@ -206,11 +214,12 @@ router.route('/password').put(auth, async (req, res) => {
 // --- GET USER FAVORITES ---
 router.route('/favorites').get(auth, async (req, res) => {
   try {
-    // For now, return empty favorites array
-    // In a real app, you would have a Favorites model
+    const favorites = await FavoriteDrink.find({ user: req.user.id })
+      .sort({ updatedAt: -1 });
+
     res.json({
       success: true,
-      favorites: []
+      favorites: favorites.map(f => f.toClient())
     });
   } catch (err) {
     console.error('Favorites fetch error:', err);
@@ -221,17 +230,51 @@ router.route('/favorites').get(auth, async (req, res) => {
 // --- ADD FAVORITE ---
 router.route('/favorites').post(auth, async (req, res) => {
   try {
-    const { productId, customizations } = req.body;
-    
+    const { productId, customizations, notes } = req.body;
+
     if (!productId) {
       return res.status(400).json({ msg: 'Product ID is required' });
     }
-    
-    // For now, just return success
-    // In a real app, you would save to a Favorites model
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ msg: 'Product not found' });
+    }
+
+    const customizationHash = hashCustomizations(customizations || {});
+
+    const favorite = await FavoriteDrink.findOneAndUpdate(
+      {
+        user: req.user.id,
+        product: product._id,
+        customizationHash
+      },
+      {
+        user: req.user.id,
+        product: product._id,
+        productName: product.name,
+        productImage: product.image || product.imageUrl,
+        basePrice: product.price,
+        customizations: customizations || {},
+        customizationHash,
+        notes: notes || undefined,
+        lastOrderedAt: new Date()
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true
+      }
+    );
+
+    if (req.body.incrementOrderCount) {
+      favorite.timesOrdered += 1;
+      await favorite.save();
+    }
+
     res.json({
       success: true,
-      message: 'Added to favorites'
+      favorite: favorite.toClient()
     });
   } catch (err) {
     console.error('Add favorite error:', err);
@@ -243,9 +286,18 @@ router.route('/favorites').post(auth, async (req, res) => {
 router.route('/favorites/:favoriteId').delete(auth, async (req, res) => {
   try {
     const { favoriteId } = req.params;
-    
-    // For now, just return success
-    // In a real app, you would remove from Favorites model
+
+    const favorite = await FavoriteDrink.findOne({
+      _id: favoriteId,
+      user: req.user.id
+    });
+
+    if (!favorite) {
+      return res.status(404).json({ msg: 'Favorite not found' });
+    }
+
+    await favorite.deleteOne();
+
     res.json({
       success: true,
       message: 'Removed from favorites'

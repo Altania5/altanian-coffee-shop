@@ -74,7 +74,6 @@ function AccountManager({ user, onUserUpdate }) {
         }
       }
 
-      setFavorites(favoritesRes.data?.favorites || []);
       const summary = ordersRes.data || {};
       setOrderSummary({
         activeOrders: summary.activeOrders || [],
@@ -82,8 +81,7 @@ function AccountManager({ user, onUserUpdate }) {
         counts: summary.counts || { active: 0, past: 0, total: 0 }
       });
 
-      const productsRes = await api.get('/products');
-      setAvailableProducts(productsRes.data?.products || []);
+      setFavorites(favoritesRes.data?.favorites || []);
 
     } catch (error) {
       console.error('Error loading user data:', error);

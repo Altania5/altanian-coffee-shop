@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const Order = require('../models/order.model');
 const OrderService = require('../services/orderService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const User = require('../models/user.model');
 
 /**
  * @route   POST /orders
@@ -33,6 +34,7 @@ router.post('/', async (req, res) => {
     // Add user ID to customer if authenticated
     if (req.user) {
       customer.user = req.user.id;
+      customer.id = req.user.id;
     }
     
     // Create order through service
@@ -54,13 +56,22 @@ router.post('/', async (req, res) => {
     // If payment method provided, process payment
     if (paymentMethodId && result.order.totalAmount > 0) {
       try {
-        // Create payment intent
+        let customerId = null;
+        if (customer.user) {
+          const user = await User.findById(customer.user);
+          if (user && user.stripeCustomerId) {
+            customerId = user.stripeCustomerId;
+          }
+        }
+
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(result.order.totalAmount * 100), // Convert to cents
           currency: 'usd',
+          customer: customerId || undefined,
           payment_method: paymentMethodId,
           confirm: true,
-          automatic_payment_methods: {
+          off_session: Boolean(customerId),
+          automatic_payment_methods: customerId ? undefined : {
             enabled: true,
             allow_redirects: 'never'
           },
@@ -320,6 +331,119 @@ router.get('/user/summary', auth, async (req, res) => {
       success: false,
       message: 'Failed to fetch order summary'
     });
+  }
+});
+
+router.post('/payment-methods/setup-intent', auth, async (req, res) => {
+  try {
+    let customerId = req.user.stripeCustomerId;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: req.user.email,
+        name: `${req.user.firstName} ${req.user.lastName}`.trim()
+      });
+      customerId = customer.id;
+      await User.findByIdAndUpdate(req.user.id, { stripeCustomerId: customerId });
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId
+    });
+
+    res.json({ success: true, clientSecret: setupIntent.client_secret, customerId });
+  } catch (error) {
+    console.error('Create setup intent error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create setup intent' });
+  }
+});
+
+router.get('/payment-methods', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.json({ success: true, paymentMethods: user?.savedPaymentMethods || [] });
+  } catch (error) {
+    console.error('Get payment methods error:', error);
+    res.status(500).json({ success: false, message: 'Failed to load payment methods' });
+  }
+});
+
+router.post('/payment-methods', auth, async (req, res) => {
+  try {
+    const { paymentMethodId, setDefault } = req.body;
+
+    if (!paymentMethodId) {
+      return res.status(400).json({ success: false, message: 'Payment method ID is required' });
+    }
+
+    let customerId = req.user.stripeCustomerId;
+    if (!customerId) {
+      return res.status(400).json({ success: false, message: 'Stripe customer not found for user' });
+    }
+
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (!paymentMethod || paymentMethod.customer !== customerId) {
+      return res.status(400).json({ success: false, message: 'Payment method not found for customer' });
+    }
+
+    const methodData = {
+      paymentMethodId: paymentMethod.id,
+      brand: paymentMethod.card.brand,
+      last4: paymentMethod.card.last4,
+      expMonth: paymentMethod.card.exp_month,
+      expYear: paymentMethod.card.exp_year,
+      isDefault: Boolean(setDefault)
+    };
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (methodData.isDefault) {
+      user.savedPaymentMethods.forEach(pm => { pm.isDefault = false; });
+    }
+
+    const existingIndex = user.savedPaymentMethods.findIndex(pm => pm.paymentMethodId === paymentMethod.id);
+    if (existingIndex >= 0) {
+      user.savedPaymentMethods[existingIndex] = methodData;
+    } else {
+      user.savedPaymentMethods.push(methodData);
+    }
+
+    await user.save();
+
+    res.json({ success: true, paymentMethod: methodData });
+  } catch (error) {
+    console.error('Save payment method error:', error);
+    res.status(500).json({ success: false, message: 'Failed to save payment method' });
+  }
+});
+
+router.delete('/payment-methods/:paymentMethodId', auth, async (req, res) => {
+  try {
+    const { paymentMethodId } = req.params;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.savedPaymentMethods = user.savedPaymentMethods.filter(pm => pm.paymentMethodId !== paymentMethodId);
+    await user.save();
+
+    if (req.user.stripeCustomerId) {
+      try {
+        await stripe.paymentMethods.detach(paymentMethodId);
+      } catch (detachError) {
+        console.warn(`Failed to detach payment method ${paymentMethodId}:`, detachError.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Payment method removed' });
+  } catch (error) {
+    console.error('Remove payment method error:', error);
+    res.status(500).json({ success: false, message: 'Failed to remove payment method' });
   }
 });
 

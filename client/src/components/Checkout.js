@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -43,6 +43,9 @@ const cardStyle = {
 function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
   const stripe = useStripe();
   const elements = useElements();
+  const [savedCards, setSavedCards] = useState([]);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [showCardForm, setShowCardForm] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
@@ -52,7 +55,30 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
   const [tipOption, setTipOption] = useState('custom'); // 'none', '15', '18', '20', 'custom'
   const [selectedReward, setSelectedReward] = useState(null);
   const [appliedPromo, setAppliedPromo] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   
+  useEffect(() => {
+    if (token && paymentMethod === 'card') {
+      api.get('/orders/payment-methods')
+        .then(res => {
+          const methods = res.data?.paymentMethods || [];
+          setSavedCards(methods);
+          if (methods.length > 0) {
+            const defaultCard = methods.find(m => m.isDefault) || methods[0];
+            setSelectedCard(defaultCard.paymentMethodId);
+            setShowCardForm(false);
+          } else {
+            setShowCardForm(true);
+          }
+        })
+        .catch(() => {
+          setSavedCards([]);
+          setShowCardForm(true);
+        });
+    }
+  }, [token, paymentMethod]);
+
   // Calculate totals
   const subtotal = cart.reduce((acc, item) => {
     const price = Number(item.estimatedPrice || item.price || 0);
@@ -133,6 +159,50 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
     setTipOption('custom');
   };
 
+  const handleSavePaymentMethod = async () => {
+    try {
+      setLoading(true);
+      const setupIntentRes = await api.post('/orders/payment-methods/setup-intent');
+      const clientSecret = setupIntentRes.data?.clientSecret;
+      if (!clientSecret) {
+        throw new Error('Failed to initialize payment setup');
+      }
+
+      const cardElement = elements.getElement(CardElement);
+      const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: customerInfo?.name,
+            email: customerInfo?.email
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to save payment method');
+      }
+
+      await api.post('/orders/payment-methods', {
+        paymentMethodId: setupIntent.payment_method,
+        setDefault: savedCards.length === 0
+      });
+
+      const cardRes = await api.get('/orders/payment-methods');
+      const methods = cardRes.data?.paymentMethods || [];
+      setSavedCards(methods);
+      setSelectedCard(setupIntent.payment_method);
+      setShowCardForm(false);
+      setSuccessMessage('Card saved successfully!');
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to save payment method');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isUsingNewCard = showCardForm || savedCards.length === 0;
+
   // Submit payment
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -145,11 +215,10 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
     setPaymentError(null);
 
     try {
-      // Prepare order data
       const orderData = {
         items: cart,
         customer: customerInfo,
-        tip: tip,
+        tip,
         discount: totalDiscount,
         rewardId: selectedReward ? selectedReward._id : undefined,
         promoCode: appliedPromo ? appliedPromo.code : undefined,
@@ -159,63 +228,62 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
       };
 
       if (paymentMethod === 'card') {
-        // Create payment method
-        const cardElement = elements.getElement(CardElement);
-        const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
-          type: 'card',
-          card: cardElement,
-          billing_details: {
-            name: customerInfo.name,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-          },
-        });
+        let paymentMethodId = selectedCard;
 
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        // Send order to backend with payment method
-        const response = await api.post('/orders', {
-          ...orderData,
-          paymentMethodId: stripePaymentMethod.id
-        });
-
-        if (response.data.success) {
-          // Handle successful payment
-          if (response.data.paymentIntent) {
-            const { error: confirmError } = await stripe.confirmCardPayment(
-              response.data.paymentIntent.client_secret
-            );
-
-            if (confirmError) {
-              throw new Error(confirmError.message);
-            }
+        if (isUsingNewCard) {
+          const cardElement = elements.getElement(CardElement);
+          if (!cardElement) {
+            throw new Error('Please enter your card details.');
           }
 
-          // Payment successful
-          onPaymentSuccess({
-            order: response.data.order,
-            paymentIntent: response.data.paymentIntent,
-            lowStockAlert: response.data.lowStockAlert
+          const { error, paymentMethod: stripePaymentMethod } = await stripe.createPaymentMethod({
+            type: 'card',
+            card: cardElement,
+            billing_details: {
+              name: customerInfo.name,
+              email: customerInfo.email,
+              phone: customerInfo.phone,
+            },
           });
-        } else {
+
+          if (error) {
+            throw new Error(error.message);
+          }
+
+          paymentMethodId = stripePaymentMethod.id;
+        }
+
+        if (!paymentMethodId) {
+          throw new Error('Select or enter a payment method.');
+        }
+
+        const response = await api.post('/orders', {
+          ...orderData,
+          paymentMethodId
+        });
+
+        if (!response.data.success) {
           throw new Error(response.data.message || 'Order creation failed');
         }
+
+        onPaymentSuccess({
+          order: response.data.order,
+          paymentIntent: response.data.paymentIntent,
+          lowStockAlert: response.data.lowStockAlert
+        });
 
       } else {
-        // Cash payment - create order without payment method
         const response = await api.post('/orders', orderData);
 
-        if (response.data.success) {
-          onPaymentSuccess({
-            order: response.data.order,
-            lowStockAlert: response.data.lowStockAlert,
-            paymentMethod: 'cash'
-          });
-        } else {
+        if (!response.data.success) {
           throw new Error(response.data.message || 'Order creation failed');
         }
+
+        onPaymentSuccess({
+          order: response.data.order,
+          lowStockAlert: response.data.lowStockAlert,
+          paymentMethod: 'cash'
+        });
       }
 
     } catch (error) {
@@ -366,55 +434,49 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         {/* Payment Method */}
         <div className="checkout-section">
           <h3 className="section-title">💳 Payment Method</h3>
-          <div className="payment-method-options">
-            <label className={`payment-option ${paymentMethod === 'card' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="card"
-                checked={paymentMethod === 'card'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              <span className="payment-option-content">
-                <span className="payment-icon">💳</span>
-                <span>Credit/Debit Card</span>
-              </span>
-            </label>
-            <label className={`payment-option ${paymentMethod === 'cash' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="cash"
-                checked={paymentMethod === 'cash'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              <span className="payment-option-content">
-                <span className="payment-icon">💵</span>
-                <span>Pay with Cash (In-Store)</span>
-              </span>
-            </label>
-          </div>
-        </div>
+          <div className="payment-method-selection">
+            {savedCards.length > 0 && (
+              <div className="saved-cards">
+                <h4>Saved Cards</h4>
+                <div className="saved-card-list">
+                  {savedCards.map(card => (
+                    <label key={card.paymentMethodId} className={`saved-card-option ${selectedCard === card.paymentMethodId ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="saved-card"
+                        value={card.paymentMethodId}
+                        checked={selectedCard === card.paymentMethodId}
+                        onChange={() => {
+                          setSelectedCard(card.paymentMethodId);
+                          setShowCardForm(false);
+                        }}
+                      />
+                      <span className="card-brand">{card.brand?.toUpperCase() || 'CARD'}</span>
+                      <span className="card-last4">•••• {card.last4}</span>
+                      <span className="card-exp">Exp {card.expMonth}/{card.expYear}</span>
+                      {card.isDefault && <span className="card-default">Default</span>}
+                    </label>
+                  ))}
+                </div>
+                <button type="button" className="add-new-card-btn" onClick={() => setShowCardForm(true)}>
+                  Use a different card
+                </button>
+              </div>
+            )}
 
-        {/* Card Details (only show if card payment selected) */}
-        {paymentMethod === 'card' && (
-          <div className="checkout-section">
-            <h3 className="section-title">💳 Card Details</h3>
-            <div className="card-element-container">
-              {stripePromise ? (
+            {(showCardForm || savedCards.length === 0) && (
+              <div className="card-element-container">
                 <CardElement 
                   options={cardStyle}
                   className="stripe-card-element"
                 />
-              ) : (
-                <div className="stripe-error">
-                  <p>⚠️ Card payment is temporarily unavailable.</p>
-                  <p>Please select "Pay with Cash" to continue with your order.</p>
-                </div>
-              )}
-            </div>
+                <button type="button" className="save-card-btn" onClick={handleSavePaymentMethod} disabled={loading}>
+                  {loading ? 'Saving…' : 'Save card for future orders'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Payment Error */}
         {paymentError && (
@@ -462,7 +524,7 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
         <button
           type="submit"
           className="place-order-btn"
-          disabled={(paymentMethod === 'card' && !stripe) || loading}
+          disabled={(paymentMethod === 'card' && ((!stripe) || (!isUsingNewCard && !selectedCard))) || loading}
         >
           {loading ? (
             <span className="loading-content">
