@@ -430,10 +430,10 @@
 }
 
 .stripe-card-wrapper {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
-  align-items: center;
+  align-items: stretch;
   background: white;
   border: 1px solid rgba(205, 133, 63, 0.25);
   border-radius: var(--border-radius);
@@ -441,8 +441,16 @@
 }
 
 .stripe-card-element {
-  margin: 0;
-  padding: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(205, 133, 63, 0.3);
+  border-radius: calc(var(--border-radius) - 4px);
+  background: #fffdf8;
+  display: flex;
+  align-items: center;
+}
+
+.save-card-btn {
+  width: 100%;
 }
 
 .payment-success-msg,

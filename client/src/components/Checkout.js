@@ -470,10 +470,12 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
             {(showCardForm || savedCards.length === 0) && (
               <div className="card-element-container">
                 <div className="stripe-card-wrapper">
-                  <CardElement 
-                    options={cardStyle}
-                    className="stripe-card-element"
-                  />
+                  <div className="stripe-card-field">
+                    <CardElement 
+                      options={cardStyle}
+                      className="stripe-card-element"
+                    />
+                  </div>
                   <button type="button" className="save-card-btn" onClick={handleSavePaymentMethod} disabled={loading}>
                     {loading ? 'Saving…' : 'Save card for future orders'}
                   </button>
