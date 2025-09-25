@@ -32,6 +32,18 @@ function OrderHistory({ token }) {
             <li key={order._id} className="order-item">
               <div>
                 <strong>Order ID:</strong> {order._id}
+                {order.isTestOrder && (
+                  <span style={{
+                    marginLeft: '8px',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    fontSize: '0.75em'
+                  }}>
+                    Test Order
+                  </span>
+                )}
               </div>
               <div>
                 <strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}

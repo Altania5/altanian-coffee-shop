@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const LoyaltyService = require('../services/loyaltyService');
 const { LoyaltyAccount, Reward, TierBenefit } = require('../models/loyalty.model');
+const Order = require('../models/order.model');
 
 /**
  * @route   GET /loyalty/account
@@ -30,6 +31,47 @@ router.get('/account', auth, async (req, res) => {
       success: false,
       message: error.message || 'Failed to get loyalty account'
     });
+  }
+});
+
+/**
+ * @route   POST /loyalty/backfill
+ * @desc    Backfill loyalty points for a completed order (owner only)
+ * @access  Private (Owner)
+ */
+router.post('/backfill', auth, async (req, res) => {
+  try {
+    // Require owner/admin
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const { orderId } = req.body;
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: 'orderId is required' });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (!order.customer?.user) return res.status(400).json({ success: false, message: 'Order not linked to a user' });
+    if (order.isTestOrder) return res.status(400).json({ success: false, message: 'Test orders do not earn loyalty' });
+    if (order.totalAmount <= 0) return res.status(400).json({ success: false, message: 'Zero total orders do not earn loyalty' });
+
+    if (!order.loyaltyAwarded) {
+      const result = await LoyaltyService.awardPoints(order.customer.user, {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount
+      });
+      order.loyaltyAwarded = true;
+      await order.save();
+      return res.json({ success: true, message: 'Loyalty backfilled', result });
+    } else {
+      return res.json({ success: true, message: 'Loyalty already awarded for this order' });
+    }
+  } catch (error) {
+    console.error('Backfill loyalty error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

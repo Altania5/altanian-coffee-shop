@@ -41,7 +41,7 @@ const cardStyle = {
   hidePostalCode: true,
 };
 
-function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
+function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token, userRole }) {
   const stripe = useStripe();
   const elements = useElements();
   const [savedCards, setSavedCards] = useState([]);
@@ -292,6 +292,45 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
     } catch (error) {
       console.error('Payment error:', error);
       setPaymentError(error.message);
+      onPaymentError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Admin/Owner: Place test order (skip payment)
+  const handlePlaceTestOrder = async () => {
+    try {
+      setLoading(true);
+      setPaymentError(null);
+
+      const orderData = {
+        items: cart,
+        customer: customerInfo,
+        tip,
+        discount: totalDiscount,
+        rewardId: selectedReward ? selectedReward._id : undefined,
+        promoCode: appliedPromo ? appliedPromo.code : undefined,
+        promoId: appliedPromo ? appliedPromo.promoId : undefined,
+        notes: specialInstructions.trim() || undefined,
+        source: 'website',
+        skipPayment: true,
+        testOrder: true
+      };
+
+      const response = await api.post('/orders', orderData);
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Order creation failed');
+      }
+
+      onPaymentSuccess({
+        order: response.data.order,
+        lowStockAlert: response.data.lowStockAlert,
+        paymentMethod: 'test'
+      });
+    } catch (error) {
+      console.error('Test order error:', error);
+      setPaymentError(error.message || 'Failed to create test order');
       onPaymentError(error);
     } finally {
       setLoading(false);
@@ -549,6 +588,17 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
             </span>
           )}
         </button>
+        {(userRole === 'owner' || userRole === 'admin') && (
+          <button
+            type="button"
+            className="place-order-btn admin-test-order-btn"
+            onClick={handlePlaceTestOrder}
+            disabled={loading}
+            style={{ marginTop: '12px', backgroundColor: '#6c757d' }}
+          >
+            {loading ? 'Creating Test Order…' : 'Place Test Order (Skip Payment)'}
+          </button>
+        )}
         {successMessage && <div className="payment-success-msg">{successMessage}</div>}
         {errorMessage && <div className="payment-error-msg">{errorMessage}</div>}
       </form>
@@ -557,7 +607,7 @@ function CheckoutForm({ cart, customerInfo, onPaymentSuccess, onPaymentError, on
 }
 
 // Main Checkout component with Stripe wrapper
-function Checkout({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token }) {
+function Checkout({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack, token, userRole }) {
   return (
     <Elements stripe={stripePromise}>
       <CheckoutForm
@@ -567,6 +617,7 @@ function Checkout({ cart, customerInfo, onPaymentSuccess, onPaymentError, onBack
         onPaymentError={onPaymentError}
         onBack={onBack}
         token={token}
+        userRole={userRole}
       />
     </Elements>
   );

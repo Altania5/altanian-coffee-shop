@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import './OrderTracking.css';
 
-const OrderTracking = ({ orderId, token, orderNumber }) => {
+const OrderTracking = ({ orderId, token, orderNumber, isTestOrder }) => {
   const { 
     orderStatus, 
     estimatedTime, 
@@ -83,7 +83,21 @@ const OrderTracking = ({ orderId, token, orderNumber }) => {
       <div className="order-tracking-header">
         <h2>Order Tracking</h2>
         {orderNumber && (
-          <div className="order-number">Order #{orderNumber}</div>
+          <div className="order-number">
+            Order #{orderNumber}
+            {isTestOrder && (
+              <span style={{
+                marginLeft: '8px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                backgroundColor: '#6c757d',
+                color: '#fff',
+                fontSize: '12px'
+              }}>
+                Test Order
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -93,9 +107,9 @@ const OrderTracking = ({ orderId, token, orderNumber }) => {
           <div className={`status-dot ${isConnected ? 'green' : 'red'}`}></div>
           <span>{isConnected ? 'Live Updates' : 'Offline'}</span>
         </div>
-        {connectionError && (
+        {!isConnected && (
           <div className="connection-error">
-            <span>{connectionError}</span>
+            {connectionError && <span>{connectionError}</span>}
             <button onClick={reconnect} className="reconnect-btn">
               Reconnect
             </button>

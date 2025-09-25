@@ -5,6 +5,8 @@ const auth = require('../middleware/auth');
 let User = require('../models/user.model');
 const FavoriteDrink = require('../models/favoriteDrink.model');
 const Product = require('../models/product.model');
+const Order = require('../models/order.model');
+const loyaltyService = require('../services/loyaltyService');
 
 // utility to hash customization objects consistently
 const hashCustomizations = (data = {}) => {
@@ -59,15 +61,21 @@ router.route('/register').post(async (req, res) => {
 // --- LOGIN ---
 router.route('/login').post(async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { password } = req.body;
+    const identifier = (req.body.username || req.body.email || '').trim();
 
     // Validation
-    if (!username || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({ msg: 'Please enter all fields.' });
     }
 
+    // Build query to allow login by username or email
+    const query = identifier.includes('@')
+      ? { email: identifier.toLowerCase() }
+      : { username: identifier };
+
     // Find user and include password for comparison
-    const user = await User.findOne({ username: username }).select('+password');
+    const user = await User.findOne(query).select('+password');
     if (!user) {
       return res.status(400).json({ msg: 'Invalid credentials.' });
     }
@@ -309,3 +317,119 @@ router.route('/favorites/:favoriteId').delete(auth, async (req, res) => {
 });
 
 module.exports = router;
+ 
+// --- ACCOUNT OVERVIEW (orders + loyalty) ---
+router.route('/account/overview').get(auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      from,
+      to,
+      activeLimit = 10,
+      activeOffset = 0,
+      pastLimit = 10,
+      pastOffset = 0
+    } = req.query;
+
+    // Load profile (without password)
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Build base query with optional date filtering
+    const baseQuery = { 'customer.user': userId };
+    if (from || to) {
+      baseQuery.createdAt = {};
+      if (from) baseQuery.createdAt.$gte = new Date(from);
+      if (to) baseQuery.createdAt.$lte = new Date(to);
+    }
+
+    const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+    // Active orders (paginated)
+    const [activeDocs, activeCount] = await Promise.all([
+      Order.find({ ...baseQuery, status: { $in: activeStatuses } })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(activeLimit))
+        .skip(parseInt(activeOffset)),
+      Order.countDocuments({ ...baseQuery, status: { $in: activeStatuses } })
+    ]);
+
+    const activeOrders = activeDocs.map(order => ({
+      id: order._id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      estimatedTime: order.fulfillment?.estimatedReadyTime || order.estimatedPickupTime,
+      items: order.items.map(item => ({
+        quantity: item.quantity,
+        productName: item.productName
+      }))
+    }));
+
+    // Past orders (paginated)
+    const pastStatuses = ['completed', 'cancelled'];
+    const [pastDocs, pastCount] = await Promise.all([
+      Order.find({ ...baseQuery, status: { $in: pastStatuses } })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(pastLimit))
+        .skip(parseInt(pastOffset)),
+      Order.countDocuments({ ...baseQuery, status: { $in: pastStatuses } })
+    ]);
+
+    const pastOrders = pastDocs.map(order => ({
+      id: order._id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      items: order.items.map(item => ({
+        quantity: item.quantity,
+        productName: item.productName
+      }))
+    }));
+
+    // Loyalty account summary
+    const loyaltyAccount = await loyaltyService.getUserAccount(userId);
+
+    res.json({
+      success: true,
+      profile: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        role: user.role
+      },
+      orders: {
+        active: activeOrders,
+        past: pastOrders,
+        counts: {
+          active: activeCount,
+          past: pastCount,
+          total: activeCount + pastCount
+        },
+        pagination: {
+          active: {
+            limit: parseInt(activeLimit),
+            offset: parseInt(activeOffset)
+          },
+          past: {
+            limit: parseInt(pastLimit),
+            offset: parseInt(pastOffset)
+          }
+        },
+        filters: {
+          from: from || null,
+          to: to || null
+        }
+      },
+      loyalty: loyaltyAccount
+    });
+  } catch (err) {
+    console.error('Account overview error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to load account overview' });
+  }
+});

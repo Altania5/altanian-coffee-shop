@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
 const Order = require('../models/order.model');
 const OrderService = require('../services/orderService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -35,9 +36,9 @@ const awardLoyaltyIfEligible = async (order, userId) => {
  * @desc    Create a new order
  * @access  Public (for guest orders) / Private (for user orders)
  */
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount, promoCode, promoId } = req.body;
+    const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount, promoCode, promoId, skipPayment, testOrder } = req.body;
     
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -71,10 +72,49 @@ router.post('/', async (req, res) => {
       promoId: promoId || undefined,
       notes,
       specialInstructions,
-      source: 'website'
+      source: 'website',
+      isTestOrder: Boolean(testOrder)
     };
     
     const result = await OrderService.createOrder(orderData);
+    
+    // Admin/Owner-only: Skip payment and mark as test order
+    if (skipPayment && req.user && (req.user.role === 'owner' || req.user.role === 'admin')) {
+      try {
+        result.order.payment.status = 'completed';
+        result.order.payment.method = 'test';
+        result.order.payment.paidAt = new Date();
+        result.order.status = 'confirmed';
+        result.order.isTestOrder = true;
+        await result.order.save();
+
+        // Broadcast new order creation via WebSocket
+        const orderTrackingWS = req.app.get('orderTrackingWS');
+        if (orderTrackingWS) {
+          orderTrackingWS.broadcastOrderUpdate(
+            result.order._id.toString(),
+            result.order.status,
+            {
+              orderNumber: result.order.orderNumber,
+              estimatedTime: calculateEstimatedTime(result.order.status),
+              isNewOrder: true,
+              customerName: customer.name,
+              testOrder: true
+            }
+          );
+        }
+
+        return res.status(201).json({
+          success: true,
+          order: result.order,
+          testOrder: true,
+          lowStockAlert: result.lowStockItems
+        });
+      } catch (skipErr) {
+        console.error('Skip payment error:', skipErr);
+        return res.status(400).json({ success: false, message: 'Failed to create test order' });
+      }
+    }
     
     // If payment method provided, process payment
     if (paymentMethodId && result.order.totalAmount > 0) {
@@ -232,18 +272,31 @@ router.get('/', auth, async (req, res) => {
  */
 router.get('/history', auth, async (req, res) => {
   try {
-    const { limit = 50, offset = 0 } = req.query;
-    
-    const orders = await Order.find({ 'customer.user': req.user.id })
-      .populate('items.product', 'name price')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(offset));
-    
+    const { limit = 50, offset = 0, from, to } = req.query;
+
+    const query = { 'customer.user': req.user.id };
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('items.product', 'name price')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .skip(parseInt(offset)),
+      Order.countDocuments(query)
+    ]);
+
     res.json({
       success: true,
       orders,
-      count: orders.length
+      count: orders.length,
+      total,
+      pagination: { limit: parseInt(limit), offset: parseInt(offset) },
+      filters: { from: from || null, to: to || null }
     });
     
   } catch (error) {
@@ -317,44 +370,74 @@ router.get('/myorders', auth, async (req, res) => {
  */
 router.get('/user/summary', auth, async (req, res) => {
   try {
+    const { from, to, activeLimit = 10, activeOffset = 0, pastLimit = 10, pastOffset = 0 } = req.query;
     const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+    const pastStatuses = ['completed', 'cancelled'];
 
-    const orders = await Order.find({ 'customer.user': req.user.id })
-      .populate('items.product', 'name')
-      .sort({ createdAt: -1 });
+    const baseQuery = { 'customer.user': req.user.id };
+    if (from || to) {
+      baseQuery.createdAt = {};
+      if (from) baseQuery.createdAt.$gte = new Date(from);
+      if (to) baseQuery.createdAt.$lte = new Date(to);
+    }
 
-    const activeOrders = [];
-    const pastOrders = [];
+    const [activeDocs, activeCount] = await Promise.all([
+      Order.find({ ...baseQuery, status: { $in: activeStatuses } })
+        .populate('items.product', 'name')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(activeLimit))
+        .skip(parseInt(activeOffset)),
+      Order.countDocuments({ ...baseQuery, status: { $in: activeStatuses } })
+    ]);
 
-    orders.forEach(order => {
-      const baseOrder = {
-        id: order._id,
-        orderNumber: order.orderNumber,
-        status: order.status,
-        createdAt: order.createdAt,
-        totalAmount: order.totalAmount,
-        items: order.items.map(item => ({
-          quantity: item.quantity,
-          productName: item.productName || item.product?.name || 'Item'
-        }))
-      };
+    const activeOrders = activeDocs.map(order => ({
+      id: order._id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      estimatedTime: order.fulfillment?.estimatedReadyTime || order.estimatedPickupTime,
+      items: order.items.map(item => ({
+        quantity: item.quantity,
+        productName: item.productName || item.product?.name || 'Item'
+      }))
+    }));
 
-      if (activeStatuses.includes(order.status)) {
-        activeOrders.push(baseOrder);
-      } else {
-        pastOrders.push(baseOrder);
-      }
-    });
+    const [pastDocs, pastCount] = await Promise.all([
+      Order.find({ ...baseQuery, status: { $in: pastStatuses } })
+        .populate('items.product', 'name')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(pastLimit))
+        .skip(parseInt(pastOffset)),
+      Order.countDocuments({ ...baseQuery, status: { $in: pastStatuses } })
+    ]);
+
+    const pastOrders = pastDocs.map(order => ({
+      id: order._id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      items: order.items.map(item => ({
+        quantity: item.quantity,
+        productName: item.productName || item.product?.name || 'Item'
+      }))
+    }));
 
     res.json({
       success: true,
       activeOrders,
       pastOrders,
       counts: {
-        active: activeOrders.length,
-        past: pastOrders.length,
-        total: orders.length
-      }
+        active: activeCount,
+        past: pastCount,
+        total: activeCount + pastCount
+      },
+      pagination: {
+        active: { limit: parseInt(activeLimit), offset: parseInt(activeOffset) },
+        past: { limit: parseInt(pastLimit), offset: parseInt(pastOffset) }
+      },
+      filters: { from: from || null, to: to || null }
     });
   } catch (error) {
     console.error('Get user order summary error:', error);
@@ -611,6 +694,34 @@ router.put('/:id/status', auth, async (req, res) => {
           statusDisplay: order.getStatusDisplay()
         }
       );
+    }
+    
+    // Award loyalty points on completion if not already awarded and not a test order
+    if (status === 'completed' && order.customer?.user && !order.loyaltyAwarded && !order.isTestOrder) {
+      try {
+        const loyaltyResult = await loyaltyService.awardPoints(order.customer.user, {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount
+        });
+        order.loyaltyAwarded = true;
+        await order.save();
+      } catch (e) {
+        console.warn('Failed to award loyalty on completion:', e.message);
+      }
+    }
+
+    // Push notification to customer on order completion
+    if (status === 'completed' && order.customer?.user) {
+      try {
+        await pushService.sendToUser(order.customer.user, {
+          title: 'Order Ready for Pickup',
+          message: `Your order #${order.orderNumber} is completed and ready!`,
+          data: { orderId: order._id.toString(), orderNumber: order.orderNumber }
+        });
+      } catch (e) {
+        console.warn('Failed to send push to customer:', e.message);
+      }
     }
     
     res.json({

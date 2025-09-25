@@ -256,6 +256,19 @@ function OrderQueue({ orders, onStatusUpdate, socket, loading, error }) {
                           <div className="customer-name">
                             {order.customer?.name || 'Walk-in Customer'}
                           </div>
+                          {order.isTestOrder && (
+                            <div className="test-order-badge" style={{
+                              marginTop: '4px',
+                              display: 'inline-block',
+                              backgroundColor: '#6c757d',
+                              color: '#fff',
+                              borderRadius: '10px',
+                              padding: '2px 8px',
+                              fontSize: '12px'
+                            }}>
+                              Test Order
+                            </div>
+                          )}
                         </div>
                         
                         <div className="order-timing">

@@ -92,6 +92,9 @@ const orderSchema = new Schema({
     appliedAt: Date
   },
 
+  // Test order flag (admin skip payment)
+  isTestOrder: { type: Boolean, default: false },
+
   loyaltyAwarded: { type: Boolean, default: false },
 
   // Order status and tracking

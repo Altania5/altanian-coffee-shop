@@ -53,6 +53,7 @@ class OrderService {
           discountPercentage: orderData.discountPercentage || 0,
           appliedAt: new Date()
         } : undefined,
+        isTestOrder: Boolean(orderData.isTestOrder),
         notes: orderData.notes,
         specialInstructions: orderData.specialInstructions,
         source: orderData.source || 'website'
@@ -129,35 +130,18 @@ class OrderService {
         });
       }
 
-      // 12. Award loyalty points if user is authenticated
-      if (order.customer.user) {
+      // 12. Loyalty points are awarded after successful payment in routes/orders.js
+
+      // 13. Send order confirmation email (skip for test orders)
+      if (!order.isTestOrder) {
         process.nextTick(async () => {
           try {
-            const loyaltyResult = await loyaltyService.awardPoints(order.customer.user, {
-              orderId: order._id,
-              orderNumber: order.orderNumber,
-              totalAmount: order.totalAmount
-            });
-            console.log(`✅ Awarded ${loyaltyResult.pointsEarned} loyalty points to user ${order.customer.user}`);
-            order.loyaltyAwarded = true;
-            await order.save({ session: useSession });
-            if (loyaltyResult.tierUpgraded) {
-              console.log(`🎉 User tier upgraded to ${loyaltyResult.newTier}!`);
-            }
-          } catch (loyaltyError) {
-            console.error('❌ Failed to award loyalty points:', loyaltyError.message);
+            await emailService.sendOrderConfirmation(order);
+          } catch (emailError) {
+            console.error('❌ Failed to send order confirmation email:', emailError.message);
           }
         });
       }
-
-      // 13. Send order confirmation email
-      process.nextTick(async () => {
-        try {
-          await emailService.sendOrderConfirmation(order);
-        } catch (emailError) {
-          console.error('❌ Failed to send order confirmation email:', emailError.message);
-        }
-      });
       
       return {
         success: true,
@@ -504,8 +488,9 @@ class OrderService {
     console.log(`📱 ORDER STATUS CHANGE - Order ${order.orderNumber}: ${oldStatus} → ${newStatus}`);
     
     // Send real-time notification to customer
-    if (global.io && order.user) {
-      global.io.to(`user-${order.user}`).emit('order-status-changed', {
+    if (global.io && order.customer && order.customer.user) {
+      const roomId = `user-${order.customer.user.toString()}`;
+      global.io.to(roomId).emit('order-status-changed', {
         orderId: order._id,
         orderNumber: order.orderNumber,
         oldStatus,

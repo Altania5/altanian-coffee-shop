@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import api from '../utils/api';
 
 export const useOrderTracking = (orderId, token) => {
   const [orderStatus, setOrderStatus] = useState('pending');
@@ -9,7 +10,7 @@ export const useOrderTracking = (orderId, token) => {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 10;
 
   const connect = useCallback(() => {
     if (!orderId || !token) return;
@@ -17,7 +18,12 @@ export const useOrderTracking = (orderId, token) => {
     try {
       // Determine WebSocket URL based on environment
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsHost = process.env.REACT_APP_WS_HOST || window.location.host;
+      // Use API host in development to ensure correct port
+      let wsHost = process.env.REACT_APP_WS_HOST || window.location.host;
+      const isDev = (window.location.hostname === 'localhost' || window.location.hostname === '10.81.100.68') && window.location.port === '3000';
+      if (isDev) {
+        wsHost = 'localhost:5002';
+      }
       const wsUrl = `${wsProtocol}//${wsHost}/ws/orders?token=${token}`;
       
       console.log('🔌 Connecting to WebSocket:', wsUrl);
@@ -36,6 +42,32 @@ export const useOrderTracking = (orderId, token) => {
           type: 'SUBSCRIBE_ORDER',
           orderId: orderId
         }));
+
+        // Fetch initial order status snapshot
+        (async () => {
+          try {
+            const res = await api.get(`/orders/${orderId}`);
+            const order = res.data?.order || res.data;
+            if (order) {
+              setOrderStatus(order.status);
+              const eta = order.fulfillment?.estimatedReadyTime || order.estimatedPickupTime || null;
+              setEstimatedTime(eta);
+              setOrderUpdates(prev => ([
+                ...prev,
+                {
+                  status: order.status,
+                  timestamp: new Date().toISOString(),
+                  estimatedTime: eta,
+                  updatedBy: null,
+                  statusDisplay: order.status,
+                  isNewOrder: false
+                }
+              ]));
+            }
+          } catch (e) {
+            // ignore initial fetch errors; real-time can still update
+          }
+        })();
       };
 
       ws.onmessage = (event) => {

@@ -116,6 +116,18 @@ function OrderSuccess({
                  order.status === 'ready' ? 'Ready' :
                  order.status === 'completed' ? 'Completed' : 'Processing'}
               </span>
+              {order.isTestOrder && (
+                <span style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  backgroundColor: '#6c757d',
+                  color: '#fff',
+                  fontSize: '12px'
+                }}>
+                  Test Order
+                </span>
+              )}
             </div>
           </div>
 
@@ -221,6 +233,7 @@ function OrderSuccess({
                 orderId={order._id} 
                 token={token}
                 orderNumber={order.orderNumber}
+                isTestOrder={order.isTestOrder}
               />
             </div>
           )}
@@ -249,6 +262,15 @@ function OrderSuccess({
 
       {/* Action Buttons */}
       <div className="success-actions">
+        {order && (
+          <button 
+            onClick={() => onViewOrder(order.orderNumber, order.customer.email)} 
+            className="track-order-btn"
+          >
+            <span>Track Order</span>
+            <span className="btn-icon">👁️</span>
+          </button>
+        )}
         {onViewOrder && (
           <button 
             onClick={() => onViewOrder(order.orderNumber, order.customer.email)} 
