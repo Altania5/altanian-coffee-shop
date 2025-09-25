@@ -18,6 +18,7 @@ import SocialFeatures from '../components/SocialFeatures';
 import HealthInsights from '../components/HealthInsights';
 import SeasonalManager from '../components/SeasonalManager';
 import manualCleanupService from '../utils/manualCleanup';
+import NotificationManager from '../components/admin/NotificationManager';
 
 function AdminPage({ user }) {
   const { addNotification, socket } = useSocket();
@@ -428,6 +429,13 @@ function AdminPage({ user }) {
           Social Features
         </button>
         <button 
+          className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
+          onClick={() => setActiveTab('notifications')}
+        >
+          <span className="tab-icon">🔔</span>
+          Notifications
+        </button>
+        <button 
           className={`tab-button ${activeTab === 'health' ? 'active' : ''}`}
           onClick={() => setActiveTab('health')}
         >
@@ -505,6 +513,9 @@ function AdminPage({ user }) {
         )}
         {activeTab === 'seasonal' && (
           <SeasonalManager user={user} />
+        )}
+        {activeTab === 'notifications' && (
+          <NotificationManager />
         )}
         {activeTab === 'cleanup' && (
           <div className="cleanup-section">

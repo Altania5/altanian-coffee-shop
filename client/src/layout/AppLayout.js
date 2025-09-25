@@ -159,6 +159,7 @@ function AppLayout({ user, onLogout }) {
                 onPaymentError={handlePaymentError}
                 onBack={handleBackToPreviousStep}
                 token={user.token}
+                userRole={user.role}
               />
             );
           case 'success':

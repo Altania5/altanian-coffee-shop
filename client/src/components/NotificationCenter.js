@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import './NotificationCenter.css';
+import OrderTracking from './OrderTracking';
+import { subscribeToPush } from '../utils/push';
 
 const NotificationCenter = () => {
   const { notifications, removeNotification, clearNotifications, isConnected } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
+  const [tracking, setTracking] = useState({ open: false, orderId: null, orderNumber: null, token: null });
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -98,6 +101,19 @@ const NotificationCenter = () => {
                       <h4>{notification.title}</h4>
                       <p>{notification.message}</p>
                       <small>{formatTimestamp(notification.timestamp)}</small>
+                      {notification.type === 'order-status' && notification.data?.orderId && (
+                        <div style={{ marginTop: 8 }}>
+                          <button 
+                            className="track-btn"
+                            onClick={() => {
+                              const token = localStorage.getItem('token');
+                              setTracking({ open: true, orderId: notification.data.orderId, orderNumber: notification.data.orderNumber, token });
+                            }}
+                          >
+                            Track Order
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button 
@@ -110,6 +126,25 @@ const NotificationCenter = () => {
                 </div>
               ))
             )}
+          </div>
+          <div className="notification-footer">
+            <button className="enable-push-btn" onClick={subscribeToPush}>
+              Enable Push Notifications
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tracking.open && (
+        <div className="tracking-modal">
+          <div className="tracking-modal-content">
+            <div className="tracking-modal-header">
+              <h3>Track Order</h3>
+              <button className="close-btn" onClick={() => setTracking({ open: false, orderId: null, orderNumber: null, token: null })}>✕</button>
+            </div>
+            <div className="tracking-modal-body">
+              <OrderTracking orderId={tracking.orderId} orderNumber={tracking.orderNumber} token={tracking.token} />
+            </div>
           </div>
         </div>
       )}

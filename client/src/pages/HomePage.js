@@ -5,6 +5,7 @@ import SmartRecommendations from '../components/SmartRecommendations';
 import LocationPermission from '../components/LocationPermission';
 import WeatherBackground from '../components/WeatherBackground';
 import api from '../utils/api';
+import OrderTracking from '../components/OrderTracking';
 
 function HomePage({ user }) {
   const [usualOrder, setUsualOrder] = useState(null);
@@ -13,6 +14,8 @@ function HomePage({ user }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLocationPermission, setShowLocationPermission] = useState(true);
   const [weatherData, setWeatherData] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [tracking, setTracking] = useState({ open: false, orderId: null, orderNumber: null });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -22,12 +25,18 @@ function HomePage({ user }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usualResponse, suggestedResponse] = await Promise.all([
+        const [usualResponse, suggestedResponse, summaryResponse] = await Promise.all([
           api.get('/orders/usual'),
-          api.get('/settings/suggested-product')
+          api.get('/settings/suggested-product'),
+          api.get('/orders/user/summary?activeLimit=1')
         ]);
         setUsualOrder(usualResponse.data);
         setSuggestedProduct(suggestedResponse.data);
+        if (summaryResponse.data?.success && Array.isArray(summaryResponse.data.activeOrders) && summaryResponse.data.activeOrders.length > 0) {
+          setActiveOrder(summaryResponse.data.activeOrders[0]);
+        } else {
+          setActiveOrder(null);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -147,6 +156,46 @@ function HomePage({ user }) {
             }
           }}
         />
+      )}
+
+      {/* Active Order Card */}
+      {user && activeOrder && (
+        <div className="home-card" style={{ margin: '16px', borderLeft: '4px solid #27ae60' }}>
+          <div className="card-header">
+            <h3>Active Order</h3>
+            <span className="card-icon">☕</span>
+          </div>
+          <div className="card-content">
+            <p><strong>Order #{activeOrder.orderNumber}</strong> • {activeOrder.status}</p>
+            {activeOrder.estimatedTime && (
+              <p style={{ color: '#555' }}>ETA: {new Date(activeOrder.estimatedTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+            )}
+            <div className="card-footer">
+              <button 
+                className="card-button" 
+                onClick={() => setTracking({ open: true, orderId: activeOrder.id, orderNumber: activeOrder.orderNumber })}
+              >
+                <span>Track Order</span>
+                <span className="button-icon">👁️</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tracking Modal */}
+      {tracking.open && (
+        <div className="tracking-modal">
+          <div className="tracking-modal-content">
+            <div className="tracking-modal-header">
+              <h3>Track Order</h3>
+              <button className="close-btn" onClick={() => setTracking({ open: false, orderId: null, orderNumber: null })}>✕</button>
+            </div>
+            <div className="tracking-modal-body">
+              <OrderTracking orderId={tracking.orderId} orderNumber={tracking.orderNumber} token={user?.token} />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Main Content Grid */}
