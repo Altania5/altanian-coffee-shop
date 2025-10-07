@@ -7,14 +7,21 @@ let Bean = require('../models/bean.model');
 // @access  Private
 router.post('/add', auth, async (req, res) => {
   try {
-    const { name, roaster, origin } = req.body;
+    const { name, roaster, origin, roastDate, roastLevel, processMethod, notes } = req.body;
     if (!name) {
       return res.status(400).json({ msg: 'Please enter a name for the bean.' });
+    }
+    if (!roastDate) {
+      return res.status(400).json({ msg: 'Please enter a roast date for the bean.' });
     }
     const newBean = new Bean({
       name,
       roaster,
       origin,
+      roastDate,
+      roastLevel,
+      processMethod,
+      notes,
       user: req.user.id
     });
     const savedBean = await newBean.save();
