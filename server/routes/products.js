@@ -1,6 +1,7 @@
 const router = require('express').Router();
 let Product = require('../models/product.model');
 const ownerAuth = require('../middleware/ownerAuth');
+const { dualAuth } = require('../middleware/dualAuth');
 const { checkProductAvailability, updateProductAvailability, getUnavailableProducts } = require('../utils/productAvailability');
 
 router.route('/').get((req, res) => {
@@ -20,8 +21,13 @@ router.route('/').get((req, res) => {
     .catch(err => res.status(400).json('Error: ' + err));
 });
 
-router.post('/add', ownerAuth, async (req, res) => {
+router.post('/add', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const { name, description, price, imageUrl, recipe, isAvailable, category, canBeModified } = req.body;
         
         // Mark availability as manually set if explicitly provided
@@ -58,8 +64,13 @@ router.post('/add', ownerAuth, async (req, res) => {
     }
 });
 
-router.put('/update/:id', ownerAuth, async (req, res) => {
+router.put('/update/:id', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const { name, description, price, imageUrl, recipe, isAvailable, category, canBeModified } = req.body;
         
         // Check if availability is being manually set
@@ -105,8 +116,13 @@ router.put('/update/:id', ownerAuth, async (req, res) => {
     }
 });
 
-router.delete('/delete/:id', ownerAuth, async (req, res) => {
+router.delete('/delete/:id', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         await Product.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Product deleted.' });
     } catch (err) {
@@ -115,8 +131,13 @@ router.delete('/delete/:id', ownerAuth, async (req, res) => {
 });
 
 // Route to check availability of a specific product
-router.get('/:id/availability', ownerAuth, async (req, res) => {
+router.get('/:id/availability', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const product = await Product.findById(req.params.id).populate('recipe.item');
         if (!product) {
             return res.status(404).json({ error: 'Product not found' });
@@ -136,8 +157,13 @@ router.get('/:id/availability', ownerAuth, async (req, res) => {
 });
 
 // Route to get all unavailable products
-router.get('/unavailable/list', ownerAuth, async (req, res) => {
+router.get('/unavailable/list', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const unavailableProducts = await getUnavailableProducts();
         res.json({
             success: true,
@@ -149,8 +175,13 @@ router.get('/unavailable/list', ownerAuth, async (req, res) => {
 });
 
 // Route to manually update a product's availability
-router.post('/:id/update-availability', ownerAuth, async (req, res) => {
+router.post('/:id/update-availability', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const { forceUpdate = false } = req.body;
         const result = await updateProductAvailability(req.params.id, forceUpdate);
         res.json({
@@ -164,8 +195,13 @@ router.post('/:id/update-availability', ownerAuth, async (req, res) => {
 });
 
 // Route to manually set product availability (override automatic calculation)
-router.post('/:id/set-availability', ownerAuth, async (req, res) => {
+router.post('/:id/set-availability', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const { isAvailable } = req.body;
         
         if (typeof isAvailable !== 'boolean') {
@@ -196,8 +232,13 @@ router.post('/:id/set-availability', ownerAuth, async (req, res) => {
 });
 
 // Route to fix latte availability (debugging)
-router.post('/fix-latte', ownerAuth, async (req, res) => {
+router.post('/fix-latte', dualAuth, async (req, res) => {
     try {
+        // Check owner access
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied - owner required' });
+        }
+
         const latte = await Product.findOne({ name: /latte/i });
         
         if (!latte) {

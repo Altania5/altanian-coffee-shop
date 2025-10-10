@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
+const { dualAuth, optionalDualAuth } = require('../middleware/dualAuth');
 const Order = require('../models/order.model');
 const OrderService = require('../services/orderService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -36,7 +37,7 @@ const awardLoyaltyIfEligible = async (order, userId) => {
  * @desc    Create a new order
  * @access  Public (for guest orders) / Private (for user orders)
  */
-router.post('/', optionalAuth, async (req, res) => {
+router.post('/', optionalDualAuth, async (req, res) => {
   try {
     const { items, customer, tip, notes, specialInstructions, paymentMethodId, rewardId, discount, promoCode, promoId, skipPayment, testOrder } = req.body;
     
@@ -234,7 +235,7 @@ router.post('/', optionalAuth, async (req, res) => {
  * @desc    Get orders (admin gets all, users get their own)
  * @access  Private
  */
-router.get('/', auth, async (req, res) => {
+router.get('/', dualAuth, async (req, res) => {
   try {
     const { status, today, limit } = req.query;
     const filters = {};
@@ -270,7 +271,7 @@ router.get('/', auth, async (req, res) => {
  * @desc    Get user's order history
  * @access  Private
  */
-router.get('/history', auth, async (req, res) => {
+router.get('/history', dualAuth, async (req, res) => {
   try {
     const { limit = 50, offset = 0, from, to } = req.query;
 
@@ -313,7 +314,7 @@ router.get('/history', auth, async (req, res) => {
  * @desc    Get user's most ordered product (legacy endpoint)
  * @access  Private
  */
-router.get('/usual', auth, async (req, res) => {
+router.get('/usual', dualAuth, async (req, res) => {
   try {
     const result = await Order.aggregate([
       { $match: { 'customer.user': new mongoose.Types.ObjectId(req.user.id) } },
@@ -352,7 +353,7 @@ router.get('/usual', auth, async (req, res) => {
  * @desc    Get user's orders (legacy endpoint)
  * @access  Private
  */
-router.get('/myorders', auth, async (req, res) => {
+router.get('/myorders', dualAuth, async (req, res) => {
   try {
     const orders = await Order.find({ 'customer.user': req.user.id })
       .populate('items.product', 'name price')
@@ -368,7 +369,7 @@ router.get('/myorders', auth, async (req, res) => {
  * @desc    Get current user's orders grouped by status
  * @access  Private
  */
-router.get('/user/summary', auth, async (req, res) => {
+router.get('/user/summary', dualAuth, async (req, res) => {
   try {
     const { from, to, activeLimit = 10, activeOffset = 0, pastLimit = 10, pastOffset = 0 } = req.query;
     const activeStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
@@ -448,7 +449,7 @@ router.get('/user/summary', auth, async (req, res) => {
   }
 });
 
-router.post('/payment-methods/setup-intent', auth, async (req, res) => {
+router.post('/payment-methods/setup-intent', dualAuth, async (req, res) => {
   try {
     let customerId = req.user.stripeCustomerId;
 
@@ -472,7 +473,7 @@ router.post('/payment-methods/setup-intent', auth, async (req, res) => {
   }
 });
 
-router.get('/payment-methods', auth, async (req, res) => {
+router.get('/payment-methods', dualAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     res.json({ success: true, paymentMethods: user?.savedPaymentMethods || [] });
@@ -482,7 +483,7 @@ router.get('/payment-methods', auth, async (req, res) => {
   }
 });
 
-router.post('/payment-methods', auth, async (req, res) => {
+router.post('/payment-methods', dualAuth, async (req, res) => {
   try {
     const { paymentMethodId, setDefault } = req.body;
 
@@ -534,7 +535,7 @@ router.post('/payment-methods', auth, async (req, res) => {
   }
 });
 
-router.delete('/payment-methods/:paymentMethodId', auth, async (req, res) => {
+router.delete('/payment-methods/:paymentMethodId', dualAuth, async (req, res) => {
   try {
     const { paymentMethodId } = req.params;
     const user = await User.findById(req.user.id);
@@ -566,7 +567,7 @@ router.delete('/payment-methods/:paymentMethodId', auth, async (req, res) => {
  * @desc    Get single order by ID
  * @access  Private
  */
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', dualAuth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('customer.user', 'firstName lastName')
@@ -651,7 +652,7 @@ router.get('/number/:orderNumber', async (req, res) => {
  * @desc    Update order status (admin only)
  * @access  Private (Admin/Owner)
  */
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', dualAuth, async (req, res) => {
   try {
     // Check admin access
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
@@ -761,7 +762,7 @@ function calculateEstimatedTime(status) {
  * @desc    Cancel order and restore inventory
  * @access  Private
  */
-router.post('/:id/cancel', auth, async (req, res) => {
+router.post('/:id/cancel', dualAuth, async (req, res) => {
   try {
     const { reason } = req.body;
     const order = await Order.findById(req.params.id);
@@ -808,7 +809,7 @@ router.post('/:id/cancel', auth, async (req, res) => {
  * @desc    Get admin dashboard data
  * @access  Private (Admin/Owner)
  */
-router.get('/admin/dashboard', auth, async (req, res) => {
+router.get('/admin/dashboard', dualAuth, async (req, res) => {
   try {
     // Check admin access
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {

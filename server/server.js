@@ -92,6 +92,9 @@ const aiModelsRouter = require('./routes/aiModels');
 const coffeeArtRouter = require('./routes/coffeeArt');
 const socialFeaturesRouter = require('./routes/socialFeatures');
 const healthInsightsRouter = require('./routes/healthInsights');
+const apiKeysRouter = require('./routes/apiKeys');
+const apiDocsRouter = require('./routes/apiDocs');
+const webhooksRouter = require('./routes/webhooks');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -110,6 +113,9 @@ app.use('/ai-models', aiModelsRouter);
 app.use('/coffee-art', coffeeArtRouter);
 app.use('/social', socialFeaturesRouter);
 app.use('/health', healthInsightsRouter);
+app.use('/api-keys', apiKeysRouter);
+app.use('/api-docs', apiDocsRouter);
+app.use('/webhooks', webhooksRouter);
 
 // Initialize WebSocket server for real-time order tracking
 const OrderTrackingServer = require('./websocket/orderTracking');

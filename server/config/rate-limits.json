@@ -1,0 +1,44 @@
+{
+  "tiers": {
+    "basic": {
+      "name": "Basic",
+      "requestsPerMinute": 100,
+      "requestsPerHour": 1000,
+      "requestsPerDay": 10000,
+      "description": "Basic rate limiting for development and testing"
+    },
+    "standard": {
+      "name": "Standard",
+      "requestsPerMinute": 500,
+      "requestsPerHour": 5000,
+      "requestsPerDay": 50000,
+      "description": "Standard rate limiting for production use"
+    },
+    "premium": {
+      "name": "Premium",
+      "requestsPerMinute": 2000,
+      "requestsPerHour": 20000,
+      "requestsPerDay": 200000,
+      "description": "Premium rate limiting for high-volume applications"
+    },
+    "unlimited": {
+      "name": "Unlimited",
+      "requestsPerMinute": -1,
+      "requestsPerHour": -1,
+      "requestsPerDay": -1,
+      "description": "No rate limiting (Owner only)"
+    }
+  },
+  "scopeLimits": {
+    "read": "basic",
+    "write": "standard",
+    "orders:read": "basic",
+    "orders:write": "standard",
+    "products:manage": "premium",
+    "admin": "premium",
+    "full": "unlimited"
+  },
+  "defaultTier": "basic",
+  "burstAllowance": 1.5,
+  "windowSize": 60
+}

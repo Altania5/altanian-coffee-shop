@@ -1,0 +1,51 @@
+{
+  "scopes": {
+    "read": {
+      "name": "Read Only",
+      "description": "Read-only access to all GET endpoints",
+      "permissions": ["GET"],
+      "endpoints": ["*"]
+    },
+    "write": {
+      "name": "Read/Write",
+      "description": "Read and write access to all endpoints",
+      "permissions": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "endpoints": ["*"]
+    },
+    "orders:read": {
+      "name": "Orders Read",
+      "description": "Read-only access to order endpoints",
+      "permissions": ["GET"],
+      "endpoints": ["/orders", "/orders/*"]
+    },
+    "orders:write": {
+      "name": "Orders Write",
+      "description": "Full access to order endpoints",
+      "permissions": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "endpoints": ["/orders", "/orders/*"]
+    },
+    "products:manage": {
+      "name": "Product Management",
+      "description": "Manage products and inventory (Owner only)",
+      "permissions": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "endpoints": ["/products", "/products/*", "/inventory", "/inventory/*"],
+      "requiresOwner": true
+    },
+    "admin": {
+      "name": "Admin Operations",
+      "description": "Administrative operations (Owner only)",
+      "permissions": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "endpoints": ["/api-keys", "/api-keys/*", "/users", "/users/*", "/settings", "/settings/*"],
+      "requiresOwner": true
+    },
+    "full": {
+      "name": "Full Access",
+      "description": "Complete access to all endpoints (Owner only)",
+      "permissions": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "endpoints": ["*"],
+      "requiresOwner": true
+    }
+  },
+  "defaultScope": "read",
+  "ownerScopes": ["admin", "full", "products:manage"]
+}

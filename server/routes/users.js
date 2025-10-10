@@ -2,6 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
+const { dualAuth, optionalDualAuth } = require('../middleware/dualAuth');
 let User = require('../models/user.model');
 const FavoriteDrink = require('../models/favoriteDrink.model');
 const Product = require('../models/product.model');
@@ -106,7 +107,7 @@ router.route('/login').post(async (req, res) => {
 });
 
 // --- GET USER PROFILE ---
-router.route('/profile').get(auth, async (req, res) => {
+router.route('/profile').get(dualAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
@@ -132,7 +133,7 @@ router.route('/profile').get(auth, async (req, res) => {
 });
 
 // --- UPDATE USER PROFILE ---
-router.route('/profile').put(auth, async (req, res) => {
+router.route('/profile').put(dualAuth, async (req, res) => {
   try {
     const { firstName, lastName, phone } = req.body;
 
@@ -177,7 +178,7 @@ router.route('/profile').put(auth, async (req, res) => {
 });
 
 // --- CHANGE PASSWORD ---
-router.route('/password').put(auth, async (req, res) => {
+router.route('/password').put(dualAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     
@@ -220,7 +221,7 @@ router.route('/password').put(auth, async (req, res) => {
 });
 
 // --- GET USER FAVORITES ---
-router.route('/favorites').get(auth, async (req, res) => {
+router.route('/favorites').get(dualAuth, async (req, res) => {
   try {
     const favorites = await FavoriteDrink.find({ user: req.user.id })
       .sort({ updatedAt: -1 });
@@ -236,7 +237,7 @@ router.route('/favorites').get(auth, async (req, res) => {
 });
 
 // --- ADD FAVORITE ---
-router.route('/favorites').post(auth, async (req, res) => {
+router.route('/favorites').post(dualAuth, async (req, res) => {
   try {
     const { productId, customizations, notes } = req.body;
 
@@ -291,7 +292,7 @@ router.route('/favorites').post(auth, async (req, res) => {
 });
 
 // --- REMOVE FAVORITE ---
-router.route('/favorites/:favoriteId').delete(auth, async (req, res) => {
+router.route('/favorites/:favoriteId').delete(dualAuth, async (req, res) => {
   try {
     const { favoriteId } = req.params;
 
@@ -319,7 +320,7 @@ router.route('/favorites/:favoriteId').delete(auth, async (req, res) => {
 module.exports = router;
  
 // --- ACCOUNT OVERVIEW (orders + loyalty) ---
-router.route('/account/overview').get(auth, async (req, res) => {
+router.route('/account/overview').get(dualAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const {

@@ -1,0 +1,22 @@
+{
+  "keys": [
+    {
+      "id": "demo-key-001",
+      "name": "Demo API Key",
+      "keyHash": "$2b$10$demo.hash.for.demo.key.only",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastUsed": null,
+      "isActive": true,
+      "scope": "full",
+      "allowedIPs": [],
+      "description": "Demo key for testing API functionality"
+    }
+  ],
+  "settings": {
+    "keyLength": 32,
+    "hashRounds": 10,
+    "maxKeys": 50,
+    "defaultScope": "read",
+    "ipWhitelistEnabled": true
+  }
+}
