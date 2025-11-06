@@ -1,1 +1,1 @@
-web: cd ml_service && python app.py & sleep 5 && cd .. && node server/server.js
+web: node server/server.js
