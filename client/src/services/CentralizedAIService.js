@@ -15,18 +15,31 @@ class CentralizedAIService {
 
       if (response.data.success) {
         this.modelInfo = response.data.data;
-        this.isReady = response.data.data.mlService.isHealthy;
+        const mlService = response.data.data.mlService || {};
+
+        // Check if ML service is available
+        if (!mlService.available || mlService.status === 'unavailable') {
+          console.warn('⚠️ ML service is not deployed:', mlService.message || 'AI predictions unavailable');
+          this.isReady = false;
+          this.modelInfo.mlServiceAvailable = false;
+          return; // Don't throw error, just return
+        }
+
+        this.isReady = mlService.isHealthy;
+        this.modelInfo.mlServiceAvailable = true;
         console.log('✅ Centralized AI Service ready (Python ML):', this.modelInfo);
-        console.log('   - ML Service Health:', response.data.data.mlService.status);
-        console.log('   - Models Loaded:', response.data.data.mlService.models);
+        console.log('   - ML Service Health:', mlService.status);
+        console.log('   - Models Loaded:', mlService.models);
         console.log('   - Training Data:', response.data.data.dataStats);
       } else {
         console.warn('⚠️ Centralized AI Service not ready:', response.data.message);
         this.isReady = false;
       }
     } catch (error) {
-      console.error('❌ Error initializing Centralized AI Service:', error);
+      console.error('❌ Error initializing Centralized AI Service:', error.message);
       this.isReady = false;
+      this.modelInfo = { mlServiceAvailable: false, error: error.message };
+      // Don't throw - allow app to continue without AI
     }
   }
 

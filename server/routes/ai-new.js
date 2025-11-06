@@ -20,14 +20,25 @@ const CoffeeLog = require('../models/coffeeLog.model');
 router.get('/status', auth, async (req, res) => {
   try {
     // Get ML service health
-    const health = await mlServiceClient.checkHealth();
+    let health = null;
+    let mlServiceAvailable = false;
+
+    try {
+      health = await mlServiceClient.checkHealth();
+      mlServiceAvailable = health && health.model_loaded;
+    } catch (error) {
+      console.log('[ML Service] Not available:', error.message);
+      // ML service is not running - this is OK, just return unavailable status
+    }
 
     // Get model info
     let modelInfo = null;
-    try {
-      modelInfo = await mlServiceClient.getModelInfo();
-    } catch (error) {
-      console.warn('Could not get model info:', error.message);
+    if (mlServiceAvailable) {
+      try {
+        modelInfo = await mlServiceClient.getModelInfo();
+      } catch (error) {
+        console.warn('Could not get model info:', error.message);
+      }
     }
 
     // Get coffee log statistics
@@ -45,16 +56,30 @@ router.get('/status', auth, async (req, res) => {
       .select('shotQuality inWeight outWeight extractionTime grindSize temperature')
       .lean();
 
+    // Return status even if ML service is unavailable
     res.json({
       success: true,
       data: {
-        mlService: {
+        mlService: mlServiceAvailable ? {
           status: health.status,
           isHealthy: health.model_loaded,
           models: health.models || [],
-          numFeatures: health.num_features || 0
+          numFeatures: health.num_features || 0,
+          available: true
+        } : {
+          status: 'unavailable',
+          isHealthy: false,
+          models: [],
+          numFeatures: 0,
+          available: false,
+          message: 'ML service is not currently deployed. AI predictions are unavailable.'
         },
-        modelInfo: modelInfo || {},
+        modelInfo: modelInfo || {
+          isReady: false,
+          hasModel: false,
+          modelVersion: 'unavailable',
+          message: 'ML service not deployed'
+        },
         dataStats: {
           totalLogs,
           validLogs,
