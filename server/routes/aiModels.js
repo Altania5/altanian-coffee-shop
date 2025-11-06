@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const ownerAuth = require('../middleware/ownerAuth');
-const aiModelService = require('../services/aiModelService');
-const centralizedAIService = require('../services/centralizedAIService');
+// Legacy AI services - kept for model management
+const aiModelService = require('../services/legacy/aiModelService');
+const centralizedAIService = require('../services/legacy/centralizedAIService');
 const jupyterIntegrationService = require('../services/jupyterIntegrationService');
 const AIModel = require('../models/aiModel.model');
 

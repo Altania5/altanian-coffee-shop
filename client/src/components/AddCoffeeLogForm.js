@@ -17,16 +17,18 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
     temperature: 93,
     inWeight: 18,
     outWeight: 36,
-    
+
     // NEW: Bean Characteristics (auto-populated from bean selection)
     roastLevel: '',
     processMethod: '',
-    
+    daysPastRoast: 14, // CRITICAL: 13.4% feature importance
+    beanUsageCount: 1, // CRITICAL: 6.9% feature importance
+
     // NEW: Preparation Technique Parameters
     usedPuckScreen: false,
     usedWDT: false,
     distributionTechnique: 'none',
-    
+
     // AI Training Parameters
     shotQuality: 5,
     tasteProfile: {
@@ -36,16 +38,16 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
       body: 3
     },
     targetProfile: 'balanced',
-    
+
     // Advanced Parameters
     humidity: '',
     pressure: 9,
-    
+
     // NEW: Pre-Infusion Parameters
     usedPreInfusion: false,
     preInfusionTime: '',
     preInfusionPressure: '',
-    
+
     // Legacy
     tasteMetExpectations: true,
     notes: ''
@@ -171,16 +173,18 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         temperature: 93,
         inWeight: 18,
         outWeight: 36,
-        
+
         // NEW: Bean Characteristics
         roastLevel: '',
         processMethod: '',
-        
+        daysPastRoast: 14,
+        beanUsageCount: 1,
+
         // NEW: Preparation Technique Parameters
         usedPuckScreen: false,
         usedWDT: false,
         distributionTechnique: 'none',
-        
+
         shotQuality: 5,
         tasteProfile: {
           sweetness: 3,
@@ -191,12 +195,12 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
         targetProfile: 'balanced',
         humidity: '',
         pressure: 9,
-        
+
         // NEW: Pre-Infusion Parameters
         usedPreInfusion: false,
         preInfusionTime: '',
         preInfusionPressure: '',
-        
+
         tasteMetExpectations: true,
         notes: ''
       });
@@ -306,7 +310,7 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                 </select>
                 <span className="input-hint">Auto-filled from bean selection</span>
               </div>
-              
+
               <div className="form-group">
                 <label>Process Method</label>
                 <select name="processMethod" value={formData.processMethod} onChange={handleChange}>
@@ -318,6 +322,43 @@ function AddCoffeeLogForm({ token, beans, onLogAdded, onBeanAdded, user }) {
                   <option value="other">Other</option>
                 </select>
                 <span className="input-hint">Auto-filled from bean selection</span>
+              </div>
+            </div>
+          )}
+
+          {/* CRITICAL AI Parameters - Bean Freshness & Usage */}
+          {formData.bean && (
+            <div className="form-row bean-characteristics">
+              <div className="form-group">
+                <label>Days Past Roast ⭐</label>
+                <input
+                  type="number"
+                  name="daysPastRoast"
+                  value={formData.daysPastRoast}
+                  onChange={handleChange}
+                  min="0"
+                  max="60"
+                  step="1"
+                />
+                <span className="input-hint">
+                  🎯 13.4% AI importance - Days since beans were roasted (optimal: 7-21 days)
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label>Bean Usage Count ⭐</label>
+                <input
+                  type="number"
+                  name="beanUsageCount"
+                  value={formData.beanUsageCount}
+                  onChange={handleChange}
+                  min="1"
+                  max="100"
+                  step="1"
+                />
+                <span className="input-hint">
+                  🎯 6.9% AI importance - How many shots you've made with this bean (affects dialing-in)
+                </span>
               </div>
             </div>
           )}

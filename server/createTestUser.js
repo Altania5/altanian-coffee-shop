@@ -32,6 +32,7 @@ async function createTestUser() {
     const testUser = new User({
       firstName: 'Test',
       lastName: 'User',
+      email: 'test@example.com',
       birthday: new Date('1990-01-01'),
       username: 'testuser',
       password: passwordHash,
@@ -53,6 +54,7 @@ async function createTestUser() {
       const adminUser = new User({
         firstName: 'Admin',
         lastName: 'User',
+        email: 'admin@example.com',
         birthday: new Date('1985-01-01'),
         username: 'admin',
         password: adminPasswordHash,

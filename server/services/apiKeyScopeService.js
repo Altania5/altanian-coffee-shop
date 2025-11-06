@@ -105,3 +105,4 @@ class ApiKeyScopeService {
 }
 
 module.exports = new ApiKeyScopeService();
+

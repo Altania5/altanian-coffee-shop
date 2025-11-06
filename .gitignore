@@ -41,3 +41,35 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+ml_service/venv/
+ml_service/.venv/
+ml_service/env/
+ml_service/ENV/
+
+# ML Models (optional - include if models are small)
+# ml_service/saved_models/*.pkl
+
+# Training data (keep cleaned version, exclude raw exports)
+coffee_logs_summary_fresh.json
+coffee_logs_training_data_fresh.csv
+coffee_logs_training_data_fresh.json
+coffee_logs_training_data_v2.csv
+server/coffeeshop_app_db.coffeelogs.json
+fresh_export.js
+
+# Test files
+test-ml-docker.bat
+test_prediction.json
+
+# Data cleaning reports
+server/data_cleaning_report_*.json
+
+# Claude artifacts
+.claude/

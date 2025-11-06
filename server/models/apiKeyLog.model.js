@@ -218,3 +218,4 @@ apiKeyLogSchema.statics.cleanupOldLogs = function(daysToKeep = 90) {
 const ApiKeyLog = mongoose.model('ApiKeyLog', apiKeyLogSchema);
 
 module.exports = ApiKeyLog;
+

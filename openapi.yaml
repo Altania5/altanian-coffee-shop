@@ -1,0 +1,4021 @@
+openapi: 3.0.3
+info:
+  title: Altanian Coffee Shop API
+  description: |
+    Comprehensive API for Altanian Coffee Shop operations including user management, 
+    product catalog, order processing, loyalty programs, AI analysis, and more.
+    
+    ## Authentication
+    The API supports two authentication methods:
+    - **API Key**: Include `x-api-key` header for full access
+    - **JWT Token**: Include `x-auth-token` header for user role-based access
+    
+    ## Rate Limiting
+    - API Keys: No rate limiting (monitored usage)
+    - JWT Tokens: Standard rate limiting applies
+    
+    ## Real-time Features
+    WebSocket support is available for real-time order tracking and notifications.
+  version: 1.0.0
+  contact:
+    name: Altanian Coffee Shop Support
+    email: support@altaniancoffee.com
+    url: https://altaniancoffee.com
+  license:
+    name: ISC
+    url: https://opensource.org/licenses/ISC
+
+servers:
+  - url: https://your-domain.com
+    description: Production server
+  - url: http://localhost:5002
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User registration and authentication
+  - name: Users
+    description: User profile and account management
+  - name: Products
+    description: Product catalog and availability
+  - name: Orders
+    description: Order creation, tracking, and management
+  - name: Payments
+    description: Payment method management
+  - name: Coffee Beans
+    description: Coffee bean tracking and management
+  - name: Coffee Logs
+    description: Coffee brewing logs and analysis
+  - name: Inventory
+    description: Inventory management
+  - name: Loyalty
+    description: Loyalty program and rewards
+  - name: AI Analysis
+    description: AI-powered coffee analysis
+  - name: API Keys
+    description: API key management (Owner only)
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /users/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+            example:
+              firstName: John
+              lastName: Doe
+              birthday: "1990-01-01"
+              email: john@example.com
+              username: johndoe
+              password: password123
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and return JWT token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+            example:
+              username: johndoe
+              password: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # User Management Endpoints
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieve current user's profile information
+      operationId: getUserProfile
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update current user's profile information
+      operationId: updateUserProfile
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+            example:
+              firstName: John
+              lastName: Doe
+              phone: "+1234567890"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/password:
+    put:
+      tags:
+        - Users
+      summary: Change password
+      description: Change user's password
+      operationId: changePassword
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+            example:
+              currentPassword: oldpassword
+              newPassword: newpassword123
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/favorites:
+    get:
+      tags:
+        - Users
+      summary: Get user favorites
+      description: Retrieve user's favorite drinks
+      operationId: getUserFavorites
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Favorites retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Users
+      summary: Add favorite
+      description: Add a drink to user's favorites
+      operationId: addFavorite
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteAdd'
+            example:
+              productId: "product_id"
+              customizations:
+                size: "Large"
+                milk: "Oat Milk"
+              notes: "Extra hot"
+              incrementOrderCount: true
+      responses:
+        '200':
+          description: Favorite added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/favorites/{favoriteId}:
+    delete:
+      tags:
+        - Users
+      summary: Remove favorite
+      description: Remove a drink from user's favorites
+      operationId: removeFavorite
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: favoriteId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the favorite to remove
+      responses:
+        '200':
+          description: Favorite removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Favorite not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/account/overview:
+    get:
+      tags:
+        - Users
+      summary: Get account overview
+      description: Get comprehensive account overview including orders and loyalty
+      operationId: getAccountOverview
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date filter
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date filter
+        - name: activeLimit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of active orders to return
+        - name: activeOffset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset for active orders pagination
+        - name: pastLimit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of past orders to return
+        - name: pastOffset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset for past orders pagination
+      responses:
+        '200':
+          description: Account overview retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOverviewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Product Endpoints
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieve all available products
+      operationId: getProducts
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Products
+      summary: Add product
+      description: Add a new product (Owner only)
+      operationId: addProduct
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+            example:
+              name: "New Drink"
+              description: "Description here"
+              price: 5.00
+              imageUrl: "image_url"
+              category: "Hot Beverage"
+              canBeModified: true
+              recipe:
+                - item: "inventory_item_id"
+                  quantityRequired: 1
+              isAvailable: true
+      responses:
+        '200':
+          description: Product added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/update/{id}:
+    put:
+      tags:
+        - Products
+      summary: Update product
+      description: Update an existing product (Owner only)
+      operationId: updateProduct
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/delete/{id}:
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      description: Delete a product (Owner only)
+      operationId: deleteProduct
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Product ID
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Order Endpoints
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Create order
+      description: Create a new order (supports guest and authenticated users)
+      operationId: createOrder
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+            example:
+              items:
+                - product: "product_id"
+                  quantity: 2
+                  customizations:
+                    size:
+                      name: "Large"
+                      priceModifier: 1.00
+                    milk:
+                      inventoryId: "milk_id"
+                      name: "Oat Milk"
+                      price: 0.50
+              customer:
+                name: "John Doe"
+                email: "john@example.com"
+                phone: "+1234567890"
+              tip: 2.00
+              notes: "Extra hot please"
+              paymentMethodId: "stripe_payment_method_id"
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Orders
+      summary: Get orders
+      description: Get orders (admin gets all, users get their own)
+      operationId: getOrders
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, preparing, ready, completed, cancelled]
+          description: Filter by order status
+        - name: today
+          in: query
+          schema:
+            type: boolean
+          description: Get today's orders only
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Number of orders to return
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrdersResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/history:
+    get:
+      tags:
+        - Orders
+      summary: Get order history
+      description: Get user's order history
+      operationId: getOrderHistory
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Number of orders to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date filter
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date filter
+      responses:
+        '200':
+          description: Order history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderHistoryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order by ID
+      description: Get a specific order by ID
+      operationId: getOrderById
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        '200':
+          description: Order retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}/status:
+    put:
+      tags:
+        - Orders
+      summary: Update order status
+      description: Update order status (Admin only)
+      operationId: updateOrderStatus
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+            example:
+              status: "preparing"
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatusResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}/cancel:
+    post:
+      tags:
+        - Orders
+      summary: Cancel order
+      description: Cancel an order and restore inventory
+      operationId: cancelOrder
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCancel'
+            example:
+              reason: "Customer requested cancellation"
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCancelResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Loyalty Program Endpoints
+  /loyalty/account:
+    get:
+      tags:
+        - Loyalty
+      summary: Get loyalty account
+      description: Get user's loyalty account information
+      operationId: getLoyaltyAccount
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Loyalty account retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyAccountResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Loyalty account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /loyalty/rewards:
+    get:
+      tags:
+        - Loyalty
+      summary: Get available rewards
+      description: Get available rewards for user
+      operationId: getAvailableRewards
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Rewards retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /loyalty/redeem:
+    post:
+      tags:
+        - Loyalty
+      summary: Redeem reward
+      description: Redeem a loyalty reward
+      operationId: redeemReward
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardRedeem'
+            example:
+              rewardId: "reward_id"
+              orderId: "order_id"
+      responses:
+        '200':
+          description: Reward redeemed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRedeemResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /loyalty/leaderboard:
+    get:
+      tags:
+        - Loyalty
+      summary: Get leaderboard
+      description: Get top customers leaderboard
+      operationId: getLeaderboard
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of customers to return
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # AI Analysis Endpoints
+  /ai/status:
+    get:
+      tags:
+        - AI Analysis
+      summary: Get AI status
+      description: Get AI model status and information
+      operationId: getAIStatus
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: AI status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIStatusResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ai/analyze:
+    post:
+      tags:
+        - AI Analysis
+      summary: Analyze coffee shot
+      description: Analyze a coffee shot using AI
+      operationId: analyzeCoffeeShot
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoffeeShotAnalysis'
+            example:
+              inWeight: 18
+              outWeight: 36
+              extractionTime: 28
+              shotQuality: 8
+              grindSize: "Fine"
+              temperature: 200
+              pressure: 9
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAnalysisResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ai/train:
+    post:
+      tags:
+        - AI Analysis
+      summary: Train AI model
+      description: Train the AI model (Owner only)
+      operationId: trainAIModel
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: AI training started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: AI model is already training
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Payment Endpoints
+  /payments/create-checkout-session:
+    post:
+      tags:
+        - Payments
+      summary: Create Stripe checkout session
+      description: Create a new Stripe checkout session for payment processing
+      operationId: createCheckoutSession
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutSessionRequest'
+            example:
+              cart:
+                - name: "Cappuccino"
+                  price: 4.50
+                  quantity: 2
+              promoCode: "SAVE10"
+      responses:
+        '200':
+          description: Checkout session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSessionResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Bean Bags Endpoints
+  /beanbags:
+    post:
+      tags:
+        - Coffee Beans
+      summary: Create bean bag
+      description: Create a new bean bag for tracking coffee beans
+      operationId: createBeanBag
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BeanBagCreate'
+            example:
+              bean: "bean_id"
+              bagSizeGrams: 250
+      responses:
+        '200':
+          description: Bean bag created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeanBag'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Coffee Beans
+      summary: Get bean bags
+      description: List user's bean bags with optional filters
+      operationId: getBeanBags
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: bean
+          in: query
+          schema:
+            type: string
+          description: Filter by bean ID
+        - name: includeEmpty
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include empty bags
+      responses:
+        '200':
+          description: Bean bags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BeanBag'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /beanbags/{id}/empty:
+    patch:
+      tags:
+        - Coffee Beans
+      summary: Mark bean bag as empty
+      description: Mark a bean bag as empty
+      operationId: markBeanBagEmpty
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bean bag ID
+      responses:
+        '200':
+          description: Bean bag marked as empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeanBag'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Bean bag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /beanbags/{id}:
+    delete:
+      tags:
+        - Coffee Beans
+      summary: Delete bean bag
+      description: Delete a bean bag
+      operationId: deleteBeanBag
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bean bag ID
+      responses:
+        '200':
+          description: Bean bag deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Bean bag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Promo Codes Endpoints
+  /promocodes/verify:
+    post:
+      tags:
+        - Promo Codes
+      summary: Verify promo code
+      description: Verify if a promo code is valid and active
+      operationId: verifyPromoCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoCodeVerify'
+            example:
+              code: "SAVE10"
+      responses:
+        '200':
+          description: Promo code verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoCodeVerifyResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Invalid or expired promo code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /promocodes/use:
+    post:
+      tags:
+        - Promo Codes
+      summary: Track promo code usage
+      description: Track promo code usage and increment usage count
+      operationId: usePromoCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoCodeUse'
+            example:
+              promoId: "promo_id"
+      responses:
+        '200':
+          description: Promo code usage tracked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Promo code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /promocodes:
+    get:
+      tags:
+        - Promo Codes
+      summary: Get promo codes
+      description: List all promo codes (Owner only)
+      operationId: getPromoCodes
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Promo codes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PromoCode'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Promo Codes
+      summary: Create promo code
+      description: Create a new promo code (Owner only)
+      operationId: createPromoCode
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoCodeCreate'
+            example:
+              code: "SAVE10"
+              discountPercentage: 10
+              expiresAt: "2024-12-31T23:59:59Z"
+              maxUsage: 100
+      responses:
+        '201':
+          description: Promo code created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoCode'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /promocodes/{id}:
+    put:
+      tags:
+        - Promo Codes
+      summary: Update promo code
+      description: Update an existing promo code (Owner only)
+      operationId: updatePromoCode
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Promo code ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromoCodeUpdate'
+      responses:
+        '200':
+          description: Promo code updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoCode'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Promo Codes
+      summary: Delete promo code
+      description: Delete a promo code (Owner only)
+      operationId: deletePromoCode
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Promo code ID
+      responses:
+        '200':
+          description: Promo code deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Notifications Endpoints
+  /notifications/vapid-public-key:
+    get:
+      tags:
+        - Notifications
+      summary: Get VAPID public key
+      description: Get VAPID public key for push notifications
+      operationId: getVapidPublicKey
+      responses:
+        '200':
+          description: VAPID public key retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VapidKeyResponse'
+
+  /notifications/subscribe:
+    post:
+      tags:
+        - Notifications
+      summary: Subscribe to push notifications
+      description: Subscribe user to push notifications
+      operationId: subscribeToNotifications
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSubscription'
+            example:
+              endpoint: "https://fcm.googleapis.com/fcm/send/..."
+              keys:
+                p256dh: "key"
+                auth: "key"
+              userAgent: "Mozilla/5.0..."
+      responses:
+        '200':
+          description: Successfully subscribed to notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/broadcast:
+    post:
+      tags:
+        - Notifications
+      summary: Broadcast notification
+      description: Broadcast a notification to all users (Owner only)
+      operationId: broadcastNotification
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationBroadcast'
+            example:
+              title: "Special Offer!"
+              message: "Get 20% off all drinks today"
+      responses:
+        '200':
+          description: Notification broadcast successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Settings Endpoints
+  /settings/suggested-product:
+    get:
+      tags:
+        - Settings
+      summary: Get suggested product
+      description: Get the currently suggested product
+      operationId: getSuggestedProduct
+      responses:
+        '200':
+          description: Suggested product retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+    put:
+      tags:
+        - Settings
+      summary: Update suggested product
+      description: Update the suggested product (Owner only)
+      operationId: updateSuggestedProduct
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestedProductUpdate'
+            example:
+              productId: "product_id"
+      responses:
+        '200':
+          description: Suggested product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # AI Models Endpoints
+  /ai-models:
+    get:
+      tags:
+        - AI Models
+      summary: Get AI models
+      description: Get all AI models (Owner only)
+      operationId: getAIModels
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [training, trained, published, archived]
+          description: Filter by status
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            default: createdAt
+          description: Sort field
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: AI models retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIModelsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Coffee Art Endpoints
+  /coffee-art/gallery:
+    get:
+      tags:
+        - Coffee Art
+      summary: Get coffee art gallery
+      description: Get approved coffee art submissions
+      operationId: getCoffeeArtGallery
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+            default: approved
+          description: Filter by status
+      responses:
+        '200':
+          description: Coffee art gallery retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoffeeArtGalleryResponse'
+
+  /coffee-art/submit:
+    post:
+      tags:
+        - Coffee Art
+      summary: Submit coffee art
+      description: Submit a coffee art entry
+      operationId: submitCoffeeArt
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoffeeArtSubmit'
+            example:
+              title: "My Latte Art"
+              description: "Beautiful heart pattern"
+              imageUrl: "https://example.com/image.jpg"
+              artist:
+                name: "John Doe"
+      responses:
+        '201':
+          description: Coffee art submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoffeeArt'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Social Features Endpoints
+  /social/feed:
+    get:
+      tags:
+        - Social Features
+      summary: Get social feed
+      description: Get social media feed posts
+      operationId: getSocialFeed
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        '200':
+          description: Social feed retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialFeedResponse'
+
+  /social/posts:
+    post:
+      tags:
+        - Social Features
+      summary: Create social post
+      description: Create a new social media post
+      operationId: createSocialPost
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialPostCreate'
+            example:
+              content: "Just had an amazing cappuccino!"
+              imageUrl: "https://example.com/image.jpg"
+              tags: ["coffee", "cappuccino"]
+      responses:
+        '201':
+          description: Social post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialPost'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Health Insights Endpoints
+  /health/data/{userId}:
+    get:
+      tags:
+        - Health Insights
+      summary: Get health data
+      description: Get user's health data
+      operationId: getHealthData
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+          description: Number of days to retrieve
+      responses:
+        '200':
+          description: Health data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthDataResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health/data:
+    post:
+      tags:
+        - Health Insights
+      summary: Add health data
+      description: Add a new health data entry
+      operationId: addHealthData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthDataCreate'
+            example:
+              userId: "user_id"
+              caffeineIntake: 200
+              sleepHours: 8
+              sleepQuality: 8
+              mood: "good"
+              energyLevel: 7
+              waterIntake: 2000
+              exerciseMinutes: 30
+              notes: "Feeling great today!"
+      responses:
+        '201':
+          description: Health data added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthData'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health/insights/{userId}:
+    get:
+      tags:
+        - Health Insights
+      summary: Get health insights
+      description: Get AI-generated health insights for user
+      operationId: getHealthInsights
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+          description: Number of days to analyze
+      responses:
+        '200':
+          description: Health insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthInsightsResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # API Key Management Endpoints
+  /api-keys:
+    get:
+      tags:
+        - API Keys
+      summary: Get API keys
+      description: Get all API keys (Owner only)
+      operationId: getApiKeys
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeysResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - API Keys
+      summary: Create API key
+      description: Create a new API key (Owner only)
+      operationId: createApiKey
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreate'
+            example:
+              name: "Mobile App Key"
+              description: "API key for mobile application"
+              permissions: ["*"]
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreateResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api-keys/{id}:
+    get:
+      tags:
+        - API Keys
+      summary: Get API key details
+      description: Get specific API key details (Owner only)
+      operationId: getApiKeyById
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: API key ID
+      responses:
+        '200':
+          description: API key details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api-keys/{id}/revoke:
+    put:
+      tags:
+        - API Keys
+      summary: Revoke API key
+      description: Revoke an API key (Owner only)
+      operationId: revokeApiKey
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: API key ID
+      responses:
+        '200':
+          description: API key revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyRevokeResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api-keys/{id}/regenerate:
+    put:
+      tags:
+        - API Keys
+      summary: Regenerate API key
+      description: Regenerate an API key (Owner only)
+      operationId: regenerateApiKey
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: API key ID
+      responses:
+        '200':
+          description: API key regenerated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyRegenerateResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api-keys/stats/usage:
+    get:
+      tags:
+        - API Keys
+      summary: Get API usage statistics
+      description: Get detailed API usage statistics (Owner only)
+      operationId: getApiUsageStats
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: apiKeyId
+          in: query
+          schema:
+            type: string
+          description: Filter by specific API key
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date filter
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date filter
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of top endpoints to return
+      responses:
+        '200':
+          description: Usage statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUsageStatsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    # Base Schemas
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error description"
+        error:
+          type: string
+          example: "Detailed error information"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    # User Schemas
+    UserRegistration:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - birthday
+        - email
+        - username
+        - password
+      properties:
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        birthday:
+          type: string
+          format: date
+          example: "1990-01-01"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        password:
+          type: string
+          minLength: 6
+          example: "password123"
+
+    UserLogin:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "johndoe"
+        password:
+          type: string
+          example: "password123"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "user_id"
+            username:
+              type: string
+              example: "johndoe"
+            role:
+              type: string
+              example: "user"
+            firstName:
+              type: string
+              example: "John"
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "user_id"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        birthday:
+          type: string
+          format: date
+          example: "1990-01-01"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        role:
+          type: string
+          enum: [user, admin, owner]
+          example: "user"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    UserProfileUpdate:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        phone:
+          type: string
+          example: "+1234567890"
+
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "user_id"
+            firstName:
+              type: string
+              example: "John"
+            lastName:
+              type: string
+              example: "Doe"
+            email:
+              type: string
+              example: "john@example.com"
+            username:
+              type: string
+              example: "johndoe"
+            birthday:
+              type: string
+              format: date
+              example: "1990-01-01"
+            phone:
+              type: string
+              example: "+1234567890"
+            role:
+              type: string
+              example: "user"
+
+    PasswordChange:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          example: "oldpassword"
+        newPassword:
+          type: string
+          minLength: 6
+          example: "newpassword123"
+
+    # Favorite Schemas
+    FavoriteAdd:
+      type: object
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          example: "product_id"
+        customizations:
+          type: object
+          example:
+            size: "Large"
+            milk: "Oat Milk"
+        notes:
+          type: string
+          example: "Extra hot"
+        incrementOrderCount:
+          type: boolean
+          example: true
+
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "favorite_id"
+        productId:
+          type: string
+          example: "product_id"
+        productName:
+          type: string
+          example: "Cappuccino"
+        productImage:
+          type: string
+          example: "image_url"
+        basePrice:
+          type: number
+          example: 4.50
+        customizations:
+          type: object
+          example:
+            size: "Large"
+            milk: "Oat Milk"
+        notes:
+          type: string
+          example: "Extra hot"
+        timesOrdered:
+          type: integer
+          example: 5
+        lastOrderedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    FavoritesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        favorites:
+          type: array
+          items:
+            $ref: '#/components/schemas/Favorite'
+
+    FavoriteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        favorite:
+          $ref: '#/components/schemas/Favorite'
+
+    # Account Overview Schema
+    AccountOverviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        profile:
+          $ref: '#/components/schemas/User'
+        orders:
+          type: object
+          properties:
+            active:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderSummary'
+            past:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderSummary'
+            counts:
+              type: object
+              properties:
+                active:
+                  type: integer
+                  example: 2
+                past:
+                  type: integer
+                  example: 15
+                total:
+                  type: integer
+                  example: 17
+        loyalty:
+          $ref: '#/components/schemas/LoyaltyAccount'
+
+    # Product Schemas
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "product_id"
+        name:
+          type: string
+          example: "Cappuccino"
+        description:
+          type: string
+          example: "Rich espresso with steamed milk foam"
+        price:
+          type: number
+          example: 4.50
+        imageUrl:
+          type: string
+          example: "image_url"
+        isAvailable:
+          type: boolean
+          example: true
+        category:
+          type: string
+          enum: [Iced Beverage, Hot Beverage, Shaken Beverage, Refresher]
+          example: "Hot Beverage"
+        canBeModified:
+          type: boolean
+          example: true
+        recipe:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: string
+                example: "inventory_item_id"
+              quantityRequired:
+                type: number
+                example: 1
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    ProductCreate:
+      type: object
+      required:
+        - name
+        - description
+        - price
+        - category
+      properties:
+        name:
+          type: string
+          example: "New Drink"
+        description:
+          type: string
+          example: "Description here"
+        price:
+          type: number
+          example: 5.00
+        imageUrl:
+          type: string
+          example: "image_url"
+        category:
+          type: string
+          enum: [Iced Beverage, Hot Beverage, Shaken Beverage, Refresher]
+          example: "Hot Beverage"
+        canBeModified:
+          type: boolean
+          example: true
+        recipe:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: string
+                example: "inventory_item_id"
+              quantityRequired:
+                type: number
+                example: 1
+        isAvailable:
+          type: boolean
+          example: true
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Drink"
+        description:
+          type: string
+          example: "Updated description"
+        price:
+          type: number
+          example: 5.50
+        imageUrl:
+          type: string
+          example: "updated_image_url"
+        category:
+          type: string
+          enum: [Iced Beverage, Hot Beverage, Shaken Beverage, Refresher]
+          example: "Hot Beverage"
+        canBeModified:
+          type: boolean
+          example: true
+        recipe:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: string
+                example: "inventory_item_id"
+              quantityRequired:
+                type: number
+                example: 1
+        isAvailable:
+          type: boolean
+          example: true
+
+    ProductResponse:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        availability:
+          type: object
+          properties:
+            isAvailable:
+              type: boolean
+              example: true
+            calculatedAvailability:
+              type: boolean
+              example: true
+            manuallySet:
+              type: boolean
+              example: false
+            missingIngredients:
+              type: array
+              items:
+                type: string
+              example: []
+
+    # Order Schemas
+    OrderItem:
+      type: object
+      properties:
+        product:
+          type: string
+          example: "product_id"
+        productName:
+          type: string
+          example: "Cappuccino"
+        productPrice:
+          type: number
+          example: 4.50
+        quantity:
+          type: integer
+          example: 2
+        customizations:
+          type: object
+          properties:
+            size:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Large"
+                priceModifier:
+                  type: number
+                  example: 1.00
+            milk:
+              type: object
+              properties:
+                inventoryId:
+                  type: string
+                  example: "milk_id"
+                name:
+                  type: string
+                  example: "Oat Milk"
+                price:
+                  type: number
+                  example: 0.50
+            syrup:
+              type: object
+              properties:
+                inventoryId:
+                  type: string
+                  example: "syrup_id"
+                name:
+                  type: string
+                  example: "Vanilla"
+                price:
+                  type: number
+                  example: 0.75
+        itemTotalPrice:
+          type: number
+          example: 11.00
+
+    OrderCreate:
+      type: object
+      required:
+        - items
+        - customer
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        customer:
+          type: object
+          required:
+            - name
+            - email
+          properties:
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              format: email
+              example: "john@example.com"
+            phone:
+              type: string
+              example: "+1234567890"
+        tip:
+          type: number
+          example: 2.00
+        notes:
+          type: string
+          example: "Extra hot please"
+        specialInstructions:
+          type: string
+          example: "No lid"
+        paymentMethodId:
+          type: string
+          example: "stripe_payment_method_id"
+        promoCode:
+          type: string
+          example: "SAVE10"
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "order_id"
+        orderNumber:
+          type: string
+          example: "AC12345678"
+        customer:
+          type: object
+          properties:
+            user:
+              type: string
+              example: "user_id"
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john@example.com"
+            phone:
+              type: string
+              example: "+1234567890"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        subtotal:
+          type: number
+          example: 10.50
+        tax:
+          type: number
+          example: 0.84
+        tip:
+          type: number
+          example: 2.00
+        discount:
+          type: number
+          example: 1.05
+        totalAmount:
+          type: number
+          example: 12.29
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, completed, cancelled]
+          example: "confirmed"
+        payment:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [pending, processing, completed, failed, refunded]
+              example: "completed"
+            method:
+              type: string
+              example: "stripe"
+            paidAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+        fulfillment:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [pickup, delivery]
+              example: "pickup"
+            estimatedReadyTime:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:45:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "order_id"
+        orderNumber:
+          type: string
+          example: "AC12345678"
+        status:
+          type: string
+          example: "confirmed"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        totalAmount:
+          type: number
+          example: 12.29
+        estimatedTime:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:45:00Z"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              quantity:
+                type: integer
+                example: 2
+              productName:
+                type: string
+                example: "Cappuccino"
+
+    OrderResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        order:
+          $ref: '#/components/schemas/Order'
+        paymentIntent:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "pi_id"
+            status:
+              type: string
+              example: "succeeded"
+            client_secret:
+              type: string
+              example: "pi_secret"
+
+    OrdersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        count:
+          type: integer
+          example: 25
+
+    OrderHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        count:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 50
+        pagination:
+          type: object
+          properties:
+            limit:
+              type: integer
+              example: 50
+            offset:
+              type: integer
+              example: 0
+        filters:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+              example: "2024-01-01"
+            to:
+              type: string
+              format: date
+              example: "2024-01-31"
+
+    OrderDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        order:
+          $ref: '#/components/schemas/Order'
+
+    OrderStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, completed, cancelled]
+          example: "preparing"
+
+    OrderStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        order:
+          $ref: '#/components/schemas/Order'
+        message:
+          type: string
+          example: "Order status updated to Being Prepared"
+
+    OrderCancel:
+      type: object
+      properties:
+        reason:
+          type: string
+          example: "Customer requested cancellation"
+
+    OrderCancelResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        order:
+          $ref: '#/components/schemas/Order'
+        message:
+          type: string
+          example: "Order cancelled successfully"
+
+    # Loyalty Schemas
+    LoyaltyAccount:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: "user_id"
+        points:
+          type: integer
+          example: 150
+        tier:
+          type: string
+          enum: [Bronze, Silver, Gold, Platinum]
+          example: "Gold"
+        totalSpent:
+          type: number
+          example: 245.50
+        visits:
+          type: integer
+          example: 17
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [earned, redeemed, bonus]
+                example: "earned"
+              points:
+                type: integer
+                example: 10
+              orderId:
+                type: string
+                example: "order_id"
+              orderNumber:
+                type: string
+                example: "AC12345678"
+              description:
+                type: string
+                example: "Points earned from order"
+              createdAt:
+                type: string
+                format: date-time
+                example: "2024-01-15T10:30:00Z"
+
+    LoyaltyAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        account:
+          $ref: '#/components/schemas/LoyaltyAccount'
+
+    RewardRedeem:
+      type: object
+      required:
+        - rewardId
+      properties:
+        rewardId:
+          type: string
+          example: "reward_id"
+        orderId:
+          type: string
+          example: "order_id"
+
+    RewardRedeemResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Reward redeemed successfully"
+        reward:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "reward_id"
+            name:
+              type: string
+              example: "Free Coffee"
+            pointsRequired:
+              type: integer
+              example: 100
+        pointsUsed:
+          type: integer
+          example: 100
+        remainingPoints:
+          type: integer
+          example: 50
+
+    RewardsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        rewards:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "reward_id"
+              name:
+                type: string
+                example: "Free Coffee"
+              pointsRequired:
+                type: integer
+                example: 100
+              description:
+                type: string
+                example: "Get a free coffee of your choice"
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        leaderboard:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+                example: 1
+              firstName:
+                type: string
+                example: "John"
+              lastName:
+                type: string
+                example: "Doe"
+              tier:
+                type: string
+                example: "Gold"
+              totalSpent:
+                type: number
+                example: 245.50
+              points:
+                type: integer
+                example: 150
+              visits:
+                type: integer
+                example: 17
+
+    # AI Analysis Schemas
+    CoffeeShotAnalysis:
+      type: object
+      required:
+        - inWeight
+        - outWeight
+        - extractionTime
+      properties:
+        inWeight:
+          type: number
+          example: 18
+          description: "Input weight in grams"
+        outWeight:
+          type: number
+          example: 36
+          description: "Output weight in grams"
+        extractionTime:
+          type: number
+          example: 28
+          description: "Extraction time in seconds"
+        shotQuality:
+          type: number
+          example: 8
+          description: "User-rated shot quality (1-10)"
+        grindSize:
+          type: string
+          example: "Fine"
+          description: "Grind size setting"
+        temperature:
+          type: number
+          example: 200
+          description: "Water temperature in Fahrenheit"
+        pressure:
+          type: number
+          example: 9
+          description: "Extraction pressure in bars"
+
+    AIStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            isReady:
+              type: boolean
+              example: true
+            modelVersion:
+              type: string
+              example: "v1.2.0"
+            totalLogs:
+              type: integer
+              example: 1250
+            validLogs:
+              type: integer
+              example: 1200
+            lastTrained:
+              type: string
+              format: date-time
+              example: "2024-01-15T08:00:00Z"
+
+    AIAnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            predictedQuality:
+              type: number
+              example: 8.5
+              description: "AI-predicted quality score"
+            currentQuality:
+              type: number
+              example: 8
+              description: "Current user-rated quality"
+            confidence:
+              type: number
+              example: 0.85
+              description: "AI confidence level (0-1)"
+            recommendations:
+              type: array
+              items:
+                type: string
+              example:
+                - "Consider reducing extraction time by 2-3 seconds"
+                - "Temperature is optimal"
+                - "Grind size appears appropriate"
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            modelVersion:
+              type: string
+              example: "v1.2.0"
+
+    # API Key Schemas
+    ApiKeyCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Mobile App Key"
+        description:
+          type: string
+          example: "API key for mobile application"
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["*"]
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "key-001"
+        name:
+          type: string
+          example: "Production API Key"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        lastUsed:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        isActive:
+          type: boolean
+          example: true
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["*"]
+        description:
+          type: string
+          example: "Main production API key"
+
+    ApiKeyCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "API key created successfully"
+        key:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "key-002"
+            name:
+              type: string
+              example: "New API Key"
+            key:
+              type: string
+              example: "abc123def456ghi789"
+              description: "Only returned on creation"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            permissions:
+              type: array
+              items:
+                type: string
+              example: ["*"]
+            description:
+              type: string
+              example: "Description here"
+
+    ApiKeyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        key:
+          $ref: '#/components/schemas/ApiKey'
+
+    ApiKeysResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiKey'
+        count:
+          type: integer
+          example: 1
+
+    ApiKeyRevokeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "API key revoked successfully"
+        result:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "key-001"
+            revoked:
+              type: boolean
+              example: true
+            revokedAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    ApiKeyRegenerateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "API key regenerated successfully"
+        result:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "key-001"
+            name:
+              type: string
+              example: "Production API Key"
+            key:
+              type: string
+              example: "new_abc123def456ghi789"
+              description: "Only returned on regeneration"
+            regeneratedAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    ApiUsageStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        stats:
+          type: object
+          properties:
+            overview:
+              type: object
+              properties:
+                totalRequests:
+                  type: integer
+                  example: 1250
+                avgResponseTime:
+                  type: number
+                  example: 245.5
+                errorCount:
+                  type: integer
+                  example: 25
+                successCount:
+                  type: integer
+                  example: 1225
+                successRate:
+                  type: number
+                  example: 98.0
+            topEndpoints:
+              type: array
+              items:
+                type: object
+                properties:
+                  endpoint:
+                    type: string
+                    example: "/products"
+                  method:
+                    type: string
+                    example: "GET"
+                  count:
+                    type: integer
+                    example: 450
+                  avgResponseTime:
+                    type: number
+                    example: 180.5
+                  errorCount:
+                    type: integer
+                    example: 5
+                  successRate:
+                    type: number
+                    example: 98.9
+            recentActivity:
+              type: array
+              items:
+                type: object
+                properties:
+                  apiKeyId:
+                    type: string
+                    example: "key-001"
+                  apiKeyName:
+                    type: string
+                    example: "Production API Key"
+                  endpoint:
+                    type: string
+                    example: "/products"
+                  method:
+                    type: string
+                    example: "GET"
+                  responseStatus:
+                    type: integer
+                    example: 200
+                  responseTime:
+                    type: number
+                    example: 245.5
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+
+    # Payment Schemas
+    CheckoutSessionRequest:
+      type: object
+      properties:
+        cart:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              price:
+                type: number
+              quantity:
+                type: integer
+        promoCode:
+          type: string
+      required:
+        - cart
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        url:
+          type: string
+        success:
+          type: boolean
+
+    # Bean Bag Schemas
+    BeanBagCreate:
+      type: object
+      properties:
+        bean:
+          type: string
+        bagSizeGrams:
+          type: number
+      required:
+        - bean
+        - bagSizeGrams
+
+    BeanBag:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        bean:
+          type: string
+        bagSizeGrams:
+          type: number
+        remainingGrams:
+          type: number
+        isEmpty:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Promo Code Schemas
+    PromoCodeVerify:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
+
+    PromoCodeVerifyResponse:
+      type: object
+      properties:
+        discountPercentage:
+          type: number
+        promoId:
+          type: string
+
+    PromoCodeUse:
+      type: object
+      properties:
+        promoId:
+          type: string
+      required:
+        - promoId
+
+    PromoCodeCreate:
+      type: object
+      properties:
+        code:
+          type: string
+        discountPercentage:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+        maxUsage:
+          type: integer
+        isActive:
+          type: boolean
+          default: true
+      required:
+        - code
+        - discountPercentage
+
+    PromoCodeUpdate:
+      type: object
+      properties:
+        code:
+          type: string
+        discountPercentage:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+        maxUsage:
+          type: integer
+        isActive:
+          type: boolean
+
+    PromoCode:
+      type: object
+      properties:
+        _id:
+          type: string
+        code:
+          type: string
+        discountPercentage:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+        maxUsage:
+          type: integer
+        usageCount:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Notification Schemas
+    VapidKeyResponse:
+      type: object
+      properties:
+        publicKey:
+          type: string
+
+    NotificationSubscription:
+      type: object
+      properties:
+        endpoint:
+          type: string
+        keys:
+          type: object
+          properties:
+            p256dh:
+              type: string
+            auth:
+              type: string
+        userAgent:
+          type: string
+      required:
+        - endpoint
+        - keys
+
+    NotificationBroadcast:
+      type: object
+      properties:
+        title:
+          type: string
+        message:
+          type: string
+      required:
+        - title
+        - message
+
+    # Settings Schemas
+    SuggestedProductUpdate:
+      type: object
+      properties:
+        productId:
+          type: string
+      required:
+        - productId
+
+    # AI Models Schemas
+    AIModelsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            models:
+              type: array
+              items:
+                $ref: '#/components/schemas/AIModel'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    AIModel:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [training, trained, published, archived]
+        description:
+          type: string
+        modelPath:
+          type: string
+        accuracy:
+          type: number
+        trainingSession:
+          type: object
+          properties:
+            trainedBy:
+              type: string
+            trainingData:
+              type: string
+            trainingDuration:
+              type: number
+        publishingInfo:
+          type: object
+          properties:
+            publishedBy:
+              type: string
+            publishedAt:
+              type: string
+              format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Coffee Art Schemas
+    CoffeeArtGalleryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        arts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoffeeArt'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CoffeeArtSubmit:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        artist:
+          type: object
+          properties:
+            name:
+              type: string
+            userId:
+              type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - imageUrl
+        - artist
+
+    CoffeeArt:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        artist:
+          type: object
+          properties:
+            name:
+              type: string
+            userId:
+              type: string
+        votes:
+          type: integer
+        voters:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        contestId:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+
+    # Social Features Schemas
+    SocialFeedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialPost'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    SocialPostCreate:
+      type: object
+      properties:
+        content:
+          type: string
+        imageUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - content
+
+    SocialPost:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        content:
+          type: string
+        imageUrl:
+          type: string
+        likes:
+          type: integer
+        comments:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              content:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Health Insights Schemas
+    HealthDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HealthData'
+
+    HealthDataCreate:
+      type: object
+      properties:
+        userId:
+          type: string
+        caffeineIntake:
+          type: number
+        sleepHours:
+          type: number
+        sleepQuality:
+          type: number
+          minimum: 1
+          maximum: 10
+        mood:
+          type: string
+          enum: [excellent, good, okay, poor, terrible]
+        energyLevel:
+          type: number
+          minimum: 1
+          maximum: 10
+        waterIntake:
+          type: number
+        exerciseMinutes:
+          type: number
+        notes:
+          type: string
+      required:
+        - userId
+
+    HealthData:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        date:
+          type: string
+          format: date-time
+        caffeineIntake:
+          type: number
+        sleepHours:
+          type: number
+        sleepQuality:
+          type: number
+        mood:
+          type: string
+        energyLevel:
+          type: number
+        waterIntake:
+          type: number
+        exerciseMinutes:
+          type: number
+        notes:
+          type: string
+
+    HealthInsightsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        insights:
+          type: object
+          properties:
+            caffeineAnalysis:
+              type: string
+            sleepAnalysis:
+              type: string
+            moodTrends:
+              type: string
+            recommendations:
+              type: array
+              items:
+                type: string
+            healthScore:
+              type: number
+              minimum: 0
+              maximum: 100
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer

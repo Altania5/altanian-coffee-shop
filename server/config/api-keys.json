@@ -10,6 +10,32 @@
       "scope": "full",
       "allowedIPs": [],
       "description": "Demo key for testing API functionality"
+    },
+    {
+      "id": "key-1760117850469",
+      "name": "n8n Owner Key",
+      "keyHash": "$2b$10$N1m0xJCM/rUXUlnJHHG5LO9vd6t.1uy/gBUPMwuuh/rWW6dCgX/0C",
+      "createdAt": "2025-10-10T17:37:30.469Z",
+      "lastUsed": null,
+      "isActive": true,
+      "scope": "full",
+      "allowedIPs": [
+        "127.0.0.1"
+      ],
+      "description": "Full access key for n8n automation"
+    },
+    {
+      "id": "key-1760126585113",
+      "name": "n8n Owner Key",
+      "keyHash": "$2b$10$0O0OGribGjI3ouohioB.xebdcj882T9zWXS4nl1eEMXngJHZSHrZG",
+      "createdAt": "2025-10-10T20:03:05.113Z",
+      "lastUsed": null,
+      "isActive": true,
+      "scope": "full",
+      "allowedIPs": [
+        "45.62.1.227"
+      ],
+      "description": "Full access key for n8n automation"
     }
   ],
   "settings": {

@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const aiService = require('../services/realMLService');
-const centralizedAIService = require('../services/centralizedAIService');
-const auth = require('../middleware/auth');
-const ownerAuth = require('../middleware/ownerAuth');
+const aiService = require('../../services/legacy/realMLService');
+const centralizedAIService = require('../../services/legacy/centralizedAIService');
+const auth = require('../../middleware/auth');
+const ownerAuth = require('../../middleware/ownerAuth');
+
+// ⚠️ DEPRECATED ROUTES
+// These routes use legacy AI services and are kept for backward compatibility.
+// Please migrate to the new /api/ai endpoints which use the Python ML service.
+// Legacy routes will be removed in a future version.
 
 // Get AI model status
 router.get('/status', auth, async (req, res) => {
@@ -17,7 +22,7 @@ router.get('/status', auth, async (req, res) => {
     const legacyModelInfo = aiService.getModelInfo();
     
     // Add coffee log count for debugging
-    const CoffeeLog = require('../models/coffeeLog.model');
+    const CoffeeLog = require('../../models/coffeeLog.model');
     const totalLogs = await CoffeeLog.countDocuments();
     const validLogs = await CoffeeLog.countDocuments({
       shotQuality: { $exists: true, $ne: null },

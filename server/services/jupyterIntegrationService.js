@@ -1,7 +1,8 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs').promises;
-const aiModelService = require('./aiModelService');
+// Legacy AI service - kept for Jupyter integration
+const aiModelService = require('./legacy/aiModelService');
 
 class JupyterIntegrationService {
   constructor() {

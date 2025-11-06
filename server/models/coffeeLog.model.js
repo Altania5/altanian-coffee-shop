@@ -44,7 +44,25 @@ const coffeeLogSchema = new Schema({
   usedPreInfusion: { type: Boolean, default: false },
   preInfusionTime: { type: Number, min: 0, max: 15 }, // seconds
   preInfusionPressure: { type: Number, min: 1, max: 5 }, // bars
-  
+
+  // ADVANCED: Additional Quality Indicators
+  channelingSeverity: {
+    type: String,
+    enum: ['none', 'minor', 'moderate', 'severe'],
+    default: 'none'
+  }, // Visual observation during extraction
+  tampingPressure: { type: Number, min: 15, max: 30 }, // pounds of pressure
+  basketSize: {
+    type: String,
+    enum: ['single', 'double', 'triple'],
+    default: 'double'
+  }, // Portafilter basket size
+  waterHardness: {
+    type: String,
+    enum: ['soft', 'medium', 'hard']
+  }, // Water quality indicator
+  waterTDS: { type: Number, min: 0, max: 300 }, // Total dissolved solids (ppm)
+
   // AI Training Parameters
   shotQuality: { 
     type: Number, 
@@ -72,7 +90,30 @@ const coffeeLogSchema = new Schema({
   ratio: { type: Number }, // out/in weight ratio
   extractionYield: { type: Number }, // percentage
   flowRate: { type: Number }, // ml/second
-  
+
+  // Advanced ML Features (auto-computed)
+  shotType: {
+    type: String,
+    enum: ['ristretto', 'normale', 'lungo'],
+    index: true
+  }, // Classification based on ratio
+  freshnessCategory: {
+    type: String,
+    enum: ['very_fresh', 'fresh', 'aging', 'stale']
+  },
+  tempZone: {
+    type: String,
+    enum: ['too_cold', 'low', 'ideal', 'high']
+  },
+
+  // Interaction Features (for ML)
+  pressureTime: { type: Number }, // pressure * extractionTime
+  tempRatio: { type: Number }, // temperature * ratio
+  grindDose: { type: Number }, // grindSize * inWeight
+  flowPressure: { type: Number }, // flowRate * pressure
+  extractionIntensity: { type: Number }, // (extractionTime * temperature) / ratio
+  pressureEfficiency: { type: Number }, // outWeight / (pressure * extractionTime)
+
   // User Satisfaction & Goals
   tasteMetExpectations: { type: Boolean, required: true },
   targetProfile: {
@@ -99,19 +140,96 @@ coffeeLogSchema.pre('save', async function(next) {
   if (this.inWeight && this.outWeight) {
     this.ratio = parseFloat((this.outWeight / this.inWeight).toFixed(2));
   }
-  
+
   // Calculate extraction yield (approximate)
   if (this.inWeight && this.outWeight) {
     // Simplified extraction yield calculation
     // Real calculation would need TDS measurement
     this.extractionYield = parseFloat(((this.outWeight * 0.12) / this.inWeight * 100).toFixed(2));
   }
-  
+
   // Calculate flow rate (ml/second, assuming 1g = 1ml for espresso)
   if (this.outWeight && this.extractionTime) {
     this.flowRate = parseFloat((this.outWeight / this.extractionTime).toFixed(2));
   }
-  
+
+  // ========================================
+  // ADVANCED FEATURE ENGINEERING
+  // ========================================
+
+  // Classify shot type based on ratio
+  if (this.ratio) {
+    if (this.ratio < 1.5) {
+      this.shotType = 'ristretto';
+    } else if (this.ratio < 2.5) {
+      this.shotType = 'normale';
+    } else {
+      this.shotType = 'lungo';
+    }
+  }
+
+  // Categorize bean freshness
+  if (this.daysPastRoast !== null && this.daysPastRoast !== undefined) {
+    if (this.daysPastRoast <= 7) {
+      this.freshnessCategory = 'very_fresh';
+    } else if (this.daysPastRoast <= 14) {
+      this.freshnessCategory = 'fresh';
+    } else if (this.daysPastRoast <= 21) {
+      this.freshnessCategory = 'aging';
+    } else {
+      this.freshnessCategory = 'stale';
+    }
+  }
+
+  // Categorize temperature zone
+  if (this.temperature) {
+    if (this.temperature < 88) {
+      this.tempZone = 'too_cold';
+    } else if (this.temperature < 92) {
+      this.tempZone = 'low';
+    } else if (this.temperature <= 94) {
+      this.tempZone = 'ideal';
+    } else {
+      this.tempZone = 'high';
+    }
+  }
+
+  // Calculate interaction features
+  if (this.pressure && this.extractionTime) {
+    this.pressureTime = parseFloat((this.pressure * this.extractionTime).toFixed(2));
+  }
+
+  if (this.temperature && this.ratio) {
+    this.tempRatio = parseFloat((this.temperature * this.ratio).toFixed(2));
+  }
+
+  if (this.grindSize && this.inWeight) {
+    this.grindDose = parseFloat((this.grindSize * this.inWeight).toFixed(2));
+  }
+
+  if (this.flowRate && this.pressure) {
+    this.flowPressure = parseFloat((this.flowRate * this.pressure).toFixed(2));
+  }
+
+  // Extraction intensity: (time * temp) / ratio
+  if (this.extractionTime && this.temperature && this.ratio && this.ratio > 0) {
+    this.extractionIntensity = parseFloat(
+      ((this.extractionTime * this.temperature) / this.ratio).toFixed(2)
+    );
+  }
+
+  // Pressure efficiency: yield / (pressure * time)
+  if (this.outWeight && this.pressure && this.extractionTime &&
+      this.pressure > 0 && this.extractionTime > 0) {
+    this.pressureEfficiency = parseFloat(
+      (this.outWeight / (this.pressure * this.extractionTime)).toFixed(4)
+    );
+  }
+
+  // ========================================
+  // ORIGINAL FEATURES
+  // ========================================
+
   // Auto-populate bean characteristics and calculate days past roast
   if (this.isNew || this.isModified('bean')) {
     try {
@@ -124,7 +242,7 @@ coffeeLogSchema.pre('save', async function(next) {
         if (!this.processMethod && bean.processMethod) {
           this.processMethod = bean.processMethod;
         }
-        
+
         // Calculate days past roast
         if (bean.roastDate) {
           const diffTime = Date.now() - bean.roastDate.getTime();
@@ -135,7 +253,7 @@ coffeeLogSchema.pre('save', async function(next) {
       console.error('Error processing bean data:', error);
     }
   }
-  
+
   // Calculate bean usage count
   if (this.isNew && this.bean) {
     try {
@@ -149,7 +267,7 @@ coffeeLogSchema.pre('save', async function(next) {
       this.beanUsageCount = 1;
     }
   }
-  
+
   next();
 });
 

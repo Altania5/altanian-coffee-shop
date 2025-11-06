@@ -10,14 +10,19 @@ class CentralizedAIService {
   async initialize() {
     try {
       console.log('🤖 Initializing Centralized AI Service...');
-      const response = await api.get('/ai/status');
-      
+      // Using new Python ML service endpoints
+      const response = await api.get('/api/ai/status');
+
       if (response.data.success) {
         this.modelInfo = response.data.data;
-        this.isReady = true;
-        console.log('✅ Centralized AI Service ready:', this.modelInfo);
+        this.isReady = response.data.data.mlService.isHealthy;
+        console.log('✅ Centralized AI Service ready (Python ML):', this.modelInfo);
+        console.log('   - ML Service Health:', response.data.data.mlService.status);
+        console.log('   - Models Loaded:', response.data.data.mlService.models);
+        console.log('   - Training Data:', response.data.data.dataStats);
       } else {
         console.warn('⚠️ Centralized AI Service not ready:', response.data.message);
+        this.isReady = false;
       }
     } catch (error) {
       console.error('❌ Error initializing Centralized AI Service:', error);
@@ -27,28 +32,35 @@ class CentralizedAIService {
 
   async analyzeShot(shotData) {
     console.log('🔍 Frontend CentralizedAIService.analyzeShot called with:', shotData);
-    
+
     if (!this.isReady) {
       console.warn('⚠️ Centralized AI Service not ready, using fallback');
       return this.fallbackAnalysis(shotData);
     }
 
     try {
-      console.log('🔍 Analyzing shot with centralized AI...');
-      const response = await api.post('/ai/analyze', shotData);
-      
+      console.log('🔍 Analyzing shot with Python ML service...');
+      // Using new Python ML service endpoint
+      const response = await api.post('/api/ai/analyze', shotData);
+
       console.log('📡 Server response:', response.data);
-      console.log('📡 Server response type:', typeof response.data);
-      console.log('📡 Server response keys:', Object.keys(response.data || {}));
-      
-      if (response.data.success) {
-        this.lastAnalysis = response.data.data;
-        console.log('✅ Shot analysis complete from server:', this.lastAnalysis);
-        console.log('✅ Analysis data:', this.lastAnalysis);
-        console.log('✅ Predicted quality:', this.lastAnalysis?.predictedQuality);
-        console.log('✅ Current quality:', this.lastAnalysis?.currentQuality);
-        console.log('✅ Confidence:', this.lastAnalysis?.confidence);
-        return this.lastAnalysis;
+
+      if (response.data.success && response.data.analysis) {
+        // New response structure from Python ML service
+        const analysis = response.data.analysis;
+
+        // Store the analysis
+        this.lastAnalysis = analysis;
+
+        console.log('✅ Shot analysis complete from Python ML service:');
+        console.log('   - Predicted Quality:', analysis.predictedQuality);
+        console.log('   - Current Quality:', analysis.currentQuality);
+        console.log('   - Confidence:', analysis.confidence);
+        console.log('   - Model Version:', analysis.modelVersion);
+        console.log('   - Taste Profile:', analysis.tasteProfile);
+        console.log('   - Recommendations:', analysis.recommendations?.length || 0);
+
+        return analysis;
       } else {
         console.error('❌ Analysis failed:', response.data.message);
         console.log('🔄 Falling back to frontend analysis');
@@ -130,9 +142,11 @@ class CentralizedAIService {
 
   async getModelStatus() {
     try {
-      const response = await api.get('/ai/status');
+      // Using new Python ML service endpoint
+      const response = await api.get('/api/ai/status');
       if (response.data.success) {
         this.modelInfo = response.data.data;
+        this.isReady = response.data.data.mlService.isHealthy;
         return this.modelInfo;
       }
     } catch (error) {
@@ -143,47 +157,58 @@ class CentralizedAIService {
 
   async trainModel() {
     try {
-      console.log('🚀 Starting centralized model training...');
-      const response = await api.post('/ai/train');
-      
+      console.log('🚀 Starting Python ML model training...');
+      // Using new Python ML service endpoint (owner only)
+      const response = await api.post('/api/ai/retrain');
+
       if (response.data.success) {
         console.log('✅ Model training started');
-        return { success: true, message: response.data.message };
+        console.log('   - Training data:', response.data.data);
+        return { success: true, message: 'Model training completed successfully', data: response.data.data };
       } else {
         console.error('❌ Training failed:', response.data.message);
         return { success: false, message: response.data.message };
       }
     } catch (error) {
       console.error('❌ Error starting training:', error);
-      return { success: false, message: 'Error starting training' };
+      return { success: false, message: error.response?.data?.message || 'Error starting training' };
     }
   }
 
   async retrainModel() {
     try {
-      console.log('🔄 Starting centralized model retraining...');
-      const response = await api.post('/ai/retrain');
-      
+      console.log('🔄 Starting Python ML model retraining...');
+      // Using new Python ML service endpoint (owner only)
+      const response = await api.post('/api/ai/retrain');
+
       if (response.data.success) {
-        console.log('✅ Model retraining started');
-        return { success: true, message: response.data.message };
+        console.log('✅ Model retraining completed successfully');
+        console.log('   - Metrics:', response.data.data?.metrics);
+        return {
+          success: true,
+          message: 'Model retraining completed successfully',
+          data: response.data.data
+        };
       } else {
         console.error('❌ Retraining failed:', response.data.message);
         return { success: false, message: response.data.message };
       }
     } catch (error) {
       console.error('❌ Error starting retraining:', error);
-      
-      // Handle 409 Conflict (already training)
-      if (error.response && error.response.status === 409) {
-        return { 
-          success: false, 
-          message: 'AI model is already training. Please wait for current training to complete.',
-          isAlreadyTraining: true
+
+      // Handle 401 Unauthorized (not owner)
+      if (error.response && error.response.status === 401) {
+        return {
+          success: false,
+          message: 'Unauthorized. Only owners can retrain the model.',
+          isUnauthorized: true
         };
       }
-      
-      return { success: false, message: 'Error starting retraining' };
+
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error starting retraining'
+      };
     }
   }
 

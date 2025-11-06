@@ -115,23 +115,62 @@ The application will be available at:
 - Frontend (if separate): http://localhost:3001
 - Backend API (if separate): http://localhost:5002
 
-## API Endpoints
+## API Documentation
 
-The backend provides the following main endpoints:
+### Interactive API Documentation
+- **Swagger UI**: [http://localhost:5002/api-docs](http://localhost:5002/api-docs) (Development)
+- **Production**: [https://your-domain.com/api-docs](https://your-domain.com/api-docs)
 
-| Method | Endpoint             | Description                     |
-| :----- | :------------------- | :------------------------------ |
-| `GET`  | `/api/menu`          | Retrieve all menu items         |
-| `POST` | `/api/orders`        | Place a new coffee order        |
-| `GET`  | `/api/products`      | Coffee products management      |
-| `POST` | `/api/users/register`| Register a new user             |
-| `POST` | `/api/users/login`   | Login an existing user          |
-| `GET`  | `/api/orders/user/:userId` | Get orders for a specific user |
-| `GET`  | `/api/beans`         | Coffee beans inventory          |
-| `GET`  | `/api/coffeelogs`    | Coffee brewing logs             |
-| `GET`  | `/api/inventory`     | Inventory management            |
-| `GET`  | `/api/promocodes`    | Promotional codes               |
-| `POST` | `/api/payments`      | Stripe payment processing       |
+### API Key System
+The API supports both JWT token and API key authentication:
+- **API Keys**: Full owner/admin access for external integrations
+- **JWT Tokens**: User role-based access for web/mobile apps
+- **Dual Support**: Both authentication methods can be used simultaneously
+
+### Authentication Headers
+```bash
+# API Key Authentication (Recommended for external integrations)
+x-api-key: your-api-key-here
+
+# JWT Token Authentication (For web/mobile apps)
+x-auth-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Quick Start Examples
+```bash
+# Get all products
+curl -H "x-api-key: your-key" https://your-domain.com/products
+
+# Create an order
+curl -X POST \
+     -H "x-api-key: your-key" \
+     -H "Content-Type: application/json" \
+     -d '{"items":[{"product":"product_id","quantity":1}],"customer":{"name":"John Doe","email":"john@example.com"}}' \
+     https://your-domain.com/orders
+
+# Get API usage statistics (Owner only)
+curl -H "x-auth-token: jwt-token" https://your-domain.com/api-keys/stats/usage
+```
+
+### Complete API Reference
+For detailed API documentation including all endpoints, request/response schemas, and examples, see:
+- **Markdown Documentation**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **OpenAPI Specification**: [openapi.yaml](./openapi.yaml)
+
+### Main API Endpoints
+
+| Method | Endpoint             | Description                     | Auth Required |
+| :----- | :------------------- | :------------------------------ | :------------ |
+| `GET`  | `/products`          | Retrieve all menu items         | No            |
+| `POST` | `/orders`            | Place a new coffee order        | Optional      |
+| `GET`  | `/orders`            | Get orders (filtered by user)   | Yes           |
+| `POST` | `/users/register`    | Register a new user             | No            |
+| `POST` | `/users/login`       | Login an existing user          | No            |
+| `GET`  | `/users/profile`     | Get user profile                | Yes           |
+| `GET`  | `/loyalty/account`   | Get loyalty account             | Yes           |
+| `POST` | `/ai/analyze`        | AI coffee shot analysis         | Yes           |
+| `GET`  | `/api-keys`          | Manage API keys (Owner only)    | Yes           |
+| `GET`  | `/api-docs`          | Interactive API documentation   | No            |
 
 ## Deployment to Heroku
 

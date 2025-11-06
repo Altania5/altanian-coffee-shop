@@ -1,6 +1,6 @@
-const CoffeeLog = require('../models/coffeeLog.model');
-const Bean = require('../models/bean.model');
-const AIModel = require('../models/aiModel.model');
+const CoffeeLog = require('../../models/coffeeLog.model');
+const Bean = require('../../models/bean.model');
+const AIModel = require('../../models/aiModel.model');
 const aiModelService = require('./aiModelService');
 const trainedModelService = require('./trainedModelService');
 

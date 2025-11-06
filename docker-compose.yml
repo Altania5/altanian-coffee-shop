@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # MongoDB Database
+  # ============================================
+  mongodb:
+    image: mongo:7.0
+    container_name: altanian-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: altaniancoffee
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - altanian-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Python ML Service
+  # ============================================
+  ml-service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    container_name: altanian-ml-service
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      FLASK_DEBUG: ${FLASK_DEBUG:-False}
+      FLASK_PORT: 5000
+      MODEL_PATH: /app/saved_models/espresso_models.pkl
+      MIN_TRAINING_SAMPLES: 30
+    volumes:
+      # Persist trained models
+      - ml_models:/app/saved_models
+      # Mount training data to a different location (not under /app)
+      - ./server/training_data_cleaned.json:/training_data/training_data_cleaned.json:ro
+      # Mount code for development (remove :ro for now to allow directory creation)
+      - ./ml_service:/app
+    networks:
+      - altanian-network
+    # Run Flask API
+    command: python app.py
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # Node.js Backend API
+  # ============================================
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: altanian-backend
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+      NODE_ENV: ${NODE_ENV:-production}
+      ATLAS_URI: ${ATLAS_URI:-mongodb://admin:password@mongodb:27017/altaniancoffee?authSource=admin}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      SESSION_SECRET: ${SESSION_SECRET:-your_session_secret_here}
+      ML_SERVICE_URL: http://ml-service:5000
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+    volumes:
+      # Mount code for development (comment out for production)
+      - ./server:/app:ro
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    networks:
+      - altanian-network
+    command: npm start
+
+  # ============================================
+  # React Frontend (optional - for full stack)
+  # ============================================
+  # frontend:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile
+  #   container_name: altanian-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     REACT_APP_API_URL: http://localhost:5002
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - altanian-network
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  ml_models:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  altanian-network:
+    driver: bridge

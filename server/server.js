@@ -65,14 +65,9 @@ mongoose.connect(uri).catch(err => {
 const connection = mongoose.connection;
 connection.once('open', async () => {
   console.log("MongoDB database connection established successfully");
-  
-  // Initialize AI Service after database connection
-  try {
-    const aiService = require('./services/centralizedAIService');
-    await aiService.initialize();
-  } catch (error) {
-    console.error('❌ Error initializing AI Service:', error);
-  }
+
+  // Note: Legacy AI services removed. Using new Python ML service via /api/ai endpoints.
+  // Legacy routes at /ai are deprecated and will be removed in a future version.
 })
 
 const productsRouter = require('./routes/products');
@@ -87,7 +82,9 @@ const paymentsRouter = require('./routes/payments');
 const loyaltyRouter = require('./routes/loyalty');
 const notificationsRouter = require('./routes/notifications');
 const beanBagsRouter = require('./routes/beanBags');
-const aiRouter = require('./routes/ai');
+// Legacy AI routes disabled - moved to archive
+// const aiRouter = require('./routes/legacy/ai'); // Legacy routes - DEPRECATED
+const aiRouterNew = require('./routes/ai-new'); // New Python ML service routes
 const aiModelsRouter = require('./routes/aiModels');
 const coffeeArtRouter = require('./routes/coffeeArt');
 const socialFeaturesRouter = require('./routes/socialFeatures');
@@ -108,7 +105,9 @@ app.use('/payments', paymentsRouter);
 app.use('/loyalty', loyaltyRouter);
 app.use('/notifications', notificationsRouter);
 app.use('/beanbags', beanBagsRouter);
-app.use('/ai', aiRouter);
+// Legacy AI routes disabled - archived in server/routes/legacy/
+// app.use('/ai', aiRouter); // ⚠️ DEPRECATED - use /api/ai instead
+app.use('/api/ai', aiRouterNew); // ✅ New Python ML service routes
 app.use('/ai-models', aiModelsRouter);
 app.use('/coffee-art', coffeeArtRouter);
 app.use('/social', socialFeaturesRouter);
@@ -121,8 +120,9 @@ app.use('/webhooks', webhooksRouter);
 const OrderTrackingServer = require('./websocket/orderTracking');
 const orderTrackingWS = new OrderTrackingServer(server);
 
-// Initialize Centralized AI Service
-const aiService = require('./services/realMLService');
+// Legacy AI Service (moved to legacy folder)
+// const aiService = require('./services/legacy/realMLService');
+// Note: Now using Python ML service via mlServiceClient.js
 
 // Make WebSocket server available to routes
 app.set('orderTrackingWS', orderTrackingWS);

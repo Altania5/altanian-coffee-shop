@@ -58,9 +58,9 @@ class RealMLService {
 
     try {
       console.log('🚀 Starting REAL machine learning training...');
-      
+
       // Fetch all coffee logs
-      const CoffeeLog = require('../models/coffeeLog.model');
+      const CoffeeLog = require('../../models/coffeeLog.model');
       const logs = await CoffeeLog.find({})
         .populate('bean', 'roastLevel processMethod roastDate')
         .populate('bag', 'bagSizeGrams remainingGrams')

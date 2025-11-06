@@ -1,5 +1,5 @@
-const AIModel = require('../models/aiModel.model');
-const CoffeeLog = require('../models/coffeeLog.model');
+const AIModel = require('../../models/aiModel.model');
+const CoffeeLog = require('../../models/coffeeLog.model');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');

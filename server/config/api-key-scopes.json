@@ -49,3 +49,4 @@
   "defaultScope": "read",
   "ownerScopes": ["admin", "full", "products:manage"]
 }
+
