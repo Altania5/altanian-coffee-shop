@@ -63,9 +63,7 @@ Thumbs.db
 # Public legacy (if not needed)
 public_legacy/
 
-# Client source (already built)
-client/src/
-client/public/
-
-# Keep only the build
-!client/build/
+# After build, we can exclude client src but keep public for index.html
+# Actually, keep both during build process
+# client/src/
+# client/public/
