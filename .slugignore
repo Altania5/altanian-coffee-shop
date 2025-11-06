@@ -1,0 +1,71 @@
+# Documentation files
+*.md
+!README.md
+CLAUDE.md
+AGENT_ACTIVITY_SUMMARY.md
+AI_TRAINING_GUIDE.md
+API_DOCUMENTATION.md
+DEPLOYMENT_README.md
+DOCKER_TESTING_GUIDE.md
+END_TO_END_TEST_RESULTS.md
+GEMINI.md
+IMMEDIATE_STEPS_COMPLETE.md
+INTEGRATION_TEST_RESULTS.md
+ML_IMPLEMENTATION_SUMMARY.md
+ML_IMPROVEMENTS_SUMMARY.md
+OWNER_API_GUIDE.md
+PROJECT_COMPLETE.md
+UI_PARAMETER_FIX.md
+
+# Training data (can retrain later if needed)
+coffee_logs_*.json
+coffee_logs_*.csv
+server/coffeeshop_app_db.coffeelogs.json
+server/data_cleaning_report_*.json
+
+# Test files
+test-ml-docker.bat
+test_prediction.json
+fresh_export.js
+export_coffee_logs.js
+colab_import_code.py
+scripts/prepare_training_data.py
+
+# Development files
+docker-compose.yml
+server/Dockerfile
+ml_service/Dockerfile
+ml_service/.dockerignore
+ml_service/API_TESTING_GUIDE.md
+ml_service/test_training.py
+
+# Legacy files (already deployed in /legacy folders, but exclude if any in root)
+ai_training_notebook.ipynb
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Logs
+*.log
+heroku-deploy.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Public legacy (if not needed)
+public_legacy/
+
+# Client source (already built)
+client/src/
+client/public/
+
+# Keep only the build
+!client/build/
