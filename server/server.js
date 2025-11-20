@@ -92,6 +92,7 @@ const healthInsightsRouter = require('./routes/healthInsights');
 const apiKeysRouter = require('./routes/apiKeys');
 const apiDocsRouter = require('./routes/apiDocs');
 const webhooksRouter = require('./routes/webhooks');
+const dialInRouter = require('./routes/dialIn');
 
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
@@ -115,6 +116,7 @@ app.use('/health', healthInsightsRouter);
 app.use('/api-keys', apiKeysRouter);
 app.use('/api-docs', apiDocsRouter);
 app.use('/webhooks', webhooksRouter);
+app.use('/api/dial-in', dialInRouter);
 
 // Initialize WebSocket server for real-time order tracking
 const OrderTrackingServer = require('./websocket/orderTracking');

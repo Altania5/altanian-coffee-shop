@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # PostgreSQL Database for Optuna Studies
+  # ============================================
+  db:
+    image: postgres:15-alpine
+    container_name: altanian-optuna-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-optuna_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"  # Expose for debugging (remove in production)
+
+  # ============================================
+  # AI Optimization Engine (FastAPI + Optuna)
+  # ============================================
+  ai-engine:
+    build: .
+    container_name: altanian-ai-engine
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-user}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_NAME: ${DB_NAME:-optuna_db}
+      HOST: 0.0.0.0
+      PORT: 8000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ai-network
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # Cloudflare Tunnel (Secure Public Access)
+  # ============================================
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: altanian-cf-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      ai-engine:
+        condition: service_healthy
+    networks:
+      - ai-network
+    # Note: If TUNNEL_TOKEN is not set, this service will fail to start
+    # Get your token from: https://dash.cloudflare.com/ -> Zero Trust -> Tunnels
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  ai-network:
+    driver: bridge

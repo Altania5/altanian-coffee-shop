@@ -128,7 +128,16 @@ const coffeeLogSchema = new Schema({
     followed: { type: Boolean, default: false },
     improvement: { type: Number, min: -5, max: 5 } // quality change from following rec
   },
-  
+
+  // Dial-In Mode (Optuna Optimization)
+  dialInMode: { type: Boolean, default: false },
+  trialNumber: { type: Number, min: 0 },
+  method: {
+    type: String,
+    enum: ['espresso', 'ristretto', 'lungo'],
+    default: 'espresso'
+  },
+
   notes: { type: String, trim: true, maxlength: 500 }
 }, {
   timestamps: true,

@@ -1,0 +1,425 @@
+/* Dial-In Mode Component Styles */
+
+.dial-in-mode {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dial-in-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.dial-in-header h2 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 2em;
+}
+
+.dial-in-header p {
+  color: #7f8c8d;
+  font-size: 1.1em;
+}
+
+/* Messages */
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border-left: 4px solid #c33;
+}
+
+.success-message {
+  background: #efe;
+  color: #3c3;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border-left: 4px solid #3c3;
+}
+
+/* Setup Step */
+.dial-in-setup {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 1.05em;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.bean-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid #3498db;
+}
+
+.bean-info h4 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.bean-info p {
+  margin: 5px 0;
+  color: #555;
+}
+
+/* History Section */
+.history-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.history-section h4 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.trial-num {
+  font-weight: 600;
+  color: #3498db;
+  min-width: 80px;
+}
+
+.trial-score {
+  font-weight: 600;
+  color: #27ae60;
+  min-width: 90px;
+}
+
+.trial-params {
+  color: #7f8c8d;
+  font-size: 0.9em;
+  flex-grow: 1;
+  text-align: right;
+}
+
+/* Instructions Step */
+.dial-in-instructions {
+  padding: 20px;
+}
+
+.trial-info {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.trial-info h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.8em;
+}
+
+.best-so-far {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.best-so-far p {
+  margin: 5px 0;
+  font-size: 1.1em;
+}
+
+.trial-count {
+  opacity: 0.9;
+  font-size: 0.95em !important;
+}
+
+.recommendations-card {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 2px solid #3498db;
+}
+
+.recommendations-card h4 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1.3em;
+  margin-bottom: 20px;
+}
+
+.param-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.param-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.param-label {
+  font-weight: 600;
+  color: #555;
+  font-size: 1.05em;
+}
+
+.param-value {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #3498db;
+}
+
+.instructions-text {
+  background: #fff9e6;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  border-left: 4px solid #f39c12;
+}
+
+.instructions-text h4 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.instructions-text ol {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+}
+
+.instructions-text li {
+  margin: 10px 0;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* Feedback Step */
+.dial-in-feedback {
+  padding: 20px;
+}
+
+.dial-in-feedback h3 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 25px;
+}
+
+.score-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.score-value {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: #3498db;
+}
+
+.score-label {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #555;
+}
+
+.score-guide {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.score-guide h4 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1.1em;
+}
+
+.score-guide ul {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+}
+
+.score-guide li {
+  margin: 8px 0;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-success {
+  flex: 1;
+  min-width: 200px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.05em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dial-in-mode {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .dial-in-header h2 {
+    font-size: 1.5em;
+  }
+
+  .param-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .param-value {
+    font-size: 1.8em;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-success {
+    min-width: 100%;
+  }
+
+  .history-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .trial-params {
+    text-align: left;
+  }
+}
+
+/* Loading Animation */
+.btn-primary:disabled::after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% {
+    content: '.';
+  }
+  40% {
+    content: '..';
+  }
+  60%, 100% {
+    content: '...';
+  }
+}
